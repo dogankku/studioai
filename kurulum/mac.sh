@@ -10,6 +10,9 @@ say()  { printf "\n\033[1;33m==> %s\033[0m\n" "$1"; }
 ok()   { printf "\033[1;32m✓ %s\033[0m\n" "$1"; }
 fail() { printf "\n\033[1;31m✗ %s\033[0m\n" "$1"; echo "Bu ekranın görüntüsünü Claude'a gönderin."; exit 1; }
 
+# Betiğin tamamı önce okunur, sonra çalışır (curl | bash ile yapıştırıldığında alt komutlar betiğin geri kalanını yutamasın)
+main() {
+
 mkdir -p "$DIR" && cd "$DIR" || fail "Klasör oluşturulamadı: $DIR"
 say "Film Stüdyosu yerel AI kurulumu başlıyor (klasör: $DIR)"
 FREE=$(df -g "$HOME" | awk 'NR==2{print $4}')
@@ -66,7 +69,7 @@ ok "uv: $(uv --version)"
 say "4/5 ComfyUI kuruluyor"
 ARCH=$(uname -m)
 TORCH_PIN=""
-if [ "$ARCH" = "x86_64" ]; then TORCH_PIN='torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 numpy<2'; fi
+if [ "$ARCH" = "x86_64" ]; then TORCH_PIN='torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 numpy<2 transformers<5'; fi
 install_comfy() { # $1: sürüm (master ya da etiket)
   local ref="$1" url
   if [ "$ref" = "master" ]; then url="https://github.com/comfyanonymous/ComfyUI/archive/refs/heads/master.zip"; else url="https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/$ref.zip"; fi
@@ -84,6 +87,7 @@ install_comfy() { # $1: sürüm (master ya da etiket)
   uv venv -q --python 3.11 .venv || return 1
   # comfy-angle zorunlu değil ve Intel Mac için hazır paketi yok
   grep -viE '^(torch|torchvision|torchaudio|comfy-angle)([<>=~! ]|$)' requirements.txt > /tmp/fs_req.txt
+  echo requests >> /tmp/fs_req.txt
   if [ -n "$TORCH_PIN" ]; then
     printf '%s\n' $TORCH_PIN > /tmp/fs_constraints.txt
     # yalnızca hazır paketler: hiçbir şey kaynaktan derlenmez
@@ -133,3 +137,5 @@ for i in $(seq 1 90); do curl -fs http://127.0.0.1:8188/system_stats >/dev/null 
 if curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then ok "ComfyUI çalışıyor"; else echo "ComfyUI henüz açılmadı; yeni Terminal penceresindeki mesajlara bakın."; fi
 
 printf "\n\033[1;32m══════════════════════════════════════════\n  Kurulum tamamlandı.\n  Film Stüdyosu → Yapay zekâ → Bağlantılar → \"Bağlan\"\n  ComfyUI'ı sonraki açılışlarda: ~/FilmStudyosu/ComfyUI-Baslat.command\n══════════════════════════════════════════\033[0m\n"
+}
+main "$@" < /dev/null
