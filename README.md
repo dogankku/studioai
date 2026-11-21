@@ -56,6 +56,8 @@ CSV sütunları: `ana, alt, kaynak, etiket` (başlık satırı varsa adlarına g
 2. **Settings → Pages → Build and deployment** bölümünde *Source: Deploy from a branch*, *Branch: `main` / `(root)`* seçin.
 3. Birkaç dakika sonra uygulama `https://dogankku.github.io/studioai/` adresinde açılır.
 
+Kodda değişiklik yaptıktan sonra `./bump-version.sh` çalıştırın; dosyalara sürüm etiketi ekler, böylece kullanıcıların tarayıcısı eski dosyaları önbellekten kullanmaz.
+
 Yerelde denemek için klasörde bir sunucu açın (modüller `file://` ile çalışmaz):
 
 ```
