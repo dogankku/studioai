@@ -70,6 +70,48 @@ say "4/5 ComfyUI kuruluyor"
 ARCH=$(uname -m)
 TORCH_PIN=""
 if [ "$ARCH" = "x86_64" ]; then TORCH_PIN='torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 numpy<2 transformers<5'; fi
+install_compat() { # PyTorch 2.2 uyumluluk yaması (yalnızca Intel Mac)
+  [ -n "$TORCH_PIN" ] || return 0
+  local sp; sp=$("$DIR/ComfyUI/.venv/bin/python" -c "import sysconfig;print(sysconfig.get_paths()['purelib'])") || return 1
+  cat > "$sp/fs_torch_compat.py" <<'PYEOF'
+# Film Stüdyosu: Intel Mac'te PyTorch 2.2 ile yeni ComfyUI kodu arasındaki küçük farkları kapatır.
+# torch içe aktarıldığı anda eksik fonksiyonları ekler; torch'u erkenden yüklemez.
+import sys, importlib.abc, importlib.machinery
+
+def _patch(torch):
+    try:
+        if not hasattr(torch.compiler, "is_compiling"):
+            torch.compiler.is_compiling = lambda: False
+    except Exception:
+        pass
+
+class _TorchHook(importlib.abc.MetaPathFinder):
+    def find_spec(self, name, path, target=None):
+        if name != "torch":
+            return None
+        # kendini kaldırmıyoruz: importlib.util.find_spec("torch") gibi denetimler asıl içe aktarmadan önce de buraya düşer
+        spec = importlib.machinery.PathFinder.find_spec(name, path)
+        if spec is None or spec.loader is None:
+            return spec
+        orig = spec.loader.exec_module
+        def exec_module(module):
+            orig(module)
+            _patch(module)
+            try:
+                sys.meta_path.remove(self)
+            except ValueError:
+                pass
+        spec.loader.exec_module = exec_module
+        return spec
+
+if "torch" in sys.modules:
+    _patch(sys.modules["torch"])
+else:
+    sys.meta_path.insert(0, _TorchHook())
+PYEOF
+  echo "import fs_torch_compat" > "$sp/fs_torch_compat.pth"
+  "$DIR/ComfyUI/.venv/bin/python" -c "import torch; assert hasattr(torch.compiler, 'is_compiling')" || return 1
+}
 install_comfy() { # $1: sürüm (master ya da etiket)
   local ref="$1" url
   if [ "$ref" = "master" ]; then url="https://github.com/comfyanonymous/ComfyUI/archive/refs/heads/master.zip"; else url="https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/$ref.zip"; fi
@@ -96,6 +138,7 @@ install_comfy() { # $1: sürüm (master ya da etiket)
     uv pip install --python .venv/bin/python torch torchvision torchaudio || return 1
     uv pip install --python .venv/bin/python -r /tmp/fs_req.txt || return 1
   fi
+  install_compat || return 1
   echo "Açılış testi yapılıyor…"
   .venv/bin/python main.py --cpu --quick-test-for-ci > /tmp/fs_comfy/test.log 2>&1
   if grep -q "Traceback" /tmp/fs_comfy/test.log; then tail -3 /tmp/fs_comfy/test.log; return 1; fi
@@ -113,6 +156,8 @@ if [ $DONE -eq 0 ]; then
   done
 fi
 [ $DONE -eq 1 ] || fail "ComfyUI kurulamadı."
+install_compat || fail "Uyumluluk yaması kurulamadı."
+ok "PyTorch uyumluluk yaması hazır"
 cd "$DIR/ComfyUI"
 
 say "5/5 Görsel modeli indiriliyor: SD-Turbo (yaklaşık 5 GB)"
@@ -132,6 +177,7 @@ chmod +x "$DIR/ComfyUI-Baslat.command"
 ok "Başlatıcı: $DIR/ComfyUI-Baslat.command (Finder'da çift tıklayarak açılır)"
 
 say "ComfyUI başlatılıyor (yeni bir Terminal penceresi açılacak)"
+pkill -f "main.py --cpu --listen 127.0.0.1 --port 8188" 2>/dev/null && { echo "Açık olan eski ComfyUI kapatıldı."; sleep 3; }
 open "$DIR/ComfyUI-Baslat.command"
 for i in $(seq 1 90); do curl -fs http://127.0.0.1:8188/system_stats >/dev/null && break; sleep 2; done
 if curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then ok "ComfyUI çalışıyor"; else echo "ComfyUI henüz açılmadı; yeni Terminal penceresindeki mesajlara bakın."; fi
