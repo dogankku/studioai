@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Toplu Video Stüdyosu</title>
 <meta name="description" content="Ayet, hadis, söz ve kelimelerden toplu video üretici. Tamamen tarayıcıda çalışır, kayıt gerektirmez.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&family=Noto+Naskh+Arabic:wght@500;700&family=Reem+Kufi:wght@500;700&family=Inter:wght@400;600;800&family=Lora:ital,wght@0,500;0,700;1,500&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Montserrat:wght@500;800&family=Cormorant+Garamond:wght@600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -20,7 +18,7 @@
       </div>
       <div class="hdr-btns">
         <button class="btn sm" id="saveProj" title="Ayarları ve metinleri dosyaya kaydet">Projeyi kaydet</button>
-        <label class="btn sm" title="Kayıtlı proje dosyasını aç">Proje aç<input type="file" id="loadProj" accept=".json,application/json" hidden></label>
+        <label class="btn sm" title="Kayıtlı proje dosyasını aç (.json ya da medyalı .zip)">Proje aç<input type="file" id="loadProj" accept=".json,.zip,application/json,application/zip" hidden></label>
       </div>
     </header>
 
@@ -54,6 +52,37 @@
           <div><label for="eSrc">Kaynak</label><input type="text" id="eSrc" placeholder="Bakara, 286"></div>
           <div><label for="eTag">Etiket (boşsa varsayılan)</label><input type="text" id="eTag"></div>
         </div>
+        <div class="sync-row">
+          <button class="btn sm" id="syncBtn">🎙 Tilavetle eşle</button>
+          <span id="syncInfo" class="muted"></span>
+          <button class="link" id="syncClear">eşlemeyi sil</button>
+        </div>
+        <details id="ovBox">
+          <summary>Bu videoya özel ayarlar <span id="ovBadge" class="muted"></span></summary>
+          <div class="row">
+            <div><label for="oTheme">Tema</label><select id="oTheme"></select></div>
+            <div><label for="oAnim">Animasyon</label><select id="oAnim"></select></div>
+          </div>
+          <div class="row">
+            <div><label for="oPosition">Yerleşim</label><select id="oPosition"><option value="">Genel ayar</option><option value="top">Üstte</option><option value="center">Ortada</option><option value="bottom">Altta</option></select></div>
+            <div><label for="oMedia">Arka plan</label><select id="oMedia"></select></div>
+          </div>
+          <label for="oMusic">Ses</label><select id="oMusic"></select>
+        </details>
+      </div>
+
+      <div class="card" id="quranBox">
+        <div class="ttl">Kur'an'dan ekle</div>
+        <label for="qSurah">Sûre</label>
+        <select id="qSurah"><option>Yükleniyor…</option></select>
+        <div class="row3">
+          <div><label for="qFrom">İlk ayet</label><input type="number" id="qFrom" min="1" value="1"></div>
+          <div><label for="qTo">Son ayet</label><input type="number" id="qTo" min="1" value="1"></div>
+          <div><label for="qMode">Bölme</label><select id="qMode"><option value="each">Her ayet ayrı</option><option value="one">Hepsi tek video</option></select></div>
+        </div>
+        <label class="check"><input type="checkbox" id="qMeal" checked> Meali alt metin olarak ekle</label>
+        <div class="row-btns"><button class="btn sm primary" id="qAdd">Listeye ekle</button><span class="muted" id="qInfo"></span></div>
+        <div class="hint">Arapça metin: King Fahd Kur'an Kompleksi Uthmani hattı (quranenc.com). Meal: Diyanet İşleri Başkanlığı (tanzil.net). Kaynak: quran-json, CC BY-SA 4.0. Uthmani işaretleri için "Amiri Quran" ya da "Scheherazade" yazı tipi önerilir.</div>
       </div>
 
       <div class="card">
@@ -154,6 +183,7 @@ Sonraki metin…"></textarea>
         <div><label for="arabicFont">Arapça yazı tipi</label>
           <select id="arabicFont">
             <option value="Amiri">Amiri (nesih)</option>
+            <option value='"Amiri Quran"'>Amiri Quran (mushaf)</option>
             <option value='"Scheherazade New"'>Scheherazade</option>
             <option value='"Noto Naskh Arabic"'>Noto Naskh</option>
             <option value='"Reem Kufi"'>Reem Kufi (kûfi)</option>
@@ -189,6 +219,15 @@ Sonraki metin…"></textarea>
         <div><label for="accentColor">Vurgu</label><input type="color" id="accentColor"></div>
         <div><label for="subColor">Alt metin</label><input type="color" id="subColor"></div>
       </div>
+
+      <div class="ttl mt">Giriş ve kapanış kartı</div>
+      <label for="introText">Giriş yazısı (örn. Besmele, kanal adı)</label>
+      <input type="text" id="introText" placeholder="بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ">
+      <div class="rng"><input type="range" id="introDur" min="0" max="6" step="0.5"><output data-for="introDur" data-unit=" sn"></output></div>
+      <label for="outroText">Kapanış yazısı (örn. Takip edin)</label>
+      <input type="text" id="outroText" placeholder="Takip etmeyi unutmayın">
+      <div class="rng"><input type="range" id="outroDur" min="0" max="6" step="0.5"><output data-for="outroDur" data-unit=" sn"></output></div>
+      <div class="hint">Süre 0 ise kart gösterilmez.</div>
 
       <div class="ttl mt">İmza ve logo</div>
       <label for="handle">Hesap adı / imza</label>
@@ -268,6 +307,16 @@ Sonraki metin…"></textarea>
         <button class="btn" id="queueOne">Sadece seçili</button>
         <button class="btn ghost" id="cancelAll" disabled>Durdur</button>
       </div>
+      <div class="card dir-card">
+        <div class="file-row" style="margin-top:0">
+          <button class="btn sm" id="pickDir">📁 Kayıt klasörü seç</button>
+          <span id="dirName" class="muted">Klasör seçilmedi: videolar bellekte tutulur</span>
+          <button class="link" id="clearDir">kaldır</button>
+        </div>
+        <div class="hint" id="dirHint">Klasör seçerseniz her video bitince doğrudan diske yazılır; çok sayıda ya da uzun video için önerilir (Chrome/Edge).</div>
+        <label class="check"><input type="checkbox" id="srt"> Her videoya altyazı dosyası (.srt) da üret</label>
+      </div>
+      <div class="warn" id="hiddenWarn">Sekme arka plandayken üretim yavaşlayabilir. Bu sekmeyi önde tutun.</div>
       <div class="overall" id="overall"><div class="prog"><i id="overallBar"></i></div><span id="overallTxt" class="muted"></span></div>
       <div id="queueList" class="queue"></div>
       <div class="row-btns" style="margin-top:10px">
@@ -282,6 +331,7 @@ Sonraki metin…"></textarea>
     <div class="stage" id="stage">
       <canvas id="cv"></canvas>
       <div class="loading" id="loading">Yazı tipleri yükleniyor…</div>
+      <div class="toast" id="toast"></div>
     </div>
     <div class="bar">
       <div class="nav">
@@ -303,6 +353,26 @@ Sonraki metin…"></textarea>
     <div class="row-btns center">
       <button class="btn primary" id="modalDl">⬇ İndir</button>
       <button class="btn" id="modalClose">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="syncModal">
+  <div class="sync-box">
+    <div class="sync-head">
+      <div><b>Tilavetle eşleme</b> <span class="muted" id="syncTitle"></span></div>
+      <span id="syncTime" class="muted">0.0 sn</span>
+    </div>
+    <div class="sync-help">▶ Başlat'a basın; her kelime okunmaya başladığında <b>Boşluk</b> tuşuna ya da aşağıdaki büyük düğmeye basın. Hata yaparsanız <b>Geri al</b> (⌫) son işareti siler ve sesi biraz geriye sarar.</div>
+    <div class="sync-words" id="syncWords"></div>
+    <button class="sync-tap" id="syncTap" disabled>Sıradaki kelime</button>
+    <div class="row-btns center">
+      <button class="btn" id="syncStart">▶ Başlat</button>
+      <button class="btn" id="syncUndo" disabled>⌫ Geri al</button>
+      <button class="btn ghost" id="syncReset">Baştan</button>
+      <button class="btn" id="syncPreview" disabled>Önizle</button>
+      <button class="btn primary" id="syncSave" disabled>Kaydet</button>
+      <button class="btn ghost" id="syncCancel">Kapat</button>
     </div>
   </div>
 </div>

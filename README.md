@@ -7,8 +7,12 @@ Tamamen tarayıcıda çalışır: sunucu, veritabanı, üyelik yok. Yüklediğin
 
 ## Özellikler
 
+- **Kur'an'dan ekle**: sûre ve ayet aralığı seçin; doğrulanmış Uthmani metin ve Diyanet meali listeye eklenir (her ayet ayrı video ya da hepsi tek video). Veri uygulamanın içinde, internet gerekmez.
+- **Tilavetle eşleme**: sesi dinlerken her kelimede Boşluk tuşuna basın; kelimeler tilavetle birlikte belirir. Geri al, baştan al, önizle.
 - **Toplu liste**: metinleri `---` ile ayırarak yapıştırın, CSV/Excel'den alın ya da tek tek ekleyin. Her öğede ana metin, alt metin (meal), kaynak ve etiket olabilir.
-- **Arapça desteği**: Arapça metin kendiliğinden algılanır, sağdan sola ve harekeli yazılır. Amiri, Scheherazade, Noto Naskh ve Reem Kufi yazı tipleri.
+- **Arapça desteği**: Arapça metin kendiliğinden algılanır, sağdan sola ve harekeli yazılır; Türkçe cümle içinde geçen Arapça kelimeler de doğru yönde durur. Amiri, Amiri Quran, Scheherazade, Noto Naskh ve Reem Kufi yazı tipleri uygulamaya gömülüdür.
+- **Video bazında ayar**: her videoya ayrı tema, animasyon, yerleşim, arka plan ve ses verilebilir.
+- **Giriş / kapanış kartı**: örneğin başta Besmele, sonda "Takip edin".
 - **Arka plan**
   - 8 hazır hareketli tema: Gece, Altın, Zümrüt, Gün batımı, Aurora, Okyanus, Bordo, Sade
   - Düz renk ya da dönen gradyan
@@ -19,7 +23,9 @@ Tamamen tarayıcıda çalışır: sunucu, veritabanı, üyelik yok. Yüklediğin
 - **Ses**: müzik, tilavet ya da seslendirme ekleyin; hepsine aynı sesi, sırayla ya da karışık dağıtın. Video süresi sese eşitlenebilir.
 - **Çıktı**: 9:16, 4:5, 1:1, 16:9 · 720p / 1080p / 1440p · 24/30/60 fps · MP4 (H.264).
   Chrome ve Edge'de **hızlı mod** (WebCodecs) ile videolar gerçek süresinden hızlı üretilir. Hepsi tek ZIP olarak indirilebilir.
-- **Proje kaydetme**: ayarları ve metinleri `.json` dosyasına kaydedip sonra açabilirsiniz. Son çalışma tarayıcıda da hatırlanır.
+- **Altyazı**: istenirse her videoya `.srt` dosyası.
+- **Kalıcılık**: metinler, ayarlar, görseller, videolar, sesler ve logo tarayıcıda saklanır; sayfa yenilense de kaybolmaz. "Projeyi kaydet" medyalarla birlikte tek `.zip` üretir, başka bilgisayarda "Proje aç" ile açılır.
+- **Klasöre doğrudan yazma**: Chrome/Edge'de bir klasör seçerseniz her video bitince diske yazılır, bellek dolmaz.
 
 ## Kullanım
 
@@ -62,6 +68,7 @@ ve `http://localhost:8000` adresine gidin.
 
 - En iyi sonuç için masaüstü **Chrome** ya da **Edge** kullanın. Firefox/Safari'de video gerçek zamanlı kaydedilir (her video kendi süresi kadar sürer).
 - Linux'taki Chrome AAC ses kodlayamayabilir; o durumda ses Opus olarak eklenir. iPhone uyumluluğu için Windows/Mac'te üretin.
+- Sekme arka plandayken üretim yavaşlayabilir; sekmeyi önde tutun.
 - Video arka plan kullanırken kare kare arama yapıldığı için üretim biraz yavaşlar; kısa ve düşük çözünürlüklü arka plan videoları daha hızlıdır.
 
 ## Dosyalar
@@ -75,9 +82,19 @@ js/backgrounds.js   temalar, görsel/video arka plan, efektler
 js/encoder.js       MP4 kodlama (WebCodecs + mp4-muxer, yedek: MediaRecorder)
 js/audio.js         ses çözme ve karıştırma
 js/parser.js        toplu metin ve CSV ayrıştırma
+js/quran.js         Kur'an verisi
+js/storage.js       medya saklama (IndexedDB)
 vendor/             mp4-muxer (MIT), JSZip (MIT)
+fonts/, css/fonts.css  gömülü yazı tipleri (SIL OFL 1.1, Fontsource)
+data/quran/         114 sûre: Arapça metin + Türkçe meal
 ```
+
+## Veri kaynakları
+
+- Arapça metin: King Fahd Kur'an Kompleksi Uthmani hattı ([quranenc.com](https://quranenc.com)).
+- Türkçe meal: Diyanet İşleri Başkanlığı ([tanzil.net](https://tanzil.net/trans/tr.diyanet)).
+- Paket: [quran-json](https://github.com/risan/quran-json), CC BY-SA 4.0. Meal metinlerinin kullanım koşulları için ilgili kaynaklara bakınız.
 
 ## Lisans
 
-MIT
+Uygulama kodu MIT. Yazı tipleri SIL OFL 1.1, Kur'an verisi CC BY-SA 4.0 (yukarıya bakınız).

@@ -7,45 +7,65 @@ export function live() {
   return liveCtx;
 }
 
-export async function decodeFile(file) {
-  const buf = await file.arrayBuffer();
-  const ctx = live();
-  return await ctx.decodeAudioData(buf);
+export async function decodeBlob(blob) {
+  const buf = await blob.arrayBuffer();
+  return await live().decodeAudioData(buf);
 }
 
-/** Bir videonun ses izini hazırlar: döngü, ses seviyesi, giriş/çıkış yumuşatma. */
-export async function mixFor(buffer, dur, { volume = 0.8, fadeIn = true, fadeOut = true, loop = true } = {}) {
-  const len = Math.max(1, Math.ceil(dur * SR));
+function envelope(param, { volume, fadeIn, fadeOut }, start, end, t0 = 0) {
+  // start..end: sesin videodaki aralığı; t0: zaman kayması (önizlemede ctx.currentTime farkı)
+  const len = end - start;
+  const fi = fadeIn ? Math.min(1.0, len / 4) : 0, fo = fadeOut ? Math.min(1.5, len / 4) : 0;
+  param.setValueAtTime(fi ? 0 : volume, t0 + start);
+  if (fi) param.linearRampToValueAtTime(volume, t0 + start + fi);
+  if (fo) { param.setValueAtTime(volume, t0 + Math.max(start + fi, end - fo)); param.linearRampToValueAtTime(0, t0 + end); }
+}
+
+/**
+ * Bir videonun ses izi: toplam süre total, ses startAt anında başlar.
+ * loop: ses kısa kalırsa başa sarar (müzik). Tilavette false.
+ */
+export async function mixFor(buffer, total, opts, startAt = 0) {
+  const len = Math.max(1, Math.ceil(total * SR));
   const oc = new OfflineAudioContext(2, len, SR);
-  const src = oc.createBufferSource(); src.buffer = buffer; src.loop = loop;
+  const src = oc.createBufferSource(); src.buffer = buffer; src.loop = !!opts.loop;
   const g = oc.createGain();
-  const fi = fadeIn ? Math.min(1.0, dur / 4) : 0, fo = fadeOut ? Math.min(1.5, dur / 4) : 0;
-  g.gain.setValueAtTime(fi ? 0 : volume, 0);
-  if (fi) g.gain.linearRampToValueAtTime(volume, fi);
-  if (fo) { g.gain.setValueAtTime(volume, Math.max(fi, dur - fo)); g.gain.linearRampToValueAtTime(0, dur); }
+  const end = opts.loop ? total : Math.min(total, startAt + buffer.duration);
+  envelope(g.gain, { volume: opts.volume ?? 0.8, fadeIn: opts.fadeIn, fadeOut: opts.fadeOut }, startAt, end);
   src.connect(g).connect(oc.destination);
-  src.start(0);
+  src.start(startAt);
   return await oc.startRendering();
 }
 
 let current = null;
-export function playPreview(buffer, offset, dur, opts) {
+/** Önizleme: videonun 'from' saniyesinden itibaren çal */
+export function playPreview(buffer, from, total, opts, startAt = 0) {
   stopPreview();
   if (!buffer) return;
   const ctx = live();
-  const src = ctx.createBufferSource(); src.buffer = buffer; src.loop = true;
+  const src = ctx.createBufferSource(); src.buffer = buffer; src.loop = !!opts.loop;
   const g = ctx.createGain();
-  const v = opts.volume ?? 0.8;
-  const fi = opts.fadeIn ? Math.min(1.0, dur / 4) : 0, fo = opts.fadeOut ? Math.min(1.5, dur / 4) : 0;
   const now = ctx.currentTime;
-  const at = x => now + (x - offset);
-  const gainAt = x => (fi && x < fi ? v * x / fi : fo && x > dur - fo ? v * Math.max(0, dur - x) / fo : v);
-  g.gain.setValueAtTime(gainAt(offset), now);
-  if (fi && offset < fi) g.gain.linearRampToValueAtTime(v, at(fi));
-  if (fo) { const s = Math.max(offset, dur - fo); g.gain.setValueAtTime(gainAt(s), at(s)); g.gain.linearRampToValueAtTime(0, at(dur)); }
+  const t0 = now - from; // video zamanı x -> ctx zamanı t0 + x
+  const end = opts.loop ? total : Math.min(total, startAt + buffer.duration);
+  if (from >= end) return;
+  envelope(g.gain, { volume: opts.volume ?? 0.8, fadeIn: opts.fadeIn, fadeOut: opts.fadeOut }, startAt, end, t0);
   src.connect(g).connect(ctx.destination);
-  src.start(now, offset % buffer.duration);
-  src.stop(at(dur) + 0.05);
+  const when = Math.max(now, t0 + startAt);
+  const offsetInBuf = Math.max(0, from - startAt);
+  src.start(when, opts.loop ? offsetInBuf % buffer.duration : offsetInBuf);
+  src.stop(t0 + end + 0.05);
   current = src;
 }
 export function stopPreview() { if (current) { try { current.stop(); } catch (e) { } current = null; } }
+
+/** Senkron ekranı için: baştan çal, başlangıç zamanını döndür */
+export function playFromStart(buffer, at = 0) {
+  stopPreview();
+  const ctx = live();
+  const src = ctx.createBufferSource(); src.buffer = buffer; src.connect(ctx.destination);
+  const start = ctx.currentTime + 0.05;
+  src.start(start, at);
+  current = src;
+  return { ctx, start: start - at };
+}

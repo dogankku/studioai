@@ -4,8 +4,12 @@ let _id = 0;
 export const newId = () => 'i' + Date.now().toString(36) + (++_id).toString(36);
 
 export function makeItem(o = {}) {
-  return { id: newId(), main: o.main || '', sub: o.sub || '', src: o.src || '', tag: o.tag || '' };
+  const it = { id: newId(), main: o.main || '', sub: o.sub || '', src: o.src || '', tag: o.tag || '' };
+  if (Array.isArray(o.timing)) it.timing = o.timing.slice();
+  if (o.ov && typeof o.ov === 'object') it.ov = { ...o.ov };
+  return it;
 }
+export const plainItem = ({ main, sub, src, tag, timing, ov }) => ({ main, sub, src, tag, ...(timing ? { timing } : {}), ...(ov && Object.values(ov).some(Boolean) ? { ov } : {}) });
 
 const KEY_RE = /^(meal|alt|açıklama|aciklama|çeviri|ceviri|kaynak|etiket)\s*:\s*(.*)$/i;
 
