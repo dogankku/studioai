@@ -7,9 +7,10 @@ export function makeItem(o = {}) {
   const it = { id: newId(), main: o.main || '', sub: o.sub || '', src: o.src || '', tag: o.tag || '' };
   if (Array.isArray(o.timing)) it.timing = o.timing.slice();
   if (o.ov && typeof o.ov === 'object') it.ov = { ...o.ov };
+  for (const k of ['ref', 'imgPrompt', 'imgId', 'sceneHint', 'aiText']) if (o[k] != null) it[k] = typeof o[k] === 'object' ? { ...o[k] } : o[k];
   return it;
 }
-export const plainItem = ({ main, sub, src, tag, timing, ov }) => ({ main, sub, src, tag, ...(timing ? { timing } : {}), ...(ov && Object.values(ov).some(Boolean) ? { ov } : {}) });
+export const plainItem = ({ main, sub, src, tag, timing, ov, ref, imgPrompt, imgId, sceneHint, aiText }) => ({ main, sub, src, tag, ...(timing ? { timing } : {}), ...(ov && Object.values(ov).some(Boolean) ? { ov } : {}), ...(ref ? { ref } : {}), ...(imgPrompt ? { imgPrompt } : {}), ...(imgId ? { imgId } : {}), ...(sceneHint ? { sceneHint } : {}), ...(aiText ? { aiText } : {}) });
 
 const KEY_RE = /^(meal|alt|açıklama|aciklama|çeviri|ceviri|kaynak|etiket)\s*:\s*(.*)$/i;
 

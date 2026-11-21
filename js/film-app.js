@@ -1,15 +1,18 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611211416';
-import { direct } from './film/director.js?v=202611211416';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211416';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211416';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211416';
-import { surahs, buildItems } from './quran.js?v=202611211416';
-import { putFile, delFile, allFiles } from './storage.js?v=202611211416';
-import { decodeBlob, mixFor, playPreview, stopPreview, live } from './audio.js?v=202611211416';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211416';
-import { dims, isMostlyRTL } from './renderer.js?v=202611211416';
-import { newId } from './parser.js?v=202611211416';
+import { Film } from './film/player.js?v=202611211508';
+import { direct, clipsOf } from './film/director.js?v=202611211508';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211508';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211508';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211508';
+import { surahs, buildItems } from './quran.js?v=202611211508';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611211508';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611211508';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211508';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611211508';
+import { newId } from './parser.js?v=202611211508';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611211508';
+import { writeScript } from './ai/senarist.js?v=202611211508';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611211508';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -27,7 +30,9 @@ const DEFAULTS = {
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
-  refUseCuts: true, refUseEnergy: true, refUseColors: false, refUseAudio: false
+  refUseCuts: true, refUseEnergy: true, refUseColors: false, refUseAudio: false,
+  olUrl: 'http://localhost:11434', olModel: '', cfUrl: 'http://127.0.0.1:8188', cfCkpt: '',
+  recOn: false, reciter: '7', ttsOn: false, voice: 'tr_TR-dfki-medium', imgOn: true, aiCount: '3', aiTone: 'huzur', aiNarr: true, aiTopic: ''
 };
 // Platform ayarları (YouTube ve Instagram önerilerine göre)
 const PLATFORMS = {
@@ -75,6 +80,33 @@ function directOpts() {
   if (template && !F.refUseEnergy) template.shots.forEach(s => delete s.energy);
   return { style: F.style, seed: F.seed, pace: F.pace, mealMode: F.mealMode, respectKeywords: F.respectKeywords, beats, template, targetDur: F.durMode === 'target' ? +F.targetDur : 0 };
 }
+/* yapay zekâ sesleri ve görselleri: öğe kimliğine göre önbellek */
+const recCache = new Map(), narrCache = new Map();
+function augItems() {
+  return items.map(it => {
+    const a = { ...it };
+    const r = recCache.get(it.id + ':' + F.reciter);
+    if (F.recOn && r && r.n === wordsOf(it.main).length) a._rec = { dur: r.buffer.duration, words: r.words };
+    const n = narrCache.get(it.id + ':' + F.voice);
+    if (F.ttsOn && n) { if (n.main && n.mainText === it.main) a._narrMain = { dur: n.main.duration }; if (n.sub && n.subText === it.sub) a._narrSub = { dur: n.sub.duration }; }
+    if (it.imgId && film.images.has(it.imgId)) a._img = it.imgId;
+    if (it.sceneHint) a._scene = it.sceneHint;
+    return a;
+  });
+}
+function clipBuffers(timeline) {
+  const out = [];
+  for (const c of timeline.clips || clipsOf(timeline.shots)) {
+    const [kind, idx] = c.key.split(':'); const it = items[+idx]; if (!it) continue;
+    let b = null;
+    if (kind === 'rec') { const r = recCache.get(it.id + ':' + F.reciter); b = r && r.buffer; }
+    else { const n = narrCache.get(it.id + ':' + F.voice); b = n && (kind === 'nm' ? n.main : n.sub); }
+    if (b) out.push({ start: c.start, buffer: b, gain: 1 });
+  }
+  return out;
+}
+function audioOpts(timeline) { const st = soundtrack(); return { clips: clipBuffers(timeline), music: st ? st.buffer : null, musicVol: +F.musicVol, fadeIn: F.fadeIn, fadeOut: F.fadeOut }; }
+
 function applyOverrides(t) {
   let start = 0;
   for (const s of t.shots) {
@@ -91,7 +123,8 @@ function rebuild(keepTime = true) {
   film.size = +F.size;
   film.safe = PV().safe;
   film.setStyle(F.style, { grade: { ...(ref && F.refUseColors ? ref.analysis.grade : {}), ...F.gradeOv }, fx: F.fxOv, colors: F.colors });
-  tl = applyOverrides(direct(items, directOpts()));
+  tl = applyOverrides(direct(augItems(), { ...directOpts(), aiImages: F.imgOn }));
+  tl.clips = clipsOf(tl.shots);
   film.setTimeline(tl);
   const st = soundtrack(); film.beats = st && st.an ? st.an.beats : null;
   if (!keepTime) curT = 0;
@@ -117,11 +150,11 @@ function updateTime() {
 function startPlayback(from) {
   if (busy || !tl.dur) return;
   curT = from; t0 = performance.now() - from * 1000; playing = true;
-  const st = soundtrack();
-  if (st) { try { live(); playPreview(st.buffer, from, tl.dur, { volume: F.musicVol, fadeIn: F.fadeIn, fadeOut: F.fadeOut, loop: true }, 0); } catch (e) { } }
+  const ao = audioOpts(tl);
+  if (ao.music || ao.clips.length) { try { playTimeline(from, tl.dur, ao); } catch (e) { console.warn(e); } }
   $('#play').textContent = '❚❚ Durdur';
 }
-function stopPlayback() { playing = false; stopPreview(); $('#play').textContent = '▶ Oynat'; }
+function stopPlayback() { playing = false; stopPreview(); stopTimeline(); $('#play').textContent = '▶ Oynat'; }
 $('#play').onclick = () => { if (playing) stopPlayback(); else startPlayback(curT >= tl.dur - 0.05 ? 0 : curT); };
 $('#seek').oninput = e => { const was = playing; stopPlayback(); curT = e.target.value / 1000 * tl.dur; updateTime(); dirty = true; if (was) startPlayback(curT); };
 function loop(now) {
@@ -200,11 +233,13 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mealMode', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio'];
+const FIELDS = ['pace', 'mealMode', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'recOn', 'reciter', 'ttsOn', 'voice', 'imgOn', 'aiCount', 'aiTone', 'aiNarr', 'aiTopic'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
     F[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value;
+    if (['olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'aiCount', 'aiTone', 'aiNarr', 'aiTopic'].includes(k)) { save(); return; }
+    if (['recOn', 'ttsOn', 'reciter', 'voice'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); return; }
     if (k === 'targetDur') F.targetDur = Math.max(5, Math.min(1200, Math.round(+el.value || 60)));
     if (['latinFont', 'arabicFont'].includes(k)) ensureFonts().then(changed); else changed();
   });
@@ -287,7 +322,7 @@ let editT = 0;
   ['eMain', 'eSub'].forEach(x => $('#' + x).classList.toggle('rtl', isMostlyRTL($('#' + x).value)));
   save(); clearTimeout(editT); editT = setTimeout(() => { renderList(); rebuild(); }, 350);
 }));
-function listChanged() { save(); renderList(); loadEditor(); rebuild(); }
+function listChanged() { save(); renderList(); loadEditor(); rebuild(); renderImgGrid(); updateAiAudioStatus(); }
 $('#addItem').onclick = () => { items.splice(sel + 1, 0, makeItem({ main: 'Yeni metin' })); sel = Math.min(sel + 1, items.length - 1); listChanged(); $('#eMain').focus(); $('#eMain').select(); };
 $('#clearList').onclick = () => { if (!items.length) return; if (!confirm('Tüm liste silinsin mi?')) return; items = []; sel = 0; listChanged(); };
 const bulk = () => { const t = $('#bulkText').value.trim(); return !t ? [] : t.split('\n')[0].includes('\t') ? parseCSV(t) : parseList(t); };
@@ -369,8 +404,8 @@ function updateOutInfo() {
 function setBusy(v) { busy = v; ['#render', '#renderBtn', '#play', '#seek', '#redirect'].forEach(s => ($(s).disabled = v)); $('#cancel').disabled = !v; $('#hiddenWarn').classList.toggle('show', v); }
 async function renderOne(timeline, name, W, H, mbps, onP) {
   film.setTimeline(timeline);
-  const st = soundtrack();
-  const audio = st ? await mixFor(st.buffer, timeline.dur, { volume: F.musicVol, fadeIn: F.fadeIn, fadeOut: F.fadeOut, loop: true }, 0) : null;
+  const ao = audioOpts(timeline);
+  const audio = (ao.music || ao.clips.length) ? await mixTimeline(timeline.dur, ao) : null;
   const fps = +F.fps, bitrate = Math.round(mbps * 1e6 * (fps > 30 ? 1.5 : 1) * +F.quality * (H * W) / (1920 * 1080));
   let file = null; if (dirHandle) file = await dirHandle.getFileHandle(name + '.mp4', { create: true });
   let res = null;
@@ -383,9 +418,10 @@ function jobsFor(platKey) {
   const base = slug(items[0] && (items[0].tag || items[0].src) || 'film') || 'film';
   if (F.mode === 'each') {
     items.forEach((it, i) => {
-      const t1 = direct([it], directOpts()); // her öğe kendi süresine göre kurgulanır
+      const t1 = direct([augItems()[i]], { ...directOpts(), aiImages: F.imgOn }); // her öğe kendi süresine göre kurgulanır
       t1.shots.forEach(s => { s.key = s.key.replace(/^0:/, i + ':'); });
-      jobs.push({ tl: applyOverrides(t1), name: `${String(i + 1).padStart(2, '0')}-${slug(it.src || it.tag || 'video')}-${p.suffix}` });
+      const t2 = applyOverrides(t1); t2.clips = clipsOf(t2.shots).map(c => ({ ...c, key: c.key.replace(/:0$/, ':' + i) }));
+      jobs.push({ tl: t2, name: `${String(i + 1).padStart(2, '0')}-${slug(it.src || it.tag || 'video')}-${p.suffix}` });
     });
   } else jobs.push({ tl, name: `${base}-${p.suffix}` });
   return jobs;
@@ -394,6 +430,7 @@ async function renderAll() {
   if (busy || !tl.shots.length) return;
   stopPlayback(); cancelFlag = false; setBusy(true); switchTab('uretim');
   await ensureFonts();
+  if (F.recOn || F.ttsOn) { $('#barTxt').textContent = 'Sesler hazırlanıyor…'; await prepareAudio(m => ($('#barTxt').textContent = m)); }
   const plan = [];
   for (const k of F.platforms) plan.push(k);
   const total = plan.length * (F.mode === 'each' ? items.length : 1);
@@ -445,6 +482,160 @@ $('#loadProj').onchange = async e => {
   catch (err) { toast('Proje okunamadı'); }
 };
 
+
+/* ================= Yapay zekâ ================= */
+$('#reciter').innerHTML = Object.entries(RECITERS).map(([k, r]) => `<option value="${k}">${esc(r.name)}</option>`).join('');
+$('#voice').innerHTML = Object.entries(VOICES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+const GUIDE = `<ol>
+<li><b>Ollama</b> (senarist): <a class="link" href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a> adresinden Mac sürümünü indirip kurun. Ardından Terminal'de:
+<pre>ollama pull qwen2.5:7b</pre>32 GB belleğiniz bu modele yeter; daha hızlı ama daha zayıf Türkçe için <code>qwen2.5:3b</code>.</li>
+<li>Bu sitenin Ollama'ya bağlanabilmesi için izin verin, sonra Ollama'yı kapatıp yeniden açın:
+<pre>launchctl setenv OLLAMA_ORIGINS "https://dogankku.github.io"</pre></li>
+<li><b>ComfyUI</b> (görseller): Terminal'de sırayla:
+<pre>cd ~ && git clone https://github.com/comfyanonymous/ComfyUI.git && cd ComfyUI
+python3 -m venv venv && source venv/bin/activate
+pip install "torch==2.2.2" "torchvision==0.17.2" "torchaudio==2.2.2" "numpy<2"
+pip install -r requirements.txt</pre>PyTorch'un Intel Mac için son sürümü 2.2.2'dir; requirements daha yenisini isterse bu sürümde kalın.</li>
+<li>Hızlı görsel modeli SD-Turbo'yu indirip <code>ComfyUI/models/checkpoints</code> klasörüne koyun: <a class="link" href="https://huggingface.co/stabilityai/sd-turbo/tree/main" target="_blank" rel="noopener">huggingface.co/stabilityai/sd-turbo</a> (sd_turbo.safetensors).</li>
+<li>ComfyUI'ı bu siteye izin vererek, işlemciyle başlatın:
+<pre>cd ~/ComfyUI && source venv/bin/activate
+python main.py --cpu --enable-cors-header "https://dogankku.github.io"</pre></li>
+<li>Buradaki "Bağlan" düğmelerine basın. Chrome yerel ağa erişim izni sorarsa izin verin.</li></ol>`;
+$('#guideBox').innerHTML = GUIDE;
+
+async function olConnect(quiet) {
+  $('#olStatus').textContent = 'Bağlanılıyor…';
+  try {
+    const ms = await ollamaModels(F.olUrl);
+    $('#olModel').innerHTML = ms.length ? ms.map(m => `<option value="${esc(m.name)}">${esc(m.name)} (${(m.size / 1e9).toFixed(1)} GB)</option>`).join('') : '<option value="">model yok: ollama pull qwen2.5:7b</option>';
+    if (!ms.some(m => m.name === F.olModel)) F.olModel = (ms.find(m => /qwen|llama|gemma|mistral/i.test(m.name)) || ms[0] || {}).name || '';
+    $('#olModel').value = F.olModel; save();
+    $('#olStatus').textContent = ms.length ? `✓ Bağlı · ${ms.length} model` : '✓ Bağlı ama model yok';
+    return true;
+  } catch (e) { $('#olStatus').textContent = quiet ? '' : '✗ Bağlanamadı: Ollama açık mı, OLLAMA_ORIGINS ayarlı mı? (rehbere bakın)'; return false; }
+}
+async function cfConnect(quiet) {
+  $('#cfStatus').textContent = 'Bağlanılıyor…';
+  try {
+    const cs = await comfyCheckpoints(F.cfUrl);
+    $('#cfCkpt').innerHTML = cs.length ? cs.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('') : '<option value="">model yok: models/checkpoints klasörüne ekleyin</option>';
+    if (!cs.includes(F.cfCkpt)) F.cfCkpt = cs.find(c => /turbo/i.test(c)) || cs[0] || '';
+    $('#cfCkpt').value = F.cfCkpt; save();
+    $('#cfStatus').textContent = cs.length ? `✓ Bağlı · ${cs.length} model` : '✓ Bağlı ama model yok';
+    return true;
+  } catch (e) { $('#cfStatus').textContent = quiet ? '' : '✗ Bağlanamadı: ComfyUI çalışıyor mu, --enable-cors-header verildi mi?'; return false; }
+}
+$('#olTest').onclick = () => olConnect(false);
+$('#cfTest').onclick = () => cfConnect(false);
+
+let aiAbort = null, lastPlan = store.get('film-plan', null);
+$('#aiWrite').onclick = async () => {
+  const topic = $('#aiTopic').value.trim(); if (!topic) { toast('Önce bir konu yazın'); return; }
+  if (!F.olModel && !(await olConnect(false))) return;
+  if (!F.olModel) { toast('Ollama\'da model yok'); return; }
+  aiAbort = new AbortController(); $('#aiWrite').disabled = true; $('#aiStop').disabled = false;
+  const t0 = performance.now();
+  try {
+    lastPlan = await writeScript({ url: F.olUrl, model: F.olModel, topic, ayahCount: +F.aiCount, tone: F.aiTone, seconds: F.durMode === 'target' ? +F.targetDur : 60, narration: F.aiNarr, signal: aiAbort.signal, onStatus: m => ($('#aiStatus').textContent = m) });
+    store.set('film-plan', lastPlan); renderPlan();
+    $('#aiStatus').textContent = `Senaryo hazır (${((performance.now() - t0) / 1000).toFixed(0)} sn). Kontrol edip listeye uygulayın.`;
+  } catch (e) { $('#aiStatus').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
+  $('#aiWrite').disabled = false; $('#aiStop').disabled = true; aiAbort = null;
+};
+$('#aiStop').onclick = () => aiAbort && aiAbort.abort();
+function planItems(p) {
+  const out = [];
+  if (p.hook) out.push(makeItem({ main: p.hook, tag: p.title, aiText: true, imgPrompt: 'serene cinematic landscape at golden hour, soft light, atmospheric, no people' }));
+  p.items.forEach((v, i) => out.push(makeItem({ main: v.ar, sub: v.tr, src: `${v.sname} Sûresi, ${v.a}`, tag: !p.hook && i === 0 ? p.title : '', ref: { s: v.s, from: v.a, to: v.a }, imgPrompt: v.image || '', sceneHint: v.scene || '' })));
+  if (p.closing) out.push(makeItem({ main: p.closing, aiText: true, imgPrompt: 'calm night sky with stars over quiet hills, cinematic, no people' }));
+  return out;
+}
+function renderPlan() {
+  const p = lastPlan; $('#aiPlan').style.display = p ? '' : 'none'; if (!p) return;
+  $('#aiPlanBox').innerHTML = `<b>${esc(p.title)}</b>${p.style ? ` · stil: ${esc((STYLES[p.style] || {}).name || p.style)}` : ''}` +
+    (p.hook ? `<div class="ay"><i>Giriş:</i> ${esc(p.hook)}</div>` : '') +
+    p.items.map(v => `<div class="ay"><div class="ar">${esc(v.ar)}</div>${esc(v.tr)} <span class="muted">(${esc(v.sname)}, ${v.a})</span>${v.image ? `<br><span class="muted">Görsel: ${esc(v.image)}</span>` : ''}</div>`).join('') +
+    (p.closing ? `<div class="ay"><i>Kapanış:</i> ${esc(p.closing)}</div>` : '');
+  $('#aiYt').value = `${p.youtubeTitle}\n\n${p.description}\n\n${p.items.map(v => `${v.sname} Sûresi, ${v.a}`).join(' · ')}\n\n${p.hashtags.map(h => '#' + h).join(' ')}`;
+}
+$('#aiApply').onclick = () => { if (!lastPlan) return; items = planItems(lastPlan); sel = 0; if (lastPlan.style) F.style = lastPlan.style; F.seed = (F.seed % 9999) + 1; listChanged(); syncUI(); toast('Senaryo listeye uygulandı'); };
+$('#aiAppend').onclick = () => { if (!lastPlan) return; const n = planItems(lastPlan); items.push(...n); listChanged(); toast(`${n.length} öğe eklendi`); };
+$('#aiCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#aiYt').value); toast('Kopyalandı'); } catch (e) { $('#aiYt').select(); } };
+
+/* ses hazırlama */
+function updateAiAudioStatus() {
+  const need = items.filter(it => F.recOn && it.ref && it.ref.from === it.ref.to && !recCache.has(it.id + ':' + F.reciter)).length + items.filter(it => F.ttsOn && needsTTS(it) && !narrCache.has(it.id + ':' + F.voice)).length;
+  $('#audioStatus').textContent = (F.recOn || F.ttsOn) ? (need ? `${need} ses hazırlanmayı bekliyor` : '✓ Sesler hazır') : '';
+}
+const needsTTS = it => (it.main && !isMostlyRTL(it.main)) || (it.sub && !isMostlyRTL(it.sub));
+async function prepareAudio(onStatus = m => ($('#audioStatus').textContent = m)) {
+  let n = 0, fails = 0;
+  for (const it of items) {
+    if (F.recOn && it.ref && it.ref.from === it.ref.to && it.main && !recCache.has(it.id + ':' + F.reciter)) {
+      try { const r = await getRecitation(F.reciter, it.ref.s, it.ref.from, wordsOf(it.main).length, m => onStatus(`#${items.indexOf(it) + 1}: ${m}`)); recCache.set(it.id + ':' + F.reciter, { ...r, n: wordsOf(it.main).length }); n++; }
+      catch (e) { fails++; console.warn('tilavet', e); }
+    }
+    if (F.ttsOn && needsTTS(it) && !narrCache.has(it.id + ':' + F.voice)) {
+      try {
+        const o = { mainText: it.main, subText: it.sub };
+        if (it.main && !isMostlyRTL(it.main)) o.main = await speak(it.main, F.voice, m => onStatus(`#${items.indexOf(it) + 1}: ${m}`));
+        if (it.sub && !isMostlyRTL(it.sub)) o.sub = await speak(it.sub, F.voice, m => onStatus(`#${items.indexOf(it) + 1}: ${m}`));
+        narrCache.set(it.id + ':' + F.voice, o); n++;
+      } catch (e) { fails++; console.warn('tts', e); }
+    }
+  }
+  rebuild(); updateAiAudioStatus();
+  if (fails) onStatus(`${fails} ses alınamadı (internet bağlantısı ya da kaynak engeli olabilir; konsola bakın)`);
+  return n;
+}
+$('#prepAudio').onclick = async () => { $('#prepAudio').disabled = true; try { await prepareAudio(); } finally { $('#prepAudio').disabled = false; } };
+$('#voiceDl').onclick = async () => { try { await downloadVoice(F.voice, p => ($('#audioStatus').textContent = `Ses modeli %${Math.round(p * 100)}`)); $('#audioStatus').textContent = '✓ Ses modeli hazır'; } catch (e) { $('#audioStatus').textContent = '✗ Ses modeli indirilemedi'; } };
+
+/* görseller */
+const SCENE_PROMPTS = { yildiz: 'starry night sky over desert mountains, milky way, deep blue, cinematic', col: 'golden desert dunes at sunset, soft warm light, cinematic', deniz: 'calm sea at night under moonlight, reflections, cinematic', nur: 'divine light rays through dark clouds, volumetric light, cinematic', cami: 'silhouette of mosque domes and minarets at dusk, purple sky, crescent moon, cinematic', desen: 'golden islamic geometric pattern, ornate, dark background, cinematic lighting', bulut: 'sea of clouds at sunrise, golden light, heavenly, cinematic', soyut: 'abstract flowing light ribbons, dark background, ethereal' };
+function promptFor(it) {
+  const base = it.imgPrompt || SCENE_PROMPTS[it.sceneHint] || SCENE_PROMPTS[(STYLES[F.style] || STYLES.nur).scenes[0]] || SCENE_PROMPTS.nur;
+  return `${base}, highly detailed, beautiful, atmospheric, professional photography, no people, no text`;
+}
+async function loadImage(id) {
+  if (film.images.has(id)) return true;
+  const r = await getFile(id); if (!r) return false;
+  const img = new Image(); img.src = URL.createObjectURL(r.blob);
+  try { await img.decode(); film.images.set(id, img); return true; } catch (e) { return false; }
+}
+function renderImgGrid() {
+  $('#imgGrid').innerHTML = items.map((it, i) => {
+    const img = it.imgId && film.images.get(it.imgId);
+    return `<div class="im"><b>${i + 1}</b>${img ? `<img src="${img.src}" alt="">` : esc(promptFor(it).split(',')[0])}<button data-gi="${i}">${img ? '↻' : 'üret'}</button></div>`;
+  }).join('');
+}
+let genAbort = null;
+async function genImage(i) {
+  const it = items[i]; const [W, H] = dims(PV().format, 512);
+  const w = Math.round(Math.min(896, W) / 64) * 64, h = Math.round(Math.min(896, H) / 64) * 64;
+  const blob = await comfyGenerate(F.cfUrl, { ckpt: F.cfCkpt, prompt: promptFor(it), w: Math.max(512, w), h: Math.max(512, h) }, { signal: genAbort.signal, onProgress: sec => ($('#imgStatus').textContent = `#${i + 1} üretiliyor… ${sec.toFixed(0)} sn`) });
+  const id = 'aiimg:' + newId();
+  await putFile({ id, kind: 'aiimg', name: id, type: blob.type, blob, order: Date.now() });
+  if (it.imgId) delFile(it.imgId);
+  it.imgId = id; await loadImage(id); save();
+}
+async function genMissing(only = null) {
+  if (!F.cfCkpt && !(await cfConnect(false))) return;
+  if (!F.cfCkpt) { toast('ComfyUI\'da model yok'); return; }
+  genAbort = new AbortController(); $('#genImgs').disabled = true; $('#genStop').disabled = false;
+  const list = only != null ? [only] : items.map((it, i) => (!it.imgId || !film.images.has(it.imgId)) ? i : -1).filter(i => i >= 0);
+  const t0 = performance.now(); let done = 0;
+  try {
+    for (const i of list) { await genImage(i); done++; renderImgGrid(); rebuild(); }
+    $('#imgStatus').textContent = `${done} görsel üretildi · ${((performance.now() - t0) / 60000).toFixed(1)} dk`;
+  } catch (e) { $('#imgStatus').textContent = e.message === 'CANCEL' || e.name === 'AbortError' ? `Durduruldu (${done} görsel üretildi)` : '✗ ' + e.message; }
+  $('#genImgs').disabled = false; $('#genStop').disabled = true; genAbort = null;
+}
+$('#genImgs').onclick = () => genMissing();
+$('#genStop').onclick = () => genAbort && genAbort.abort();
+$('#imgGrid').onclick = e => { const b = e.target.closest('[data-gi]'); if (b && !genAbort) genMissing(+b.dataset.gi); };
+$('#imgOn').addEventListener('change', () => rebuild());
+
 /* ================= Genel ================= */
 function switchTab(n) { $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n)); $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === n)); }
 $('#tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) switchTab(b.dataset.tab); };
@@ -454,12 +645,15 @@ async function ensureFonts() {
 }
 window.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 
+window.filmDebug = { tl: () => tl, audioOpts: () => audioOpts(tl), mix: async () => { const a = await mixTimeline(tl.dur, audioOpts(tl)); const d = a.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 100) pk = Math.max(pk, Math.abs(d[i])); return { dur: a.duration, peak: pk }; } };
 (async function init() {
   resizePreview(); syncUI(); renderList(); loadEditor(); renderRef(); fitCanvas();
   await ensureFonts();
   for (const r of await allFiles()) if (r.kind === 'music') await addMusic(r.blob, r.name, r.id, false);
   renderMusic();
-  rebuild(false); syncUI();
+  for (const it of items) if (it.imgId) await loadImage(it.imgId);
+  rebuild(false); syncUI(); renderPlan(); renderImgGrid(); updateAiAudioStatus();
+  olConnect(true); cfConnect(true);
   $('#loading').classList.add('hide');
   requestAnimationFrame(loop);
 })();

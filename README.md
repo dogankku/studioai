@@ -20,6 +20,31 @@ Yapay zekâ ve üyelik yok; her şey kodla ve tarayıcıda üretilir.
 - **İstediğiniz süre**: 5 saniyeden 20 dakikaya kadar hedef süre. Kısa sürede çekimler sıkıştırılır; uzun sürede aynı metin farklı sahne ve kamera açılarından çekilir, başa başlık ve sona kaynak kartı eklenir. Shorts ve Reels için 3 dakika sınırı aşılırsa uyarı verir.
 - **Çıktı**: tek film ya da her öğe ayrı video; MP4 (H.264 + AAC).
 
+## Yapay zekâ (isteğe bağlı, yerel)
+
+Yapay zekâ sekmesi bilgisayarınızda çalışan servislere bağlanır; hesap ya da ücret gerekmez.
+
+- **Senarist (Ollama)**: konu yazın; uygulama Türkçe mealde arama yapıp aday ayetleri bulur, model bunlardan seçer, sıralar, kendi giriş/kapanış cümlesini, sahne ve görsel tariflerini, YouTube başlığı, açıklama ve etiketleri yazar. **Ayet metinleri her zaman uygulamadaki doğrulanmış veriden gelir; model ayet ya da hadis metni üretmez.**
+- **Kâri tilaveti**: her ayet ayrı öğe olduğunda Quran.com (kelime zamanlarıyla) ya da EveryAyah kaydı otomatik eklenir; kelimeler tilavetle birlikte belirir.
+- **Türkçe seslendirme (Piper)**: meal ve Türkçe metinler tarayıcıda seslendirilir (dfki, Fahrettin, Fettah sesleri). Film müziği konuşmada kendiliğinden kısılır.
+- **Sahne görselleri (ComfyUI)**: her öğe için insan içermeyen manzara görseli üretilir ve 3D sahnede derinlik ve kamera hareketiyle kullanılır.
+
+### Intel Mac kurulumu
+
+1. Ollama: https://ollama.com/download → kurun, sonra `ollama pull qwen2.5:7b` (32 GB bellek için; daha hızlı: `qwen2.5:3b`).
+2. Siteye izin: `launchctl setenv OLLAMA_ORIGINS "https://dogankku.github.io"` ve Ollama'yı yeniden başlatın.
+3. ComfyUI:
+   ```
+   cd ~ && git clone https://github.com/comfyanonymous/ComfyUI.git && cd ComfyUI
+   python3 -m venv venv && source venv/bin/activate
+   pip install "torch==2.2.2" "torchvision==0.17.2" "torchaudio==2.2.2" "numpy<2"
+   pip install -r requirements.txt
+   ```
+   PyTorch'un Intel Mac için son sürümü 2.2.2'dir.
+4. `sd_turbo.safetensors` dosyasını https://huggingface.co/stabilityai/sd-turbo adresinden indirip `ComfyUI/models/checkpoints` içine koyun.
+5. Başlatın: `python main.py --cpu --enable-cors-header "https://dogankku.github.io"`
+6. Uygulamada Yapay zekâ → Bağlantılar → "Bağlan".
+
 ---
 
 # Basit araç: Toplu Video Stüdyosu

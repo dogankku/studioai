@@ -1,5 +1,5 @@
 // Prosedürel 3D sahneler. Her sahne: { scene, update(t) } ; kamera (0,0,10)'dan merkeze bakar.
-import * as THREE from '../../vendor/three-bundle.js?v=202611211416';
+import * as THREE from '../../vendor/three-bundle.js?v=202611211508';
 
 function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 
@@ -335,3 +335,22 @@ export function setPointScale(s) {
   for (const sc of cache.values()) sc.scene.traverse(o => { if (o.userData && o.userData.mat && o.userData.mat.uniforms.scale) o.userData.mat.uniforms.scale.value = s; });
 }
 export const SCENE_TYPES = Object.keys(BUILDERS);
+
+/** AI görseli sahnesi: görsel uzak bir düzlemde, önünde ışık tozu; kamera hareketiyle derinlik hissi */
+export function imageScene(id, img) {
+  const key = 'img:' + id;
+  if (cache.has(key)) return cache.get(key);
+  const scene = new THREE.Scene();
+  scene.add(skyDome('#05060a', '#0b0d14', '#05060a'));
+  const tex = new THREE.Texture(img); tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true;
+  const z = -40, dist = 50, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(20)) * 1.55;
+  const ar = (img.naturalWidth || img.width) / Math.max(1, img.naturalHeight || img.height);
+  const h = Math.max(visH, visH * (16 / 9) / ar), w = h * ar;
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
+  plane.position.z = z; scene.add(plane);
+  const motes = dust(260, [40, 30, 30], '#fff2dc', 1.4, 31, 0.04);
+  scene.add(motes);
+  const sc = { scene, update(t) { motes.userData.update(t); const k = 1 + 0.03 * Math.sin(t * 0.07); plane.scale.set(k, k, 1); } };
+  cache.set(key, sc);
+  return sc;
+}

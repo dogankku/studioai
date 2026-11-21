@@ -32,3 +32,9 @@ export async function allFiles() {
     });
   } catch (e) { return []; }
 }
+export async function getFile(id) {
+  try {
+    const d = await db();
+    return await new Promise((res, rej) => { const r = d.transaction(STORE).objectStore(STORE).get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error); });
+  } catch (e) { return null; }
+}

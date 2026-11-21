@@ -1,5 +1,5 @@
 // Kamera hareketleri: çekim içi ilerleme p (0..1) ve yoğunluk k ile
-import * as THREE from '../../vendor/three-bundle.js?v=202611211416';
+import * as THREE from '../../vendor/three-bundle.js?v=202611211508';
 
 const ease = p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
 const n1 = (t, s) => Math.sin(t * 1.7 + s) * 0.5 + Math.sin(t * 2.9 + s * 2.1) * 0.3 + Math.sin(t * 5.3 + s * 0.7) * 0.2;

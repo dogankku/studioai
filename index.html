@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Film Stüdyosu</title>
 <meta name="description" content="Ayet, hadis ve sözlerden 3D sahneli, kurgulu, efektli film üreten stüdyo. Tamamen tarayıcıda, kayıtsız.">
-<link rel="stylesheet" href="css/fonts.css?v=202611211416">
-<link rel="stylesheet" href="css/style.css?v=202611211416">
-<link rel="stylesheet" href="css/film.css?v=202611211416">
+<link rel="stylesheet" href="css/fonts.css?v=202611211508">
+<link rel="stylesheet" href="css/style.css?v=202611211508">
+<link rel="stylesheet" href="css/film.css?v=202611211508">
 </head>
 <body>
 <div class="app film">
@@ -25,6 +25,7 @@
     <nav class="tabs" id="tabs">
       <button data-tab="metin" class="on">Metinler</button>
       <button data-tab="yonetmen">Yönetmen</button>
+      <button data-tab="ai">Yapay zekâ</button>
       <button data-tab="referans">Referans</button>
       <button data-tab="efekt">Efektler</button>
       <button data-tab="ses">Ses</button>
@@ -101,6 +102,58 @@ Sonraki…"></textarea>
         <div><label for="quality">Kalite</label><select id="quality"><option value="0.6">Küçük dosya</option><option value="1">Önerilen</option><option value="1.6">En yüksek</option></select></div>
       </div>
       <label class="check"><input type="checkbox" id="showSafe"> Önizlemede platform arayüzünün kapladığı alanları göster</label>
+    </section>
+
+    <!-- YAPAY ZEKÂ -->
+    <section class="pane" data-pane="ai">
+      <div class="card">
+        <div class="ttl">Senarist <span class="muted" style="text-transform:none;letter-spacing:0">(Ollama)</span></div>
+        <label for="aiTopic">Konu</label>
+        <input type="text" id="aiTopic" placeholder="Örn. sabır ve zorluktan sonra gelen kolaylık">
+        <div class="row3">
+          <div><label for="aiCount">Ayet sayısı</label><select id="aiCount"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option></select></div>
+          <div><label for="aiTone">Üslup</label><select id="aiTone"><option value="huzur">Huzurlu</option><option value="umut">Umut veren</option><option value="dusunce">Düşündüren</option><option value="coskun">Coşkulu</option></select></div>
+          <div><label>&nbsp;</label><label class="check" style="margin:6px 0"><input type="checkbox" id="aiNarr"> Giriş/kapanış</label></div>
+        </div>
+        <div class="row-btns mt8"><button class="btn primary" id="aiWrite">✨ Senaryo yaz</button><button class="btn ghost" id="aiStop" disabled>Durdur</button></div>
+        <div class="hint" id="aiStatus">Ayet metinleri her zaman uygulamadaki doğrulanmış veriden alınır; model yalnızca seçer, sıralar ve kendi giriş/kapanış cümlelerini yazar.</div>
+        <div id="aiPlan" style="display:none">
+          <div class="plan-box" id="aiPlanBox"></div>
+          <div class="row-btns mt8"><button class="btn sm primary" id="aiApply">Listeyi bununla değiştir</button><button class="btn sm" id="aiAppend">Listeye ekle</button></div>
+          <label for="aiYt">Paylaşım metni (YouTube / Instagram)</label>
+          <textarea id="aiYt" rows="6"></textarea>
+          <div class="row-btns mt8"><button class="btn sm" id="aiCopy">Kopyala</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ttl">Ses</div>
+        <label class="check"><input type="checkbox" id="recOn"> Ayetlerde kâri tilaveti (kelimeler tilavetle eşlenir)</label>
+        <select id="reciter"></select>
+        <label class="check"><input type="checkbox" id="ttsOn"> Meali ve Türkçe metinleri seslendir</label>
+        <div class="row"><div><select id="voice"></select></div><div><button class="btn sm" id="voiceDl">Ses modelini indir</button></div></div>
+        <div class="row-btns mt8"><button class="btn sm primary" id="prepAudio">Sesleri hazırla</button><span class="muted" id="audioStatus"></span></div>
+        <div class="hint">Tilavet Quran.com ya da EveryAyah'tan gelir (her ayet ayrı öğe olmalı). Seslendirme tarayıcıda çalışır; ses modeli bir kez iner (~63 MB). Film müziği konuşma sırasında kendiliğinden kısılır.</div>
+      </div>
+
+      <div class="card">
+        <div class="ttl">Sahne görselleri <span class="muted" style="text-transform:none;letter-spacing:0">(ComfyUI)</span></div>
+        <label class="check"><input type="checkbox" id="imgOn"> AI görsellerini sahnelerde kullan</label>
+        <div class="row-btns"><button class="btn sm primary" id="genImgs">🖼 Eksik görselleri üret</button><button class="btn sm ghost" id="genStop" disabled>Durdur</button></div>
+        <div class="hint" id="imgStatus">Intel işlemcide her görsel birkaç dakika sürebilir; bu sırada sekme açık kalmalı. Görseller insan içermeyecek biçimde istenir.</div>
+        <div class="img-grid" id="imgGrid"></div>
+      </div>
+
+      <div class="card">
+        <div class="ttl">Bağlantılar</div>
+        <label for="olUrl">Ollama adresi</label>
+        <div class="row"><div><input type="text" id="olUrl"></div><div><select id="olModel"><option value="">— model —</option></select></div></div>
+        <div class="row-btns mt8"><button class="btn sm" id="olTest">Bağlan</button><span class="muted" id="olStatus"></span></div>
+        <label for="cfUrl">ComfyUI adresi</label>
+        <div class="row"><div><input type="text" id="cfUrl"></div><div><select id="cfCkpt"><option value="">— model —</option></select></div></div>
+        <div class="row-btns mt8"><button class="btn sm" id="cfTest">Bağlan</button><span class="muted" id="cfStatus"></span></div>
+        <details class="guide"><summary>Intel Mac kurulum rehberi</summary><div id="guideBox"></div></details>
+      </div>
     </section>
 
     <!-- REFERANS -->
@@ -192,7 +245,7 @@ Sonraki…"></textarea>
   </main>
 </div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611211416"></script>
-<script type="module" src="js/film-app.js?v=202611211416"></script>
+<script src="vendor/jszip.min.js?v=202611211508"></script>
+<script type="module" src="js/film-app.js?v=202611211508"></script>
 </body>
 </html>

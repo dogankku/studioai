@@ -1,10 +1,10 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611211416';
-import { getScene, setPointScale } from './scenes.js?v=202611211416';
-import { applyCamera } from './camera.js?v=202611211416';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611211416';
-import { Post } from './post.js?v=202611211416';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611211416';
+import * as THREE from '../../vendor/three-bundle.js?v=202611211508';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611211508';
+import { applyCamera } from './camera.js?v=202611211508';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611211508';
+import { Post } from './post.js?v=202611211508';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611211508';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -15,7 +15,7 @@ export class Film {
     this.renderer.toneMappingExposure = 1.0;
     this.camA = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
     this.camB = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
-    this.texts = new Map();
+    this.texts = new Map(); this.images = new Map();
     this.post = null;
     this.resize(W, H);
     this.timeline = { shots: [], dur: 0 };
@@ -44,7 +44,8 @@ export class Film {
   }
   pruneTexts(keep) { for (const [k, T] of this.texts) if (!keep.has(k)) { disposeText(T); this.texts.delete(k); } }
   side(shot, cam, t, alpha = 1) {
-    const sc = getScene(shot.scene);
+    const img = shot.scene === 'gorsel' && shot.image && this.images.get(shot.image);
+    const sc = img ? imageScene(shot.image, img) : getScene(shot.scene === 'gorsel' ? 'yildiz' : shot.scene);
     sc.update(t);
     const lt = t - shot.start;
     const { target } = applyCamera(cam, shot.camera, lt / shot.dur, shot.camK, lt, shot.seed % 100, this.W / this.H);

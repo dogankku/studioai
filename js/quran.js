@@ -27,8 +27,8 @@ export async function buildItems(id, from, to, { mode = 'each', meal = true, tag
     return [{
       main: pick.map(v => `${v.ar} (${arNum(v.no)})`).join(' '),
       sub: meal ? pick.map(v => v.tr).join(' ') : '',
-      src: `${s.tr} Sûresi, ${from === to ? from : `${from}-${to}`}`, tag
+      src: `${s.tr} Sûresi, ${from === to ? from : `${from}-${to}`}`, tag, ref: { s: id, from, to }
     }];
   }
-  return pick.map(v => ({ main: v.ar, sub: meal ? v.tr : '', src: `${s.tr} Sûresi, ${v.no}`, tag }));
+  return pick.map(v => ({ main: v.ar, sub: meal ? v.tr : '', src: `${s.tr} Sûresi, ${v.no}`, tag, ref: { s: id, from: v.no, to: v.no } }));
 }

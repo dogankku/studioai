@@ -20,7 +20,7 @@ export const EFFECTS = {
 
 export const SCENES = {
   yildiz: 'Yıldızlı gök', col: 'Çöl', deniz: 'Gece denizi', nur: 'Işık hüzmeleri', cami: 'Cami silüeti',
-  desen: 'Geometrik tünel', bulut: 'Bulutlar', soyut: 'Soyut akış'
+  desen: 'Geometrik tünel', bulut: 'Bulutlar', soyut: 'Soyut akış', gorsel: 'AI görseli'
 };
 export const CAMERAS = {
   yaklas: 'Yaklaşma', uzaklas: 'Uzaklaşma', yorunge: 'Yörünge', vinc: 'Vinç (yükselme)', kaydir: 'Yana kayma',
