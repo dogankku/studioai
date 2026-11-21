@@ -1,6 +1,8 @@
 # Toplu Video Stüdyosu
 
 Ayet, hadis, söz ya da tek bir kelime listesinden **tek seferde çok sayıda video** üreten web uygulaması.
+**Canlı:** https://dogankku.github.io/studioai/ (GitHub Pages açıldıktan sonra)
+
 Tamamen tarayıcıda çalışır: sunucu, veritabanı, üyelik yok. Yüklediğiniz görsel, video ve sesler bilgisayarınızdan çıkmaz.
 
 ## Özellikler
@@ -46,7 +48,7 @@ CSV sütunları: `ana, alt, kaynak, etiket` (başlık satırı varsa adlarına g
 
 1. Bu depoyu GitHub'a yükleyin.
 2. **Settings → Pages → Build and deployment** bölümünde *Source: Deploy from a branch*, *Branch: `main` / `(root)`* seçin.
-3. Birkaç dakika sonra uygulama `https://KULLANICI.github.io/DEPO-ADI/` adresinde açılır.
+3. Birkaç dakika sonra uygulama `https://dogankku.github.io/studioai/` adresinde açılır.
 
 Yerelde denemek için klasörde bir sunucu açın (modüller `file://` ile çalışmaz):
 
