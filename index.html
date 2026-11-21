@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toplu Video Stüdyosu</title>
+<meta name="description" content="Ayet, hadis, söz ve kelimelerden toplu video üretici. Tamamen tarayıcıda çalışır, kayıt gerektirmez.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&family=Noto+Naskh+Arabic:wght@500;700&family=Reem+Kufi:wght@500;700&family=Inter:wght@400;600;800&family=Lora:ital,wght@0,500;0,700;1,500&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Montserrat:wght@500;800&family=Cormorant+Garamond:wght@600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside>
+    <header>
+      <div>
+        <h1>Toplu <span>Video</span> Stüdyosu</h1>
+        <div class="subtitle">Metin listesinden tek seferde video. Her şey tarayıcınızda kalır.</div>
+      </div>
+      <div class="hdr-btns">
+        <button class="btn sm" id="saveProj" title="Ayarları ve metinleri dosyaya kaydet">Projeyi kaydet</button>
+        <label class="btn sm" title="Kayıtlı proje dosyasını aç">Proje aç<input type="file" id="loadProj" accept=".json,application/json" hidden></label>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs">
+      <button data-tab="metin" class="on">Metinler</button>
+      <button data-tab="arka">Arka plan</button>
+      <button data-tab="yazi">Yazı</button>
+      <button data-tab="ses">Ses</button>
+      <button data-tab="cikti">Çıktı</button>
+      <button data-tab="uretim">Üretim <b id="doneBadge"></b></button>
+    </nav>
+
+    <!-- METİNLER -->
+    <section class="pane on" data-pane="metin">
+      <div class="list-head">
+        <div class="ttl">Liste <span id="count" class="muted"></span></div>
+        <div class="row-btns">
+          <button class="btn sm" id="addItem">+ Yeni</button>
+          <button class="btn sm ghost" id="clearList">Temizle</button>
+        </div>
+      </div>
+      <div id="itemList" class="items"></div>
+
+      <div class="card" id="editor">
+        <div class="ttl">Seçili öğeyi düzenle <span class="muted" id="editNo"></span></div>
+        <label for="eMain">Ana metin</label>
+        <textarea id="eMain" rows="3" placeholder="Arapça otomatik algılanır ve sağdan sola yazılır"></textarea>
+        <label for="eSub">Alt metin / meal / açıklama</label>
+        <textarea id="eSub" rows="2"></textarea>
+        <div class="row">
+          <div><label for="eSrc">Kaynak</label><input type="text" id="eSrc" placeholder="Bakara, 286"></div>
+          <div><label for="eTag">Etiket (boşsa varsayılan)</label><input type="text" id="eTag"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ttl">Toplu ekle</div>
+        <textarea id="bulkText" rows="7" placeholder="رَبِّ زِدْنِي عِلْمًا
+meal: Rabbim! İlmimi artır.
+kaynak: Tâhâ, 114
+---
+Sabır, imanın yarısıdır.
+---
+Sonraki metin…"></textarea>
+        <div class="hint">Öğeleri <code>---</code> ile ayırın. <code>meal:</code>, <code>kaynak:</code>, <code>etiket:</code> satırları isteğe bağlı; geri kalan satırlar ana metindir.</div>
+        <div class="row-btns" style="margin-top:8px">
+          <button class="btn sm" id="bulkAppend">Listeye ekle</button>
+          <button class="btn sm" id="bulkReplace">Listeyi değiştir</button>
+          <label class="btn sm">CSV / Excel<input type="file" id="csvFile" accept=".csv,.tsv,.txt" hidden></label>
+          <button class="btn sm ghost" id="exportList">Listeyi metne dök</button>
+        </div>
+        <div class="hint">CSV sütunları: <code>ana, alt, kaynak, etiket</code> (başlık satırı varsa adlarına göre eşlenir). Excel'den kopyalayıp kutuya yapıştırırsanız da çalışır.</div>
+      </div>
+      <label for="defaultTag">Varsayılan etiket (tüm videolarda)</label>
+      <input type="text" id="defaultTag" placeholder="Örn. Günün Ayeti">
+    </section>
+
+    <!-- ARKA PLAN -->
+    <section class="pane" data-pane="arka">
+      <div class="ttl">Arka plan kaynağı</div>
+      <div class="chips" id="bgSrc">
+        <button class="chip" data-v="theme">Hazır tema</button>
+        <button class="chip" data-v="color">Renk / gradyan</button>
+        <button class="chip" data-v="media">Görsel / video</button>
+      </div>
+
+      <div class="ttl mt">Tema ve renk paleti</div>
+      <div class="themes" id="themes"></div>
+      <div class="hint">Görsel ya da video seçseniz de yazı renkleri bu paletten gelir.</div>
+
+      <div class="card" id="colorBox">
+        <div class="row">
+          <div><label for="colorMode">Tür</label>
+            <select id="colorMode"><option value="gradient">Gradyan</option><option value="solid">Düz renk</option></select></div>
+          <div><label>Renkler</label><div class="colors"><input type="color" id="color1"><input type="color" id="color2"></div></div>
+        </div>
+        <label for="gradAngle">Gradyan açısı</label>
+        <div class="rng"><input type="range" id="gradAngle" min="0" max="360"><output data-for="gradAngle" data-unit="°"></output></div>
+        <label class="check"><input type="checkbox" id="gradAnimate"> Gradyan yavaşça dönsün</label>
+      </div>
+
+      <div class="card" id="mediaBox">
+        <label class="btn drop" id="mediaDrop">Görsel ya da video ekle (birden fazla seçebilirsiniz)<input type="file" id="mediaFiles" accept="image/*,video/*" multiple hidden></label>
+        <div class="media-grid" id="mediaList"></div>
+        <div class="row">
+          <div><label for="mediaMode">Videolara dağıtım</label>
+            <select id="mediaMode"><option value="first">Hepsinde ilki</option><option value="seq">Sırayla</option><option value="random">Karışık</option></select></div>
+          <div><label for="tone">Zemin tonu</label>
+            <select id="tone"><option value="dark">Koyu (açık yazı)</option><option value="light">Açık (koyu yazı)</option></select></div>
+        </div>
+        <label class="check"><input type="checkbox" id="kenburns"> Görsellerde yavaş yakınlaşma (Ken Burns)</label>
+        <div class="hint">Video arka planlar sessiz kullanılır ve video süresi kadar döngüye girer. Dosyalar hiçbir yere yüklenmez.</div>
+      </div>
+
+      <div class="ttl mt">Efektler</div>
+      <label for="dim">Karartma</label>
+      <div class="rng"><input type="range" id="dim" min="0" max="0.85" step="0.01"><output data-for="dim" data-pct></output></div>
+      <label for="blur">Bulanıklık (görsel / video)</label>
+      <div class="rng"><input type="range" id="blur" min="0" max="30" step="1"><output data-for="blur" data-unit=" px"></output></div>
+      <div class="row">
+        <div><label for="particles">Parçacıklar</label>
+          <select id="particles"><option value="auto">Temaya göre</option><option value="none">Yok</option><option value="stars">Yıldızlar</option><option value="dust">Işık tozu</option><option value="bokeh">Bokeh</option></select></div>
+        <div><label>&nbsp;</label>
+          <label class="check"><input type="checkbox" id="pattern"> Geometrik desen</label></div>
+      </div>
+      <label class="check"><input type="checkbox" id="vignette"> Kenar gölgesi (vinyet)</label>
+      <label class="check"><input type="checkbox" id="frame"> İnce çerçeve</label>
+    </section>
+
+    <!-- YAZI -->
+    <section class="pane" data-pane="yazi">
+      <div class="ttl">Animasyon</div>
+      <div class="chips" id="anim">
+        <button class="chip" data-v="word">Kelime kelime</button>
+        <button class="chip" data-v="karaoke">Karaoke</button>
+        <button class="chip" data-v="kinetic">Kinetik</button>
+        <button class="chip" data-v="type">Daktilo</button>
+        <button class="chip" data-v="line">Satır satır</button>
+        <button class="chip" data-v="fade">Yumuşak belirme</button>
+      </div>
+      <div class="row">
+        <div><label for="latinFont">Ana yazı tipi</label>
+          <select id="latinFont">
+            <option value='"Playfair Display", serif'>Playfair (zarif)</option>
+            <option value='"Cormorant Garamond", serif'>Cormorant (klasik)</option>
+            <option value='Lora, serif'>Lora (kitap)</option>
+            <option value='Inter, sans-serif'>Inter (modern)</option>
+            <option value='Montserrat, sans-serif'>Montserrat (güçlü)</option>
+            <option value='"Bebas Neue", sans-serif'>Bebas (afiş)</option>
+          </select></div>
+        <div><label for="arabicFont">Arapça yazı tipi</label>
+          <select id="arabicFont">
+            <option value="Amiri">Amiri (nesih)</option>
+            <option value='"Scheherazade New"'>Scheherazade</option>
+            <option value='"Noto Naskh Arabic"'>Noto Naskh</option>
+            <option value='"Reem Kufi"'>Reem Kufi (kûfi)</option>
+          </select></div>
+      </div>
+      <label for="subFont">Alt metin yazı tipi</label>
+      <select id="subFont">
+        <option value='Lora, serif'>Lora</option>
+        <option value='Inter, sans-serif'>Inter</option>
+        <option value='"Playfair Display", serif'>Playfair</option>
+        <option value='"Cormorant Garamond", serif'>Cormorant</option>
+      </select>
+      <label for="size">Yazı boyutu</label>
+      <div class="rng"><input type="range" id="size" min="0.6" max="1.4" step="0.05"><output data-for="size" data-pct></output></div>
+      <label for="speed">Okuma hızı (kelime başına)</label>
+      <div class="rng"><input type="range" id="speed" min="0.15" max="1.2" step="0.05"><output data-for="speed" data-unit=" sn"></output></div>
+
+      <div class="ttl mt">Yerleşim</div>
+      <div class="chips" id="position">
+        <button class="chip" data-v="top">Üstte</button>
+        <button class="chip" data-v="center">Ortada</button>
+        <button class="chip" data-v="bottom">Altta</button>
+      </div>
+      <div class="row">
+        <div><label for="panel">Yazı arkası</label>
+          <select id="panel"><option value="none">Yok</option><option value="dark">Yarı saydam kutu</option><option value="glass">Buzlu cam</option></select></div>
+        <div><label>&nbsp;</label><label class="check"><input type="checkbox" id="shadow"> Yazı gölgesi</label></div>
+      </div>
+
+      <div class="ttl mt">Renkler <button class="link" id="resetColors">paletin renklerine dön</button></div>
+      <div class="row3">
+        <div><label for="textColor">Ana</label><input type="color" id="textColor"></div>
+        <div><label for="accentColor">Vurgu</label><input type="color" id="accentColor"></div>
+        <div><label for="subColor">Alt metin</label><input type="color" id="subColor"></div>
+      </div>
+
+      <div class="ttl mt">İmza ve logo</div>
+      <label for="handle">Hesap adı / imza</label>
+      <input type="text" id="handle" placeholder="@hesabiniz">
+      <div class="file-row">
+        <label class="btn sm">Logo seç<input type="file" id="logoFile" accept="image/*" hidden></label>
+        <span id="logoName" class="muted">Logo yok</span>
+        <button class="btn sm ghost" id="logoClear">Kaldır</button>
+      </div>
+      <div class="row">
+        <div><label for="logoPos">Logo konumu</label>
+          <select id="logoPos"><option value="br">Sağ alt</option><option value="bl">Sol alt</option><option value="tr">Sağ üst</option><option value="tl">Sol üst</option><option value="bc">Alt orta</option></select></div>
+        <div><label for="logoOpacity">Saydamlık</label>
+          <div class="rng"><input type="range" id="logoOpacity" min="0.2" max="1" step="0.05"><output data-for="logoOpacity" data-pct></output></div></div>
+      </div>
+      <label for="logoSize">Logo boyutu</label>
+      <div class="rng"><input type="range" id="logoSize" min="0.05" max="0.3" step="0.01"><output data-for="logoSize" data-pct></output></div>
+    </section>
+
+    <!-- SES -->
+    <section class="pane" data-pane="ses">
+      <label class="btn drop">Müzik, tilavet ya da seslendirme ekle (birden fazla seçebilirsiniz)<input type="file" id="musicFiles" accept="audio/*" multiple hidden></label>
+      <div id="musicList" class="audio-list"></div>
+      <label for="musicMode">Videolara dağıtım</label>
+      <select id="musicMode">
+        <option value="none">Ses yok</option>
+        <option value="same">Hepsinde ilk ses</option>
+        <option value="seq">Sırayla (1. ses 1. videoya…)</option>
+        <option value="random">Karışık</option>
+      </select>
+      <div class="hint">Her ayetin kendi tilaveti varsa: sesleri sırayla ekleyin, "Sırayla" seçin, Çıktı sekmesinde süreyi "sese eşitle" yapın.</div>
+      <label for="musicVol">Ses seviyesi</label>
+      <div class="rng"><input type="range" id="musicVol" min="0" max="1" step="0.05"><output data-for="musicVol" data-pct></output></div>
+      <label class="check"><input type="checkbox" id="fadeIn"> Yavaşça başlasın</label>
+      <label class="check"><input type="checkbox" id="fadeOut"> Yavaşça bitsin</label>
+    </section>
+
+    <!-- ÇIKTI -->
+    <section class="pane" data-pane="cikti">
+      <div class="ttl">Format</div>
+      <div class="chips" id="format">
+        <button class="chip" data-v="9:16">Dikey 9:16</button>
+        <button class="chip" data-v="4:5">Gönderi 4:5</button>
+        <button class="chip" data-v="1:1">Kare 1:1</button>
+        <button class="chip" data-v="16:9">Yatay 16:9</button>
+      </div>
+      <div class="row3">
+        <div><label for="res">Çözünürlük</label>
+          <select id="res"><option value="720">720p</option><option value="1080">1080p</option><option value="1440">1440p</option></select></div>
+        <div><label for="fps">Kare hızı</label>
+          <select id="fps"><option value="24">24</option><option value="30">30</option><option value="60">60</option></select></div>
+        <div><label for="quality">Kalite</label>
+          <select id="quality"><option value="0.6">Küçük dosya</option><option value="1">Yüksek</option><option value="1.6">En yüksek</option></select></div>
+      </div>
+      <div class="ttl mt">Süre</div>
+      <select id="durMode">
+        <option value="auto">Metne göre otomatik</option>
+        <option value="fixed">Sabit süre</option>
+        <option value="audio">Sese eşitle</option>
+      </select>
+      <div id="fixedBox">
+        <label for="fixedDur">Sabit süre</label>
+        <div class="rng"><input type="range" id="fixedDur" min="5" max="90" step="1"><output data-for="fixedDur" data-unit=" sn"></output></div>
+      </div>
+      <label for="hold">Sonda bekleme</label>
+      <div class="rng"><input type="range" id="hold" min="0.5" max="8" step="0.1"><output data-for="hold" data-unit=" sn"></output></div>
+      <label for="fileName">Dosya adı şablonu</label>
+      <input type="text" id="fileName">
+      <div class="hint"><code>{no}</code> sıra, <code>{kaynak}</code>, <code>{etiket}</code>, <code>{metin}</code> (ilk kelimeler)</div>
+      <div class="card info" id="engineInfo"></div>
+    </section>
+
+    <!-- ÜRETİM -->
+    <section class="pane" data-pane="uretim">
+      <div class="row-btns">
+        <button class="btn primary" id="queueAll">● Tümünü üret</button>
+        <button class="btn" id="queueOne">Sadece seçili</button>
+        <button class="btn ghost" id="cancelAll" disabled>Durdur</button>
+      </div>
+      <div class="overall" id="overall"><div class="prog"><i id="overallBar"></i></div><span id="overallTxt" class="muted"></span></div>
+      <div id="queueList" class="queue"></div>
+      <div class="row-btns" style="margin-top:10px">
+        <button class="btn primary" id="zipAll" disabled>⬇ Hepsini ZIP olarak indir</button>
+        <button class="btn ghost" id="clearDone" disabled>Sonuçları temizle</button>
+      </div>
+      <div class="hint" id="dlHint"></div>
+    </section>
+  </aside>
+
+  <main>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="loading" id="loading">Yazı tipleri yükleniyor…</div>
+    </div>
+    <div class="bar">
+      <div class="nav">
+        <button class="btn icon" id="prev" title="Önceki">‹</button>
+        <span id="itemPos">1 / 1</span>
+        <button class="btn icon" id="next" title="Sonraki">›</button>
+      </div>
+      <button class="btn" id="play">▶ Oynat</button>
+      <input type="range" id="seek" min="0" max="1000" value="0">
+      <span id="time">0.0 / 0.0 sn</span>
+      <button class="btn primary" id="renderBtn">● Tümünü üret</button>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <video id="modalVid" controls playsinline></video>
+    <div class="row-btns center">
+      <button class="btn primary" id="modalDl">⬇ İndir</button>
+      <button class="btn" id="modalClose">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/jszip.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
