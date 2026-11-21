@@ -76,33 +76,36 @@ install_comfy() { # $1: sürüm (master ya da etiket)
   unzip -q /tmp/fs_comfy/c.zip -d /tmp/fs_comfy || return 1
   local src; src=$(find /tmp/fs_comfy -maxdepth 1 -type d -name 'ComfyUI-*' | head -1)
   [ -n "$src" ] || return 1
-  mkdir -p "$DIR/ComfyUI"
-  # modelleri koruyarak kodu güncelle
-  rsync -a --exclude models --exclude output --exclude .venv "$src/" "$DIR/ComfyUI/" || return 1
+  # eski kodu temizle, indirilen modelleri koru
   mkdir -p "$DIR/ComfyUI/models/checkpoints"
+  find "$DIR/ComfyUI" -mindepth 1 -maxdepth 1 ! -name models -exec rm -rf {} +
+  rsync -a --exclude models "$src/" "$DIR/ComfyUI/" || return 1
   cd "$DIR/ComfyUI" || return 1
-  [ -d .venv ] || uv venv --python 3.11 .venv || return 1
+  uv venv -q --python 3.11 .venv || return 1
+  # comfy-angle zorunlu değil ve Intel Mac için hazır paketi yok
+  grep -viE '^(torch|torchvision|torchaudio|comfy-angle)([<>=~! ]|$)' requirements.txt > /tmp/fs_req.txt
   if [ -n "$TORCH_PIN" ]; then
     printf '%s\n' $TORCH_PIN > /tmp/fs_constraints.txt
-    uv pip install --python .venv/bin/python $TORCH_PIN || return 1
-    grep -viE '^(torch|torchvision|torchaudio)([<>=~! ]|$)' requirements.txt > /tmp/fs_req.txt
-    uv pip install --python .venv/bin/python -r /tmp/fs_req.txt -c /tmp/fs_constraints.txt || return 1
+    # yalnızca hazır paketler: hiçbir şey kaynaktan derlenmez
+    uv pip install --python .venv/bin/python --only-binary :all: -r /tmp/fs_constraints.txt -r /tmp/fs_req.txt -c /tmp/fs_constraints.txt || return 1
   else
     uv pip install --python .venv/bin/python torch torchvision torchaudio || return 1
-    uv pip install --python .venv/bin/python -r requirements.txt || return 1
+    uv pip install --python .venv/bin/python -r /tmp/fs_req.txt || return 1
   fi
-  # açılış testi
-  .venv/bin/python -c "import torch, comfy.model_management" >/dev/null 2>&1 || .venv/bin/python -c "import torch; print(torch.__version__)" || return 1
+  echo "Açılış testi yapılıyor…"
+  .venv/bin/python main.py --cpu --quick-test-for-ci > /tmp/fs_comfy/test.log 2>&1
+  if grep -q "Traceback" /tmp/fs_comfy/test.log; then tail -3 /tmp/fs_comfy/test.log; return 1; fi
   echo "$ref" > "$DIR/ComfyUI/.fs_version"
   return 0
 }
+# Intel Mac'te PyTorch en fazla 2.2.2 olabiliyor; v0.3.77 bununla çalışan son ComfyUI sürümü (denendi).
+if [ "$ARCH" = "x86_64" ]; then REFS="v0.3.77 v0.3.60 v0.3.40"; else REFS="master v0.3.77"; fi
 DONE=0
 if [ -f "$DIR/ComfyUI/.fs_version" ] && [ -x "$DIR/ComfyUI/.venv/bin/python" ]; then DONE=1; ok "ComfyUI zaten kurulu ($(cat "$DIR/ComfyUI/.fs_version"))"; fi
 if [ $DONE -eq 0 ]; then
-  for ref in master v0.3.40 v0.3.27 v0.3.10; do
+  for ref in $REFS; do
     if install_comfy "$ref"; then DONE=1; ok "ComfyUI kuruldu ($ref)"; break; fi
-    echo "Bu sürüm bu Mac'te kurulamadı, daha eski bir sürüm deneniyor…"
-    rm -rf "$DIR/ComfyUI/.venv"
+    echo "Bu sürüm bu Mac'te kurulamadı, sıradaki deneniyor…"
   done
 fi
 [ $DONE -eq 1 ] || fail "ComfyUI kurulamadı."
