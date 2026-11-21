@@ -1,6 +1,6 @@
 // 3D yazı: her kelime ayrı bir düzlem (doku) olarak uzayda canlandırılır. Arapça şekillendirme 2D kanvasla yapılır.
-import * as THREE from '../../vendor/three-bundle.js?v=202611211509';
-import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611211509';
+import * as THREE from '../../vendor/three-bundle.js?v=202611211511';
+import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611211511';
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeOut = p => 1 - Math.pow(1 - p, 3);
@@ -139,8 +139,8 @@ export function animateText(T, lt, dur, anim, style, seed = 1, timing = null, al
       case 'derinlik': w.position.z = -7 * (1 - e); w.position.y = d.y - 0.15 * (1 - e); break;
       case 'dagil': w.position.x = d.x + d.rand[0] * 6 * (1 - e); w.position.y = d.y + d.rand[1] * 4 * (1 - e); w.position.z = d.rand[2] * 8 * (1 - e); w.rotation.z = d.rand[0] * 1.5 * (1 - e); break;
       case 'donus': w.rotation.y = (Math.PI / 2) * (1 - easeOutBack(p)); w.rotation.x = 0.4 * (1 - e); break;
-      case 'isik': { const s = 1 + 0.35 * (1 - e); w.scale.set(s, s, 1); break; }
-      case 'tek': { const s = p < 1 ? 0.4 + 0.6 * easeOutBack(p) : 1; w.scale.set(s, s, 1); break; }
+      case 'isik': { const s = 1 + 0.12 * (1 - e); w.scale.set(s, s, 1); w.position.y = d.y - 0.12 * (1 - e); break; }
+      case 'tek': { const s = p < 1 ? 0.6 + 0.4 * Math.min(1.05, easeOutBack(p)) : 1; w.scale.set(s, s, 1); break; }
       case 'daktilo': op = p > 0 ? 1 : 0; break;
       default: w.position.y = d.y - 0.35 * (1 - e);
     }
