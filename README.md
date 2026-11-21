@@ -1,4 +1,26 @@
-# Toplu Video Stüdyosu
+# Film Stüdyosu
+
+Ayet, hadis, söz ya da tek bir kelimeden **3D sahneli, kurgulu, efektli film** üreten web uygulaması.
+Yapay zekâ ve üyelik yok; her şey kodla ve tarayıcıda üretilir.
+
+**Canlı:** https://dogankku.github.io/studioai/ · Basit toplu video aracı: https://dogankku.github.io/studioai/basit.html
+
+## Film Stüdyosu neler yapıyor
+
+- **Yönetmen motoru** (kural tabanlı): metni okunabilir ifadelere ve çekimlere böler (Uthmani durak işaretleri dahil), anahtar kelimelere göre sahne seçer (gece → yıldızlı gök, deniz → dalgalar, sabır → çöl, namaz/dua → cami, cennet/rahmet → bulutlar, ilim/kitap → geometrik tünel), kamera hareketlerini ve geçişleri tekrarsız dağıtır. **Yeniden yönet** her basışta farklı kurgu çıkarır.
+- **8 prosedürel 3D sahne** (Three.js): yıldızlı gök ve dağlar, çöl, gece denizi, ışık hüzmeleri, cami silüeti ve fenerler, geometrik tünel, bulut denizi, soyut akış.
+- **9 kamera hareketi**: yaklaşma, uzaklaşma, yörünge, vinç, yana kayma, eğim, elde çekim, sakin nefes, dolly zoom.
+- **7 yazı animasyonu**, her kelime 3D uzayda ayrı canlanır; Arapça şekillendirme ve karışık yön desteği.
+- **10 geçiş**: çapraz, karartma, ışık patlaması, yakınlaşma bulanıklığı, hızlı kaydırma, glitch, doku erimesi, daire, silme, kesme.
+- **10 film stili** ve **14 efekt**: ışıma, film greni, vinyet, renk kayması, tarama çizgileri, VHS, glitch, piksel, posterleştirme, ışık sızıntısı, sinemaskop bant, film titremesi, toz-çizik, halation; pozlama, kontrast, doygunluk, sıcaklık, ton ayarları.
+- **Ritim analizi**: müziğin temposu ve vuruşları bulunur, kesmeler vuruşlara oturtulur, glitch gibi efektler vuruşla nabız atar.
+- **Referans video**: beğendiğiniz bir videoyu yükleyin; kesme noktaları, çekim süreleri, renk paleti, hareket yoğunluğu ve müziğin temposu çıkarılır, aynı kurgu sizin metninizle yeniden kurulur. İsterseniz renk karakteri ve müziği de kullanılır.
+- **Zaman çizelgesi ve çekim düzenleyici**: her çekimin sahnesini, kamerasını, animasyonunu, geçişini, yoğunluğunu ve süresini elle değiştirin; değişiklikler "yeniden yönet"te korunur.
+- **Çıktı**: tek film ya da her öğe ayrı video; 9:16, 4:5, 1:1, 16:9; 720p/1080p; MP4.
+
+---
+
+# Basit araç: Toplu Video Stüdyosu
 
 Ayet, hadis, söz ya da tek bir kelime listesinden **tek seferde çok sayıda video** üreten web uygulaması.
 **Canlı:** https://dogankku.github.io/studioai/ (GitHub Pages açıldıktan sonra)

@@ -1,10 +1,10 @@
-import { THEMES, seekVideo } from './backgrounds.js?v=202611210913';
-import { buildScene, drawFrame, dims, isRTL, isMostlyRTL, wordsOf, toSRT } from './renderer.js?v=202611210913';
-import { parseList, parseCSV, toListText, makeItem, plainItem, newId } from './parser.js?v=202611210913';
-import { decodeBlob, mixFor, playPreview, stopPreview, playFromStart, live } from './audio.js?v=202611210913';
-import { encodeFast, encodeRealtime, hasFast, pickAudio } from './encoder.js?v=202611210913';
-import { putFile, delFile, clearFiles, allFiles } from './storage.js?v=202611210913';
-import { surahs, buildItems } from './quran.js?v=202611210913';
+import { THEMES, seekVideo } from './backgrounds.js?v=202611211004';
+import { buildScene, drawFrame, dims, isRTL, isMostlyRTL, wordsOf, toSRT } from './renderer.js?v=202611211004';
+import { parseList, parseCSV, toListText, makeItem, plainItem, newId } from './parser.js?v=202611211004';
+import { decodeBlob, mixFor, playPreview, stopPreview, playFromStart, live } from './audio.js?v=202611211004';
+import { encodeFast, encodeRealtime, hasFast, pickAudio } from './encoder.js?v=202611211004';
+import { putFile, delFile, clearFiles, allFiles } from './storage.js?v=202611211004';
+import { surahs, buildItems } from './quran.js?v=202611211004';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];

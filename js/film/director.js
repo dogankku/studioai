@@ -1,6 +1,6 @@
 // Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
-import { STYLES } from './styles.js';
-import { isMostlyRTL } from '../renderer.js';
+import { STYLES } from './styles.js?v=202611211004';
+import { isMostlyRTL } from '../renderer.js?v=202611211004';
 
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -132,7 +132,7 @@ export function direct(items, o = {}) {
     if (energy != null && energy > 0.6 && i > 0) { transition = energy > 0.8 ? 'cut' : (style.transitions.includes('whip') ? 'whip' : transition); transDur = transition === 'cut' ? 0.05 : 0.45; }
     if (transition === 'cut') transDur = 0.05;
     shots.push({
-      i, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
+      i, key: `${s.item}:${s.kInItem}`, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
       lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.timing || null
     });
     prevScene = scene;
