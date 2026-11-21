@@ -390,11 +390,20 @@ function rebuildScene() {
   scene = sceneFor(Math.min(sel, Math.max(0, items.length - 1)), W, H);
   curT = Math.min(curT, scene.dur);
   $('#itemPos').textContent = items.length ? `${sel + 1} / ${items.length}` : '0 / 0';
-  updateTime();
+  updateTime(); updateAudioUI();
   if (!playing) seekBg();
   dirty = true;
 }
 function changed() { save(); syncUI(); rebuildScene(); updateEngineInfo(); updateSyncInfo(); }
+function updateAudioUI() {
+  const pill = $('#audioPill'); const m = items[sel] ? musicFor(sel) : null;
+  pill.className = 'audio-pill ' + (m ? 'on' : 'off');
+  pill.textContent = m ? `🔈 ${m.name}` : '🔇 Ses yok';
+  pill.title = m ? 'Bu videoda çalacak ses' : (music.length ? 'Bu video için ses kapalı (Ses sekmesi ya da videoya özel ayar)' : 'Ses sekmesinden ses ekleyin');
+  $('#noMusicWarn').classList.toggle('show', !music.length);
+  $('#noMusicWarn').textContent = !music.length ? 'Henüz ses dosyası eklenmedi; videolar sessiz üretilir.' : '';
+}
+$('#audioPill').onclick = () => switchTab('ses');
 function updateTime() {
   if (!scene) return;
   $('#time').textContent = `${curT.toFixed(1)} / ${scene.dur.toFixed(1)} sn`;
@@ -616,7 +625,7 @@ async function runQueue(indices) {
       if (srt && dirHandle) await writeText(dirHandle, `${base}.srt`, srt);
       results.set(it.id, { blob: res.blob, file: res.blob ? null : file, url: null, name: `${base}.${res.ext}`, size: res.size, srt });
       qState.delete(it.id);
-      setQ(it.id, `Hazır · ${mb(res.size)}${dirHandle ? ' · klasörde' : ''}`, 1, 'ok');
+      setQ(it.id, `Hazır · ${mb(res.size)}${ap ? '' : ' · sessiz'}${dirHandle ? ' · klasörde' : ''}`, 1, 'ok');
       done++;
       if (res.audioCodec === 'opus') $('#dlHint').textContent = 'Not: Bu tarayıcı AAC ses kodlayamadı, ses Opus olarak eklendi. Windows/Mac\'teki Chrome ya da Edge AAC üretir; iPhone uyumluluğu için onları kullanın.';
     } catch (e) {
