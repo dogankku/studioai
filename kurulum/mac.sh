@@ -110,6 +110,16 @@ else:
     sys.meta_path.insert(0, _TorchHook())
 PYEOF
   echo "import fs_torch_compat" > "$sp/fs_torch_compat.pth"
+  # ayrıca ComfyUI kodunu doğrudan düzelt (yama yüklenmese bile çalışsın)
+  "$DIR/ComfyUI/.venv/bin/python" - "$DIR/ComfyUI" <<'PYEOF' || return 1
+import pathlib, sys
+root = pathlib.Path(sys.argv[1]); n = 0
+for f in list(root.glob("comfy/**/*.py")) + list(root.glob("comfy_extras/**/*.py")):
+    t = f.read_text(encoding="utf-8")
+    if "torch.compiler.is_compiling()" in t:
+        f.write_text(t.replace("torch.compiler.is_compiling()", 'getattr(torch.compiler, "is_compiling", lambda: False)()'), encoding="utf-8"); n += 1
+print(f"ComfyUI kodunda {n} dosya düzeltildi")
+PYEOF
   "$DIR/ComfyUI/.venv/bin/python" -c "import torch; assert hasattr(torch.compiler, 'is_compiling')" || return 1
 }
 install_comfy() { # $1: sürüm (master ya da etiket)
