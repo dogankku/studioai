@@ -1,18 +1,18 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611211511';
-import { direct, clipsOf } from './film/director.js?v=202611211511';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211511';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211511';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211511';
-import { surahs, buildItems } from './quran.js?v=202611211511';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611211511';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611211511';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211511';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611211511';
-import { newId } from './parser.js?v=202611211511';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611211511';
-import { writeScript } from './ai/senarist.js?v=202611211511';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611211511';
+import { Film } from './film/player.js?v=202611211629';
+import { direct, clipsOf } from './film/director.js?v=202611211629';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211629';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211629';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211629';
+import { surahs, buildItems } from './quran.js?v=202611211629';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611211629';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611211629';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211629';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611211629';
+import { newId } from './parser.js?v=202611211629';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611211629';
+import { writeScript } from './ai/senarist.js?v=202611211629';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611211629';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];

@@ -1,0 +1,132 @@
+#!/bin/bash
+# Film Stüdyosu — yerel yapay zekâ kurulumu (macOS, Intel ya da Apple Silicon)
+# Kurar: Ollama + qwen2.5:7b (senarist), ComfyUI + SD-Turbo (sahne görselleri)
+# Her şey kullanıcı klasörüne kurulur; yönetici şifresi istemez. Tekrar çalıştırılabilir.
+set -uo pipefail
+ORIGIN="https://dogankku.github.io"
+DIR="$HOME/FilmStudyosu"
+MODEL="${FS_MODEL:-qwen2.5:7b}"
+say()  { printf "\n\033[1;33m==> %s\033[0m\n" "$1"; }
+ok()   { printf "\033[1;32m✓ %s\033[0m\n" "$1"; }
+fail() { printf "\n\033[1;31m✗ %s\033[0m\n" "$1"; echo "Bu ekranın görüntüsünü Claude'a gönderin."; exit 1; }
+
+mkdir -p "$DIR" && cd "$DIR" || fail "Klasör oluşturulamadı: $DIR"
+say "Film Stüdyosu yerel AI kurulumu başlıyor (klasör: $DIR)"
+FREE=$(df -g "$HOME" | awk 'NR==2{print $4}')
+[ "${FREE:-0}" -ge 15 ] || fail "En az 15 GB boş disk gerekli, şu an ${FREE} GB var."
+ok "Boş disk: ${FREE} GB · İşlemci: $(uname -m) · macOS $(sw_vers -productVersion)"
+
+# ---------------- 1) Ollama ----------------
+APP=""
+for p in /Applications/Ollama.app "$HOME/Applications/Ollama.app"; do [ -d "$p" ] && APP="$p"; done
+if [ -z "$APP" ]; then
+  say "1/5 Ollama indiriliyor"
+  curl -fL --progress-bar -o /tmp/Ollama-darwin.zip https://ollama.com/download/Ollama-darwin.zip || fail "Ollama indirilemedi."
+  rm -rf /tmp/fs_ollama && mkdir -p /tmp/fs_ollama && unzip -q -o /tmp/Ollama-darwin.zip -d /tmp/fs_ollama || fail "Ollama arşivi açılamadı."
+  if [ -w /Applications ]; then APP=/Applications/Ollama.app; else mkdir -p "$HOME/Applications"; APP="$HOME/Applications/Ollama.app"; fi
+  rm -rf "$APP"; mv /tmp/fs_ollama/Ollama.app "$APP" || fail "Ollama uygulaması taşınamadı."
+fi
+ok "Ollama: $APP"
+OLLAMA="$APP/Contents/Resources/ollama"
+[ -x "$OLLAMA" ] || OLLAMA="$(command -v ollama || true)"
+
+say "Film Stüdyosu'nun Ollama'ya bağlanmasına izin veriliyor"
+launchctl setenv OLLAMA_ORIGINS "$ORIGIN"
+PL="$HOME/Library/LaunchAgents/com.filmstudyosu.ollama-origins.plist"
+mkdir -p "$HOME/Library/LaunchAgents"
+cat > "$PL" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>com.filmstudyosu.ollama-origins</string>
+<key>ProgramArguments</key><array><string>/bin/launchctl</string><string>setenv</string><string>OLLAMA_ORIGINS</string><string>$ORIGIN</string></array>
+<key>RunAtLoad</key><true/>
+</dict></plist>
+PLIST
+launchctl unload "$PL" 2>/dev/null; launchctl load "$PL" 2>/dev/null
+ok "İzin kalıcı olarak ayarlandı (her açılışta geçerli)"
+
+osascript -e 'quit app "Ollama"' >/dev/null 2>&1; sleep 3
+open -a "$APP"
+for i in $(seq 1 60); do curl -fs http://127.0.0.1:11434/api/version >/dev/null && break; sleep 2; done
+curl -fs http://127.0.0.1:11434/api/version >/dev/null || fail "Ollama başlatılamadı. Uygulamalar'dan Ollama'yı açıp komutu yeniden çalıştırın."
+ok "Ollama çalışıyor: $(curl -fs http://127.0.0.1:11434/api/version)"
+
+say "2/5 Dil modeli indiriliyor: $MODEL (yaklaşık 4,7 GB)"
+"$OLLAMA" pull "$MODEL" || fail "Model indirilemedi."
+ok "Model hazır: $MODEL"
+
+# ---------------- 2) Python (uv ile, yönetici şifresi gerekmez) ----------------
+say "3/5 Python hazırlanıyor"
+export PATH="$HOME/.local/bin:$PATH"
+if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh || fail "uv kurulamadı."; export PATH="$HOME/.local/bin:$PATH"; fi
+ok "uv: $(uv --version)"
+
+# ---------------- 3) ComfyUI ----------------
+say "4/5 ComfyUI kuruluyor"
+ARCH=$(uname -m)
+TORCH_PIN=""
+if [ "$ARCH" = "x86_64" ]; then TORCH_PIN='torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 numpy<2'; fi
+install_comfy() { # $1: sürüm (master ya da etiket)
+  local ref="$1" url
+  if [ "$ref" = "master" ]; then url="https://github.com/comfyanonymous/ComfyUI/archive/refs/heads/master.zip"; else url="https://github.com/comfyanonymous/ComfyUI/archive/refs/tags/$ref.zip"; fi
+  echo "ComfyUI sürümü deneniyor: $ref"
+  rm -rf /tmp/fs_comfy && mkdir -p /tmp/fs_comfy
+  curl -fL --progress-bar -o /tmp/fs_comfy/c.zip "$url" || return 1
+  unzip -q /tmp/fs_comfy/c.zip -d /tmp/fs_comfy || return 1
+  local src; src=$(find /tmp/fs_comfy -maxdepth 1 -type d -name 'ComfyUI-*' | head -1)
+  [ -n "$src" ] || return 1
+  mkdir -p "$DIR/ComfyUI"
+  # modelleri koruyarak kodu güncelle
+  rsync -a --exclude models --exclude output --exclude .venv "$src/" "$DIR/ComfyUI/" || return 1
+  mkdir -p "$DIR/ComfyUI/models/checkpoints"
+  cd "$DIR/ComfyUI" || return 1
+  [ -d .venv ] || uv venv --python 3.11 .venv || return 1
+  if [ -n "$TORCH_PIN" ]; then
+    printf '%s\n' $TORCH_PIN > /tmp/fs_constraints.txt
+    uv pip install --python .venv/bin/python $TORCH_PIN || return 1
+    grep -viE '^(torch|torchvision|torchaudio)([<>=~! ]|$)' requirements.txt > /tmp/fs_req.txt
+    uv pip install --python .venv/bin/python -r /tmp/fs_req.txt -c /tmp/fs_constraints.txt || return 1
+  else
+    uv pip install --python .venv/bin/python torch torchvision torchaudio || return 1
+    uv pip install --python .venv/bin/python -r requirements.txt || return 1
+  fi
+  # açılış testi
+  .venv/bin/python -c "import torch, comfy.model_management" >/dev/null 2>&1 || .venv/bin/python -c "import torch; print(torch.__version__)" || return 1
+  echo "$ref" > "$DIR/ComfyUI/.fs_version"
+  return 0
+}
+DONE=0
+if [ -f "$DIR/ComfyUI/.fs_version" ] && [ -x "$DIR/ComfyUI/.venv/bin/python" ]; then DONE=1; ok "ComfyUI zaten kurulu ($(cat "$DIR/ComfyUI/.fs_version"))"; fi
+if [ $DONE -eq 0 ]; then
+  for ref in master v0.3.40 v0.3.27 v0.3.10; do
+    if install_comfy "$ref"; then DONE=1; ok "ComfyUI kuruldu ($ref)"; break; fi
+    echo "Bu sürüm bu Mac'te kurulamadı, daha eski bir sürüm deneniyor…"
+    rm -rf "$DIR/ComfyUI/.venv"
+  done
+fi
+[ $DONE -eq 1 ] || fail "ComfyUI kurulamadı."
+cd "$DIR/ComfyUI"
+
+say "5/5 Görsel modeli indiriliyor: SD-Turbo (yaklaşık 5 GB)"
+CK="$DIR/ComfyUI/models/checkpoints/sd_turbo.safetensors"
+if [ ! -s "$CK" ] || [ "$(stat -f%z "$CK")" -lt 1000000000 ]; then
+  curl -fL -C - --progress-bar -o "$CK" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/sd_turbo.safetensors" \
+    || fail "SD-Turbo indirilemedi. Hugging Face sayfasında lisans onayı isteniyorsa https://huggingface.co/stabilityai/sd-turbo adresinden onaylayıp dosyayı $DIR/ComfyUI/models/checkpoints klasörüne elle koyun."
+fi
+ok "Görsel modeli hazır"
+
+# ---------------- başlatıcılar ----------------
+cat > "$DIR/ComfyUI-Baslat.command" <<CMD
+#!/bin/bash
+cd "$DIR/ComfyUI" && exec .venv/bin/python main.py --cpu --listen 127.0.0.1 --port 8188 --enable-cors-header "$ORIGIN"
+CMD
+chmod +x "$DIR/ComfyUI-Baslat.command"
+ok "Başlatıcı: $DIR/ComfyUI-Baslat.command (Finder'da çift tıklayarak açılır)"
+
+say "ComfyUI başlatılıyor (yeni bir Terminal penceresi açılacak)"
+open "$DIR/ComfyUI-Baslat.command"
+for i in $(seq 1 90); do curl -fs http://127.0.0.1:8188/system_stats >/dev/null && break; sleep 2; done
+if curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then ok "ComfyUI çalışıyor"; else echo "ComfyUI henüz açılmadı; yeni Terminal penceresindeki mesajlara bakın."; fi
+
+printf "\n\033[1;32m══════════════════════════════════════════\n  Kurulum tamamlandı.\n  Film Stüdyosu → Yapay zekâ → Bağlantılar → \"Bağlan\"\n  ComfyUI'ı sonraki açılışlarda: ~/FilmStudyosu/ComfyUI-Baslat.command\n══════════════════════════════════════════\033[0m\n"
