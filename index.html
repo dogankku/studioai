@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Film Stüdyosu</title>
 <meta name="description" content="Ayet, hadis ve sözlerden 3D sahneli, kurgulu, efektli film üreten stüdyo. Tamamen tarayıcıda, kayıtsız.">
-<link rel="stylesheet" href="css/fonts.css?v=202611211004">
-<link rel="stylesheet" href="css/style.css?v=202611211004">
-<link rel="stylesheet" href="css/film.css?v=202611211004">
+<link rel="stylesheet" href="css/fonts.css?v=202611211416">
+<link rel="stylesheet" href="css/style.css?v=202611211416">
+<link rel="stylesheet" href="css/film.css?v=202611211416">
 </head>
 <body>
 <div class="app film">
@@ -87,15 +87,20 @@ Sonraki…"></textarea>
       </div>
       <label class="check"><input type="checkbox" id="respectKeywords"> Sahneyi anahtar kelimelere göre seç (gece → yıldızlar, deniz → dalgalar…)</label>
       <label class="check"><input type="checkbox" id="beatSync"> Kesmeleri müziğin ritmine oturt</label>
-      <div class="ttl mt">Format</div>
-      <div class="chips" id="format">
-        <button class="chip" data-v="9:16">Dikey 9:16</button><button class="chip" data-v="4:5">4:5</button><button class="chip" data-v="1:1">1:1</button><button class="chip" data-v="16:9">Yatay 16:9</button>
+      <div class="ttl mt">Film süresi</div>
+      <div class="row">
+        <div><select id="durMode"><option value="auto">Metne göre otomatik</option><option value="target">İstediğim süre</option></select></div>
+        <div class="dur-in" id="durBox"><input type="number" id="targetDur" min="5" max="1200" step="1"><span class="muted">sn</span><b id="durFmt"></b></div>
       </div>
-      <div class="row3">
-        <div><label for="res">Çözünürlük</label><select id="res"><option value="720">720p</option><option value="1080">1080p</option></select></div>
+      <div class="chips mt8" id="durChips"><button class="chip" data-d="15">15 sn</button><button class="chip" data-d="30">30 sn</button><button class="chip" data-d="60">1 dk</button><button class="chip" data-d="90">1,5 dk</button><button class="chip" data-d="180">3 dk</button><button class="chip" data-d="300">5 dk</button><button class="chip" data-d="600">10 dk</button></div>
+      <div class="hint" id="durHint">Süre uzunsa yönetmen aynı metni farklı sahne ve kamera açılarından çeker, başa başlık ve sona kaynak kartı ekler; kısaysa çekimleri sıkıştırır.</div>
+      <div class="ttl mt">Platformlar <span class="muted" style="text-transform:none;letter-spacing:0">(birden fazla seçin; her biri ayrı dosya)</span></div>
+      <div id="platforms" class="plats"></div>
+      <div class="row">
         <div><label for="fps">Kare hızı</label><select id="fps"><option value="24">24</option><option value="30">30</option><option value="60">60</option></select></div>
-        <div><label for="quality">Kalite</label><select id="quality"><option value="0.6">Küçük</option><option value="1">Yüksek</option><option value="1.6">En yüksek</option></select></div>
+        <div><label for="quality">Kalite</label><select id="quality"><option value="0.6">Küçük dosya</option><option value="1">Önerilen</option><option value="1.6">En yüksek</option></select></div>
       </div>
+      <label class="check"><input type="checkbox" id="showSafe"> Önizlemede platform arayüzünün kapladığı alanları göster</label>
     </section>
 
     <!-- REFERANS -->
@@ -165,7 +170,7 @@ Sonraki…"></textarea>
   </aside>
 
   <main>
-    <div class="stage" id="stage"><canvas id="cv"></canvas><div class="loading" id="loading">Hazırlanıyor…</div><div class="toast" id="toast"></div></div>
+    <div class="stage" id="stage"><canvas id="cv"></canvas><div class="safe-ov" id="safeOv"><i class="st"></i><i class="sb"></i></div><div class="loading" id="loading">Hazırlanıyor…</div><div class="toast" id="toast"></div></div>
     <div class="inspector" id="inspector">
       <span class="ins-title" id="insTitle">Çekim</span>
       <select id="iScene" title="Sahne"></select>
@@ -187,7 +192,7 @@ Sonraki…"></textarea>
   </main>
 </div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611211004"></script>
-<script type="module" src="js/film-app.js?v=202611211004"></script>
+<script src="vendor/jszip.min.js?v=202611211416"></script>
+<script type="module" src="js/film-app.js?v=202611211416"></script>
 </body>
 </html>

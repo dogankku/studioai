@@ -1,10 +1,10 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611211004';
-import { getScene, setPointScale } from './scenes.js?v=202611211004';
-import { applyCamera } from './camera.js?v=202611211004';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611211004';
-import { Post } from './post.js?v=202611211004';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611211004';
+import * as THREE from '../../vendor/three-bundle.js?v=202611211416';
+import { getScene, setPointScale } from './scenes.js?v=202611211416';
+import { applyCamera } from './camera.js?v=202611211416';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611211416';
+import { Post } from './post.js?v=202611211416';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611211416';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -21,7 +21,7 @@ export class Film {
     this.timeline = { shots: [], dur: 0 };
     this.style = STYLES.sinematik;
     this.fonts = { latin: '"Playfair Display", serif', ar: 'Amiri', sub: 'Lora, serif' };
-    this.size = 1; this.beats = null; this.fadeIn = 0.6; this.fadeOut = 0.9;
+    this.size = 1; this.safe = null; this.beats = null; this.fadeIn = 0.6; this.fadeOut = 0.9;
   }
   resize(W, H) {
     this.W = W; this.H = H;
@@ -39,7 +39,7 @@ export class Film {
   }
   setTimeline(tl) { this.timeline = tl; this.clearTexts(); }
   textFor(shot) {
-    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size }));
+    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.safe }));
     return this.texts.get(shot.i);
   }
   pruneTexts(keep) { for (const [k, T] of this.texts) if (!keep.has(k)) { disposeText(T); this.texts.delete(k); } }
@@ -49,7 +49,7 @@ export class Film {
     const lt = t - shot.start;
     const { target } = applyCamera(cam, shot.camera, lt / shot.dur, shot.camK, lt, shot.seed % 100, this.W / this.H);
     const T = this.textFor(shot);
-    animateText(T, lt, shot.dur, shot.anim, this.style, shot.seed, shot.timing, alpha);
+    animateText(T, shot.cont ? lt + 60 : lt, shot.cont ? shot.dur + 60 : shot.dur, shot.anim, this.style, shot.seed, shot.timing, alpha);
     return { scene: sc.scene, camera: cam, text: { group: T.group, camera: cam, target } };
   }
   locate(t) {

@@ -1,6 +1,6 @@
 // 3D yazı: her kelime ayrı bir düzlem (doku) olarak uzayda canlandırılır. Arapça şekillendirme 2D kanvasla yapılır.
-import * as THREE from '../../vendor/three-bundle.js?v=202611211004';
-import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611211004';
+import * as THREE from '../../vendor/three-bundle.js?v=202611211416';
+import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611211416';
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeOut = p => 1 - Math.pow(1 - p, 3);
@@ -39,7 +39,9 @@ export function buildText(lines, opts) {
   const u = visH / H;
   const group = new THREE.Group();
   const words = [];
-  const maxW = W * (portrait ? 0.8 : 0.7);
+  const safe = opts.safe || { top: 0.08, bottom: 0.08, side: 0.1 };
+  const maxW = W * Math.min(portrait ? 0.8 : 0.7, 1 - safe.side * 2);
+  const areaH = H * (1 - safe.top - safe.bottom), centerY = H * (safe.top + (1 - safe.top - safe.bottom) / 2);
   const get = role => lines.find(l => l.role === role && l.text && l.text.trim());
   const tag = get('tag'), main = get('main'), sub = get('sub'), src = get('src');
 
@@ -50,18 +52,18 @@ export function buildText(lines, opts) {
     const n = main.text.split(/\s+/).length;
     const big = n <= 2 && main.text.length <= 14;
     const L = layoutBlock(main.text, { latin: fonts.latin, ar: arFam, wLatin: /Inter|Montserrat|Bebas/.test(fonts.latin) ? '800' : '700', wAr: '700' },
-      maxW, H * (sub ? 0.34 : 0.5), m * (big ? 0.2 : 0.105) * (rtl ? 1.25 : 1) * (opts.size || 1), 20, rtl ? 1.75 : isRTL(main.text) ? 1.5 : 1.25);
+      maxW, Math.min(H * (sub ? 0.34 : 0.5), areaH * (sub ? 0.5 : 0.72)), m * (big ? 0.2 : 0.105) * (rtl ? 1.25 : 1) * (opts.size || 1), 20, rtl ? 1.75 : isRTL(main.text) ? 1.5 : 1.25);
     blocks.push({ L, role: 'main', color: style.text });
   }
   if (sub) {
     const rtl = isMostlyRTL(sub.text);
-    const L = layoutBlock(sub.text, { latin: fonts.sub, ar: arFam, wLatin: '500', wAr: '400' }, maxW * 0.95, H * (main ? 0.22 : 0.45),
+    const L = layoutBlock(sub.text, { latin: fonts.sub, ar: arFam, wLatin: '500', wAr: '400' }, maxW * 0.95, Math.min(H * (main ? 0.22 : 0.45), areaH * (main ? 0.3 : 0.65)),
       m * (main ? 0.05 : 0.075) * (rtl ? 1.2 : 1) * (opts.size || 1), 16, rtl ? 1.7 : 1.42);
     blocks.push({ L, role: 'sub', color: style.sub });
   }
   const gap = m * 0.06;
   const total = blocks.reduce((a, b) => a + b.L.height, 0) + gap * Math.max(0, blocks.length - 1);
-  let y = H / 2 - total / 2 + (portrait ? H * 0.01 : 0);
+  let y = centerY - total / 2;
   let gi = 0;
   for (const b of blocks) {
     placeBlock(b.L, W / 2, y);
@@ -87,7 +89,7 @@ export function buildText(lines, opts) {
     const bw = Math.max(...blocks.map(b => Math.max(...b.L.lines.map(l => l.width)))) * u * 1.5 + m * u * 0.2;
     const bh = total * u * 1.8 + m * u * 0.15;
     scrim = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), textMaterial(t, '#ffffff'));
-    scrim.position.set(0, (H / 2 - (H / 2 - total / 2 + (portrait ? H * 0.01 : 0) + total / 2)) * u, -0.01); scrim.renderOrder = 5;
+    scrim.position.set(0, (H / 2 - centerY) * u, -0.01); scrim.renderOrder = 5;
     group.add(scrim);
   }
   const extras = [];
@@ -102,9 +104,9 @@ export function buildText(lines, opts) {
     mesh.position.set(0, (H / 2 - py) * u, 0); mesh.renderOrder = 10; mesh.userData = { y: (H / 2 - py) * u };
     group.add(mesh); extras.push(mesh); return mesh;
   };
-  const topY = H / 2 - total / 2;
-  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase('tr'), Math.max(H * 0.1, topY - m * 0.09), style.accent, `600 ${Math.round(m * 0.03)}px Inter, sans-serif`, m * 0.03, 1) : null;
-  const srcMesh = src ? smallLine('— ' + src.text + ' —', Math.min(H * 0.9, y + m * 0.03), style.accent, `italic 500 ${Math.round(m * 0.032)}px Lora, serif`, m * 0.032) : null;
+  const topY = centerY - total / 2;
+  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase('tr'), Math.max(H * (safe.top + 0.02), topY - m * 0.09), style.accent, `600 ${Math.round(m * 0.03)}px Inter, sans-serif`, m * 0.03, 1) : null;
+  const srcMesh = src ? smallLine('— ' + src.text + ' —', Math.min(H * (1 - safe.bottom - 0.02), y + m * 0.03), style.accent, `italic 500 ${Math.round(m * 0.032)}px Lora, serif`, m * 0.032) : null;
   return { group, words, tagMesh, srcMesh, scrim, u, count: gi };
 }
 

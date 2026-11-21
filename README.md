@@ -16,7 +16,9 @@ Yapay zekâ ve üyelik yok; her şey kodla ve tarayıcıda üretilir.
 - **Ritim analizi**: müziğin temposu ve vuruşları bulunur, kesmeler vuruşlara oturtulur, glitch gibi efektler vuruşla nabız atar.
 - **Referans video**: beğendiğiniz bir videoyu yükleyin; kesme noktaları, çekim süreleri, renk paleti, hareket yoğunluğu ve müziğin temposu çıkarılır, aynı kurgu sizin metninizle yeniden kurulur. İsterseniz renk karakteri ve müziği de kullanılır.
 - **Zaman çizelgesi ve çekim düzenleyici**: her çekimin sahnesini, kamerasını, animasyonunu, geçişini, yoğunluğunu ve süresini elle değiştirin; değişiklikler "yeniden yönet"te korunur.
-- **Çıktı**: tek film ya da her öğe ayrı video; 9:16, 4:5, 1:1, 16:9; 720p/1080p; MP4.
+- **Platforma göre kayıt**: YouTube (16:9, 1920×1080), YouTube Shorts (9:16), Instagram Reels (9:16), Instagram gönderi (4:5), Kare (1:1). Birden fazla platform seçilirse her biri için ayrı dosya üretilir (`…-youtube.mp4`, `…-reels.mp4`). Dikey platformlarda yazılar, uygulamanın kendi düğme ve açıklamalarının kapladığı alanların dışında tutulur; önizlemede bu alanlar gösterilebilir.
+- **İstediğiniz süre**: 5 saniyeden 20 dakikaya kadar hedef süre. Kısa sürede çekimler sıkıştırılır; uzun sürede aynı metin farklı sahne ve kamera açılarından çekilir, başa başlık ve sona kaynak kartı eklenir. Shorts ve Reels için 3 dakika sınırı aşılırsa uyarı verir.
+- **Çıktı**: tek film ya da her öğe ayrı video; MP4 (H.264 + AAC).
 
 ---
 

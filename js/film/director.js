@@ -1,6 +1,6 @@
 // Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
-import { STYLES } from './styles.js?v=202611211004';
-import { isMostlyRTL } from '../renderer.js?v=202611211004';
+import { STYLES } from './styles.js?v=202611211416';
+import { isMostlyRTL } from '../renderer.js?v=202611211416';
 
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -96,6 +96,31 @@ export function direct(items, o = {}) {
       return Math.min(Math.max(d, s.rt * 0.75), s.rt * 2.2);
     });
   }
+  // istenen süreye uydur: kısaltma, uzatma ya da aynı metni farklı açılardan çekerek (kapsama çekimleri) doldurma
+  const target = +o.targetDur > 0 ? +o.targetDur : 0;
+  if (target) {
+    let natural = durs.reduce((a, b) => a + b, 0);
+    if (target / natural > 2.2 && o.titleCards !== false) {
+      const f = segs[0], tagL = f.lines.find(l => l.role === 'tag');
+      if (tagL) { segs.unshift({ lines: [{ role: 'main', text: tagL.text }], item: f.item, first: true, last: false, kInItem: 't0', nInItem: f.nInItem, keyText: f.keyText, title: true }); durs.unshift(3.4); f.first = false; }
+      const l = segs[segs.length - 1], srcL = l.lines.find(x => x.role === 'src');
+      if (srcL) { segs.push({ lines: [{ role: 'main', text: srcL.text }], item: l.item, first: false, last: true, kInItem: 't1', nInItem: l.nInItem, keyText: l.keyText, title: true }); durs.push(3.4); }
+      natural = durs.reduce((a, b) => a + b, 0);
+    }
+    const k = target / natural;
+    if (k < 1) durs = durs.map(d => Math.max(1.4, d * k));
+    else if (k <= 1.6) durs = durs.map(d => d * k);
+    else {
+      const avgT = T && T.shots && T.shots.length ? T.shots.reduce((a, x) => a + x.dur, 0) / T.shots.length : 0;
+      const shotLen = Math.max(2.4, Math.min(7, avgT ? avgT * 2 : 4.4 / pace));
+      const ns = [], nd = [];
+      segs.forEach((sg, i) => {
+        const tot = durs[i] * k, n = Math.max(1, Math.round(tot / shotLen));
+        for (let j = 0; j < n; j++) { ns.push({ ...sg, cont: j > 0, cov: j, first: sg.first && j === 0, last: sg.last && j === n - 1 }); nd.push(tot / n); }
+      });
+      segs.length = 0; segs.push(...ns); durs = nd;
+    }
+  }
   const beats = (o.beats && o.beats.length > 4) ? o.beats : null;
   let t = 0; const starts = [];
   for (let i = 0; i < durs.length; i++) {
@@ -107,6 +132,12 @@ export function direct(items, o = {}) {
       if (best - t > 1.4) end = best;
     }
     durs[i] = end - t; t = end;
+  }
+  if (target && durs.length) {
+    const diff = target - t;
+    if (durs[durs.length - 1] + diff >= 1.2) durs[durs.length - 1] += diff;
+    else { const kk = target / t; for (let i = 0; i < durs.length; i++) durs[i] *= kk; }
+    t = 0; for (let i = 0; i < durs.length; i++) { starts[i] = t; t += durs[i]; }
   }
 
   // sahne, kamera, animasyon, geçiş
@@ -121,7 +152,7 @@ export function direct(items, o = {}) {
     }
     let scene = itemScene[s.item];
     if (s.nInItem >= 4 && s.kInItem >= Math.ceil(s.nInItem / 2)) scene = pickNot(style.scenes.filter(x => x !== itemScene[s.item]).concat(itemScene[s.item]), itemScene[s.item], rng(s.item + 99));
-    if (s.meal && s.nInItem >= 3 && s.kInItem === s.nInItem - 1) scene = scene; // kapanışta aynı sahne
+    if (s.cont && s.cov % 2 === 1 && style.scenes.length > 1) scene = pickNot(style.scenes, itemScene[s.item], rng(s.item * 13 + s.cov + (o.seed || 0)));
     const camera = pickNot(style.cameras, prevCam, r); prevCam = camera;
     const anim = s.meal ? style.anims[0] : style.anims[(s.item + (s.timing ? 0 : 1)) % style.anims.length];
     const energy = T && T.shots && T.shots.length ? T.shots[i % T.shots.length].energy : null;
@@ -129,10 +160,11 @@ export function direct(items, o = {}) {
     if (i === 0) { transition = 'none'; transDur = 0; }
     else if (s.first) { transition = style.transitions[(s.item + Math.floor(r() * 2)) % style.transitions.length]; transDur = 0.8; }
     else { transition = scene !== prevScene ? style.transitions[0] : (style.transitions.includes('cut') && r() < 0.35 ? 'cut' : 'fade'); transDur = 0.6; }
+    if (s.cont && i > 0) { transition = style.transitions.includes('cut') && r() < 0.5 ? 'cut' : 'fade'; transDur = transition === 'cut' ? 0.05 : 0.9; }
     if (energy != null && energy > 0.6 && i > 0) { transition = energy > 0.8 ? 'cut' : (style.transitions.includes('whip') ? 'whip' : transition); transDur = transition === 'cut' ? 0.05 : 0.45; }
     if (transition === 'cut') transDur = 0.05;
     shots.push({
-      i, key: `${s.item}:${s.kInItem}`, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
+      i, key: `${s.item}:${s.kInItem}${s.cov ? ':' + s.cov : ''}`, cont: !!s.cont, title: !!s.title, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
       lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.timing || null
     });
     prevScene = scene;
