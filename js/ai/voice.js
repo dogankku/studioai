@@ -23,7 +23,7 @@ function parseSegments(segs) {
   for (const g of segs) {
     if (!Array.isArray(g) || g.length < 3) continue;
     const n = g.map(Number);
-    if (n.length >= 4) out.push({ w: n[0], s: n[2], e: n[3] });
+    if (n.length >= 4) out.push({ w: n[1], s: n[2], e: n[3] }); // [sıra(0), kelime no(1 tabanlı), başlangıç ms, bitiş ms]
     else if (n[1] < n[2] && n[0] < 400) out.push({ w: n[0], s: n[1], e: n[2] });
     else out.push({ w: n[2], s: n[0], e: n[0] + n[1] });
   }
