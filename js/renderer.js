@@ -428,3 +428,5 @@ export function toSRT(sc) {
   if (sc.outroCard) cues.push([o + sc.mainDur + 0.2, sc.dur - 0.2, txt(sc.outroCard)]);
   return cues.map((c, i) => `${i + 1}\n${f(c[0])} --> ${f(c[1])}\n${c[2]}\n`).join('\n');
 }
+
+export { layoutBlock, placeBlock };

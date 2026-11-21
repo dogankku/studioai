@@ -1,0 +1,141 @@
+// Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
+import { STYLES } from './styles.js';
+import { isMostlyRTL } from '../renderer.js';
+
+function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+const LEXICON = [
+  ['yildiz', /gece|seher|şafak|sahur|yıldız|yildiz|\bay\b|karanlık|uyku|kadir|leyl|ليل|نجم|قمر|ظلم/i],
+  ['deniz', /deniz|\bsu\b|dalga|yağmur|nehir|okyanus|gemi|بحر|ماء|مطر|موج/i],
+  ['col', /çöl|sabır|sabir|kum|sıcak|yolculuk|hicret|güneş|صبر|شمس|سفر/i],
+  ['nur', /nur|ışık|isik|hidayet|iman|kalp|kalb|zikir|tövbe|نور|هدى|قلب|ذكر|توب/i],
+  ['cami', /namaz|secde|cami|ezan|dua|cuma|kıble|mescid|salat|صلا|سجد|مسجد|دعا/i],
+  ['bulut', /cennet|rahmet|gök|bulut|melek|ahiret|sema|جن|رحم|سماء|ملك|آخرة/i],
+  ['desen', /ilim|hikmet|ayet|kitap|kur'an|kuran|oku|kalem|علم|حكم|آي|كتاب|قرآن|اقرأ|قلم/i]
+];
+export function detectScene(text) {
+  for (const [scene, re] of LEXICON) if (re.test(text || '')) return scene;
+  return null;
+}
+
+const STOPS = /([،؛.!?;:…ۖۗۚۛۘۙ۝]+)/;
+/** Metni okunabilir ifadelere böler (durak işaretleri ve kelime sınırı) */
+export function splitPhrases(text, maxWords) {
+  const t = (text || '').replace(/\s+/g, ' ').trim(); if (!t) return [];
+  const parts = []; let cur = '';
+  for (const tok of t.split(STOPS)) {
+    if (!tok) continue;
+    if (STOPS.test(tok)) { cur += tok; parts.push(cur.trim()); cur = ''; } else cur += tok;
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  const out = [];
+  for (const p of parts) {
+    const ws = p.split(' ').filter(Boolean);
+    if (ws.length <= maxWords) { out.push(ws); continue; }
+    const k = Math.ceil(ws.length / maxWords), per = Math.ceil(ws.length / k);
+    for (let i = 0; i < ws.length; i += per) out.push(ws.slice(i, i + per));
+  }
+  // çok kısa parçaları komşusuyla birleştir
+  const merged = [];
+  for (const ws of out) {
+    const prev = merged[merged.length - 1];
+    if (prev && (ws.length <= 1 || prev.length <= 1) && prev.length + ws.length <= maxWords + 1) prev.push(...ws); else merged.push([...ws]);
+  }
+  return merged.map(ws => ws.join(' '));
+}
+
+function readTime(text, pace) {
+  const rtl = isMostlyRTL(text); const n = text.split(/\s+/).filter(Boolean).length;
+  return Math.max(2.2, Math.min(8, 1.3 + n * (rtl ? 0.72 : 0.38))) / pace;
+}
+
+function pickNot(arr, prev, r) {
+  if (arr.length <= 1) return arr[0];
+  let v; let guard = 0; do { v = arr[Math.floor(r() * arr.length)]; } while (v === prev && guard++ < 10); return v;
+}
+
+/**
+ * items: [{main, sub, src, tag, timing}]
+ * o: {style, seed, pace, beats, template, mode:'film'|'each', mealMode:'after'|'none'}
+ */
+export function direct(items, o = {}) {
+  const style = STYLES[o.style] || STYLES.sinematik;
+  const r = rng((o.seed || 1) * 31 + 7);
+  const pace = (o.pace || 1) * style.pace;
+  const segs = [];
+  items.forEach((it, ii) => {
+    const main = (it.main || '').trim(), sub = (it.sub || '').trim();
+    const tag = (it.tag || '').trim(), src = (it.src || '').trim();
+    const local = [];
+    if (Array.isArray(it.timing) && it.timing.length) {
+      local.push({ lines: [{ role: 'main', text: main }], timing: it.timing, rt: Math.max(readTime(main, pace), it.timing[it.timing.length - 1] + 1.6) });
+    } else if (main) {
+      const rtl = isMostlyRTL(main);
+      for (const ph of splitPhrases(main, rtl ? 5 : 7)) local.push({ lines: [{ role: 'main', text: ph }], rt: readTime(ph, pace) });
+    }
+    if (sub && o.mealMode !== 'none') {
+      const big = !main || main.split(/\s+/).length <= 2;
+      if (big && local.length === 1 && sub.split(/\s+/).length <= 14) local[0].lines.push({ role: 'sub', text: sub }), local[0].rt += readTime(sub, pace) * 0.6;
+      else for (const ph of splitPhrases(sub, 9)) local.push({ lines: [{ role: 'main', text: ph }], rt: readTime(ph, pace), meal: true });
+    }
+    if (!local.length) return;
+    if (tag) local[0].lines.unshift({ role: 'tag', text: tag });
+    if (src) { local[local.length - 1].lines.push({ role: 'src', text: src }); local[local.length - 1].rt += 0.8; }
+    local.forEach((s, k) => segs.push({ ...s, item: ii, first: k === 0, last: k === local.length - 1, kInItem: k, nInItem: local.length, keyText: `${main} ${sub}` }));
+  });
+  if (!segs.length) return { shots: [], dur: 0, style: o.style };
+
+  // süreler: şablon > okuma süresi; sonra ritme oturt
+  let durs = segs.map(s => s.rt);
+  const T = o.template;
+  if (T && T.shots && T.shots.length) {
+    const cuts = T.shots.map(s => s.dur); let ci = 0;
+    durs = segs.map(s => {
+      let d = 0, guard = 0;
+      while (d < s.rt * 0.75 && guard++ < 12) { d += cuts[ci % cuts.length]; ci++; }
+      return Math.min(Math.max(d, s.rt * 0.75), s.rt * 2.2);
+    });
+  }
+  const beats = (o.beats && o.beats.length > 4) ? o.beats : null;
+  let t = 0; const starts = [];
+  for (let i = 0; i < durs.length; i++) {
+    starts.push(t);
+    let end = t + durs[i];
+    if (beats) { // bir sonraki vuruşa (tercihen çift vuruşa) oturt
+      let best = end, bd = 1e9;
+      for (let b = 0; b < beats.length; b++) { const dd = beats[b] - end; const w = Math.abs(dd) + (b % 2 ? 0.15 : 0) + (dd < -0.25 ? 1 : 0); if (w < bd) { bd = w; best = beats[b]; } }
+      if (best - t > 1.4) end = best;
+    }
+    durs[i] = end - t; t = end;
+  }
+
+  // sahne, kamera, animasyon, geçiş
+  const shots = []; let prevCam = null, prevScene = null; const itemScene = {};
+  segs.forEach((s, i) => {
+    if (!(s.item in itemScene)) {
+      const kw = detectScene(s.keyText);
+      const pool = style.scenes;
+      let sc = kw && (o.respectKeywords !== false) ? kw : pool[(s.item + (o.seed || 0)) % pool.length];
+      if (sc === prevScene && pool.length > 1 && !kw) sc = pickNot(pool, prevScene, r);
+      itemScene[s.item] = sc;
+    }
+    let scene = itemScene[s.item];
+    if (s.nInItem >= 4 && s.kInItem >= Math.ceil(s.nInItem / 2)) scene = pickNot(style.scenes.filter(x => x !== itemScene[s.item]).concat(itemScene[s.item]), itemScene[s.item], rng(s.item + 99));
+    if (s.meal && s.nInItem >= 3 && s.kInItem === s.nInItem - 1) scene = scene; // kapanışta aynı sahne
+    const camera = pickNot(style.cameras, prevCam, r); prevCam = camera;
+    const anim = s.meal ? style.anims[0] : style.anims[(s.item + (s.timing ? 0 : 1)) % style.anims.length];
+    const energy = T && T.shots && T.shots.length ? T.shots[i % T.shots.length].energy : null;
+    let transition = 'fade', transDur = 0.7;
+    if (i === 0) { transition = 'none'; transDur = 0; }
+    else if (s.first) { transition = style.transitions[(s.item + Math.floor(r() * 2)) % style.transitions.length]; transDur = 0.8; }
+    else { transition = scene !== prevScene ? style.transitions[0] : (style.transitions.includes('cut') && r() < 0.35 ? 'cut' : 'fade'); transDur = 0.6; }
+    if (energy != null && energy > 0.6 && i > 0) { transition = energy > 0.8 ? 'cut' : (style.transitions.includes('whip') ? 'whip' : transition); transDur = transition === 'cut' ? 0.05 : 0.45; }
+    if (transition === 'cut') transDur = 0.05;
+    shots.push({
+      i, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
+      lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.timing || null
+    });
+    prevScene = scene;
+  });
+  return { shots, dur: t, style: o.style };
+}
