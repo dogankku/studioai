@@ -1,18 +1,18 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611211652';
-import { direct, clipsOf } from './film/director.js?v=202611211652';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211652';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211652';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211652';
-import { surahs, buildItems } from './quran.js?v=202611211652';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611211652';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611211652';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211652';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611211652';
-import { newId } from './parser.js?v=202611211652';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611211652';
-import { writeScript } from './ai/senarist.js?v=202611211652';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611211652';
+import { Film } from './film/player.js?v=202611211804';
+import { direct, clipsOf } from './film/director.js?v=202611211804';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211804';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211804';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211804';
+import { surahs, buildItems } from './quran.js?v=202611211804';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611211804';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611211804';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211804';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611211804';
+import { newId } from './parser.js?v=202611211804';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611211804';
+import { writeScript } from './ai/senarist.js?v=202611211804';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611211804';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -643,7 +643,8 @@ window.filmDebug = { tl: () => tl, audioOpts: () => audioOpts(tl), mix: async ()
   renderMusic();
   for (const it of items) if (it.imgId) await loadImage(it.imgId);
   rebuild(false); syncUI(); renderPlan(); renderImgGrid(); updateAiAudioStatus();
-  olConnect(true); cfConnect(true);
+  // motorlar programla birlikte açılıyorsa birkaç dakika boyunca sessizce yeniden dene
+  (async () => { let a = false, b = false; for (let i = 0; i < 25 && !(a && b); i++) { if (i) await new Promise(r => setTimeout(r, 5000)); if (!a) a = await olConnect(true); if (!b) b = await cfConnect(true); } })();
   $('#loading').classList.add('hide');
   requestAnimationFrame(loop);
 })();

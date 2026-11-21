@@ -186,12 +186,45 @@ CMD
 chmod +x "$DIR/ComfyUI-Baslat.command"
 ok "Başlatıcı: $DIR/ComfyUI-Baslat.command (Finder'da çift tıklayarak açılır)"
 
-say "ComfyUI başlatılıyor (yeni bir Terminal penceresi açılacak)"
-pkill -f "main.py --cpu --listen 127.0.0.1 --port 8188" 2>/dev/null && { echo "Açık olan eski ComfyUI kapatıldı."; sleep 3; }
-open "$DIR/ComfyUI-Baslat.command"
-for i in $(seq 1 90); do curl -fs http://127.0.0.1:8188/system_stats >/dev/null && break; sleep 2; done
-if curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then ok "ComfyUI çalışıyor"; else echo "ComfyUI henüz açılmadı; yeni Terminal penceresindeki mesajlara bakın."; fi
+# ---------------- tek tıkla açılan uygulama ----------------
+say "Masaüstüne \"Film Stüdyosu\" simgesi ekleniyor"
+cat > "$DIR/baslat.sh" <<SH
+#!/bin/bash
+# Film Stüdyosu: ComfyUI'yi arka planda başlatır, Ollama'yı açar, programı Chrome'da açar.
+URL="$ORIGIN/studioai/"
+open -ga Ollama 2>/dev/null
+if ! curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then
+  osascript -e 'display notification "Görsel motoru başlatılıyor, yaklaşık yarım dakika…" with title "Film Stüdyosu"' 2>/dev/null
+  cd "$DIR/ComfyUI" && nohup .venv/bin/python main.py --cpu --listen 127.0.0.1 --port 8188 --enable-cors-header "$ORIGIN" > "$DIR/comfyui.log" 2>&1 < /dev/null &
+  for i in \$(seq 1 45); do curl -fs http://127.0.0.1:8188/system_stats >/dev/null && break; sleep 2; done
+fi
+if [ -d "/Applications/Google Chrome.app" ] || [ -d "\$HOME/Applications/Google Chrome.app" ]; then
+  open -na "Google Chrome" --args --app="\$URL"
+else
+  open "\$URL"
+fi
+SH
+cat > "$DIR/kapat.sh" <<'SH'
+#!/bin/bash
+# Görsel motorunu (ComfyUI) kapatıp belleği boşaltır.
+pkill -f "main.py --cpu --listen 127.0.0.1 --port 8188" && osascript -e 'display notification "Görsel motoru kapatıldı." with title "Film Stüdyosu"'
+SH
+chmod +x "$DIR/baslat.sh" "$DIR/kapat.sh"
+mk_app() { # $1 ad, $2 betik
+  local tgt="$HOME/Applications/$1.app"
+  mkdir -p "$HOME/Applications"; rm -rf "$tgt"
+  osacompile -o "$tgt" -e "do shell script \"/bin/bash '$2' > /dev/null 2>&1 &\"" || return 1
+  rm -rf "$HOME/Desktop/$1.app"; ln -s "$tgt" "$HOME/Desktop/$1.app" 2>/dev/null || cp -R "$tgt" "$HOME/Desktop/"
+}
+mk_app "Film Stüdyosu" "$DIR/baslat.sh" || fail "Uygulama simgesi oluşturulamadı."
+mk_app "Film Stüdyosu'nu Kapat" "$DIR/kapat.sh"
+ok "Masaüstünde: \"Film Stüdyosu\" (aç) ve \"Film Stüdyosu'nu Kapat\" (görsel motorunu kapat)"
 
-printf "\n\033[1;32m══════════════════════════════════════════\n  Kurulum tamamlandı.\n  Film Stüdyosu → Yapay zekâ → Bağlantılar → \"Bağlan\"\n  ComfyUI'ı sonraki açılışlarda: ~/FilmStudyosu/ComfyUI-Baslat.command\n══════════════════════════════════════════\033[0m\n"
+say "Eski ComfyUI pencereleri kapatılıp programa geçiliyor"
+pkill -f "main.py --cpu --listen 127.0.0.1 --port 8188" 2>/dev/null && sleep 3
+/bin/bash "$DIR/baslat.sh"
+if curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then ok "Görsel motoru çalışıyor"; else echo "Görsel motoru henüz açılmadı; ayrıntı: $DIR/comfyui.log"; fi
+
+printf "\n\033[1;32m══════════════════════════════════════════\n  Kurulum tamamlandı.\n  Bundan sonra masaüstündeki \"Film Stüdyosu\" simgesine çift tıklamanız yeterli.\n  Bu Terminal penceresini kapatabilirsiniz.\n══════════════════════════════════════════\033[0m\n"
 }
 main "$@" < /dev/null
