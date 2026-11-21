@@ -79,7 +79,7 @@ install_comfy() { # $1: sürüm (master ya da etiket)
   # eski kodu temizle, indirilen modelleri koru
   mkdir -p "$DIR/ComfyUI/models/checkpoints"
   find "$DIR/ComfyUI" -mindepth 1 -maxdepth 1 ! -name models -exec rm -rf {} +
-  rsync -a --exclude models "$src/" "$DIR/ComfyUI/" || return 1
+  cp -R "$src/." "$DIR/ComfyUI/" || return 1
   cd "$DIR/ComfyUI" || return 1
   uv venv -q --python 3.11 .venv || return 1
   # comfy-angle zorunlu değil ve Intel Mac için hazır paketi yok

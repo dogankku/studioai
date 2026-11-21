@@ -1,18 +1,18 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611211629';
-import { direct, clipsOf } from './film/director.js?v=202611211629';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211629';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211629';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211629';
-import { surahs, buildItems } from './quran.js?v=202611211629';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611211629';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611211629';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211629';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611211629';
-import { newId } from './parser.js?v=202611211629';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611211629';
-import { writeScript } from './ai/senarist.js?v=202611211629';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611211629';
+import { Film } from './film/player.js?v=202611211652';
+import { direct, clipsOf } from './film/director.js?v=202611211652';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611211652';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611211652';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611211652';
+import { surahs, buildItems } from './quran.js?v=202611211652';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611211652';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611211652';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611211652';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611211652';
+import { newId } from './parser.js?v=202611211652';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611211652';
+import { writeScript } from './ai/senarist.js?v=202611211652';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611211652';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -487,19 +487,9 @@ $('#loadProj').onchange = async e => {
 $('#reciter').innerHTML = Object.entries(RECITERS).map(([k, r]) => `<option value="${k}">${esc(r.name)}</option>`).join('');
 $('#voice').innerHTML = Object.entries(VOICES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
 const GUIDE = `<ol>
-<li><b>Ollama</b> (senarist): <a class="link" href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a> adresinden Mac sürümünü indirip kurun. Ardından Terminal'de:
-<pre>ollama pull qwen2.5:7b</pre>32 GB belleğiniz bu modele yeter; daha hızlı ama daha zayıf Türkçe için <code>qwen2.5:3b</code>.</li>
-<li>Bu sitenin Ollama'ya bağlanabilmesi için izin verin, sonra Ollama'yı kapatıp yeniden açın:
-<pre>launchctl setenv OLLAMA_ORIGINS "https://dogankku.github.io"</pre></li>
-<li><b>ComfyUI</b> (görseller): Terminal'de sırayla:
-<pre>cd ~ && git clone https://github.com/comfyanonymous/ComfyUI.git && cd ComfyUI
-python3 -m venv venv && source venv/bin/activate
-pip install "torch==2.2.2" "torchvision==0.17.2" "torchaudio==2.2.2" "numpy<2"
-pip install -r requirements.txt</pre>PyTorch'un Intel Mac için son sürümü 2.2.2'dir; requirements daha yenisini isterse bu sürümde kalın.</li>
-<li>Hızlı görsel modeli SD-Turbo'yu indirip <code>ComfyUI/models/checkpoints</code> klasörüne koyun: <a class="link" href="https://huggingface.co/stabilityai/sd-turbo/tree/main" target="_blank" rel="noopener">huggingface.co/stabilityai/sd-turbo</a> (sd_turbo.safetensors).</li>
-<li>ComfyUI'ı bu siteye izin vererek, işlemciyle başlatın:
-<pre>cd ~/ComfyUI && source venv/bin/activate
-python main.py --cpu --enable-cors-header "https://dogankku.github.io"</pre></li>
+<li><b>Tek komutla kurulum (Mac):</b> Terminal'i açın ve şu satırı yapıştırın:
+<pre>curl -fsSL https://dogankku.github.io/studioai/kurulum/mac.sh | bash</pre>Ollama + qwen2.5:7b (senarist), ComfyUI + SD-Turbo (görseller) kurulur; yaklaşık 12 GB indirilir, yönetici şifresi gerekmez. Tekrar çalıştırmak güvenlidir, bitenleri atlar.</li>
+<li><b>Her kullanımda:</b> Ollama kendiliğinden açılır. Görseller için Finder'da <code>~/FilmStudyosu/ComfyUI-Baslat.command</code> dosyasına çift tıklayın ve açılan Terminal penceresini açık bırakın (ya da Terminal'de <code>open ~/FilmStudyosu/ComfyUI-Baslat.command</code>).</li>
 <li>Buradaki "Bağlan" düğmelerine basın. Chrome yerel ağa erişim izni sorarsa izin verin.</li></ol>`;
 $('#guideBox').innerHTML = GUIDE;
 
