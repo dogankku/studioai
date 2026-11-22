@@ -1,6 +1,6 @@
 // Video kodlama: WebCodecs ile hızlı MP4, yoksa gerçek zamanlı MediaRecorder
-import { Muxer, ArrayBufferTarget, StreamTarget } from '../vendor/mp4-muxer.mjs?v=202611221956';
-import { SR } from './audio.js?v=202611221956';
+import { Muxer, ArrayBufferTarget, StreamTarget } from '../vendor/mp4-muxer.mjs?v=202611221957';
+import { SR } from './audio.js?v=202611221957';
 
 const VCODECS = ['avc1.640033', 'avc1.64002A', 'avc1.640028', 'avc1.4D4033', 'avc1.4D4028', 'avc1.42E033', 'avc1.42E028', 'avc1.42E01F'];
 
@@ -81,7 +81,7 @@ export async function encodeFast({ canvas, W, H, fps, dur, bitrate, renderAt, au
     await ve.flush();
 
     if (ac) {
-      const ae = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => (err = e) });
+      let lastA = -1; const ae = new AudioEncoder({ output: (c, m) => { if (c.timestamp <= lastA) return; lastA = c.timestamp; try { muxer.addAudioChunk(c, m); } catch (e) { console.warn('ses parçası atlandı', e); } }, error: e => (err = e) });
       ae.configure(ac.cfg);
       const L = audio.getChannelData(0), R = audio.numberOfChannels > 1 ? audio.getChannelData(1) : L;
       const total = Math.min(audio.length, Math.ceil(dur * SR)), block = 4800;
@@ -90,7 +90,7 @@ export async function encodeFast({ canvas, W, H, fps, dur, bitrate, renderAt, au
         const data = new Float32Array(n * 2); data.set(L.subarray(s, s + n), 0); data.set(R.subarray(s, s + n), n);
         const ad = new AudioData({ format: 'f32-planar', sampleRate: SR, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(s / SR * 1e6), data });
         ae.encode(ad); ad.close();
-        if (ae.encodeQueueSize > 20) await ae.flush();
+        while (ae.encodeQueueSize > 20) await new Promise(r => setTimeout(r, 0));
       }
       await ae.flush(); ae.close();
     }
