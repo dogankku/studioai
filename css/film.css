@@ -61,3 +61,13 @@
 .guide ol{padding-left:18px;font-size:12px;line-height:1.6;color:#c9ccd2}
 .guide code{display:inline-block;white-space:pre-wrap;word-break:break-all}
 .guide pre{background:#0b0c10;border:1px solid var(--line);border-radius:6px;padding:8px;font-size:11.5px;white-space:pre-wrap;word-break:break-all;color:#e9e6df}
+
+/* gerçek çekimler */
+.stk-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.stk { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 8px; padding: 6px; }
+.stk-h { display: flex; gap: 6px; align-items: center; }
+.stk-h b { min-width: 18px; text-align: center; opacity: .7; }
+.stk-h input { flex: 1; min-width: 0; font-size: 12px; padding: 4px 6px; }
+.stk-row { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; min-height: 40px; align-items: center; }
+.stk-row a { flex: 0 0 auto; }
+.stk-row img { height: 44px; width: 78px; object-fit: cover; border-radius: 4px; display: block; }

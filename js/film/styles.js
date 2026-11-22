@@ -20,7 +20,7 @@ export const EFFECTS = {
 
 export const SCENES = {
   yildiz: 'Yıldızlı gök', col: 'Çöl', deniz: 'Gece denizi', nur: 'Işık hüzmeleri', cami: 'Cami silüeti',
-  desen: 'Geometrik tünel', bulut: 'Bulutlar', soyut: 'Soyut akış', gorsel: 'AI görseli'
+  desen: 'Geometrik tünel', bulut: 'Bulutlar', soyut: 'Soyut akış', gorsel: 'AI görseli', video: 'Gerçek çekim'
 };
 export const CAMERAS = {
   yaklas: 'Yaklaşma', uzaklas: 'Uzaklaşma', yorunge: 'Yörünge', vinc: 'Vinç (yükselme)', kaydir: 'Yana kayma',
@@ -71,6 +71,13 @@ export const STYLES = {
     fx: { bloom: 0.45, grain: 0.14, vignette: 0.7, dust: 0.4, gateWeave: 0.15 },
     scenes: ['yildiz', 'cami', 'nur', 'deniz'], cameras: ['yaklas', 'egim', 'uzaklas', 'nefes'], anims: ['yuksel', 'tek'],
     transitions: ['dip', 'cut', 'fade'], text: '#ffffff', accent: '#ffffff', sub: '#cfcfcf', pace: 1
+  }),
+  gercek: S({
+    name: 'Gerçek çekim', desc: 'Gerçek video çekimleri için: doğal renk, sinematik kontrast, sakin yazı',
+    grade: { contrast: 1.08, saturation: 1.06, temperature: 0.05, shadowTint: [0.92, 0.98, 1.06], highlightTint: [1.04, 1, 0.94], splitAmount: 0.18 },
+    fx: { bloom: 0.25, bloomThreshold: 0.85, grain: 0.035, vignette: 0.4, halation: 0.1 },
+    scenes: ['video', 'nur', 'bulut'], cameras: ['nefes', 'yaklas', 'kaydir'], anims: ['yuksel', 'tek'],
+    transitions: ['fade', 'dip', 'cut'], text: '#ffffff', accent: '#ffe2a8', sub: '#f1ece2', pace: 1
   }),
   pastel: S({
     name: 'Pastel rüya', desc: 'Yumuşak kontrast, pastel tonlar, hafif ışıma',

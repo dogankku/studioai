@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Film Stüdyosu</title>
 <meta name="description" content="Ayet, hadis ve sözlerden 3D sahneli, kurgulu, efektli film üreten stüdyo. Tamamen tarayıcıda, kayıtsız.">
-<link rel="stylesheet" href="css/fonts.css?v=202611211804">
-<link rel="stylesheet" href="css/style.css?v=202611211804">
-<link rel="stylesheet" href="css/film.css?v=202611211804">
+<link rel="stylesheet" href="css/fonts.css?v=202611221440">
+<link rel="stylesheet" href="css/style.css?v=202611221440">
+<link rel="stylesheet" href="css/film.css?v=202611221440">
 </head>
 <body>
 <div class="app film">
@@ -137,6 +137,19 @@ Sonraki…"></textarea>
       </div>
 
       <div class="card">
+        <div class="ttl">Gerçek video çekimleri <span class="muted" style="text-transform:none;letter-spacing:0">(Pixabay, ücretsiz)</span></div>
+        <label class="check"><input type="checkbox" id="stockOn"> Gerçek çekimleri sahnelerde kullan</label>
+        <label for="pxKey">Pixabay API anahtarı</label>
+        <div class="row" style="grid-template-columns:1fr auto"><div><input type="password" id="pxKey" autocomplete="off" spellcheck="false" placeholder="anahtarınızı buraya yapıştırın"></div><div><button class="btn sm" id="pxTest">Dene</button></div></div>
+        <div class="hint"><span id="pxStatus"></span> Anahtar yalnızca bu tarayıcıda saklanır, proje dosyasına yazılmaz. Anahtarı almak için <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener">pixabay.com/api/docs</a> sayfasında giriş yapın; "Search Images" altındaki tablonun <b>key</b> satırında görünür.</div>
+        <div class="row"><div><label for="stockN">Metin başına çekim</label><select id="stockN"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div><div><label class="check" style="margin-top:22px"><input type="checkbox" id="stockNoPeople"> İnsan görünen çekimleri atla</label></div></div>
+        <div class="row-btns mt8"><button class="btn sm primary" id="findStock">🎬 Çekimleri bul</button><button class="btn sm ghost" id="stockStop" disabled>Durdur</button></div>
+        <div class="hint" id="stockStatus">Her metin için konuya uygun gerçek çekimler aranır, indirilir ve bu bilgisayarda saklanır. Arama kelimelerini aşağıdan değiştirebilir, ↻ ile başka çekimler isteyebilirsiniz.</div>
+        <div class="stk-grid" id="stockGrid"></div>
+        <div class="hint" style="opacity:.7">Videolar: <a href="https://pixabay.com/" target="_blank" rel="noopener">Pixabay</a></div>
+      </div>
+
+      <div class="card">
         <div class="ttl">Sahne görselleri <span class="muted" style="text-transform:none;letter-spacing:0">(ComfyUI)</span></div>
         <label class="check"><input type="checkbox" id="imgOn"> AI görsellerini sahnelerde kullan</label>
         <div class="row-btns"><button class="btn sm primary" id="genImgs">🖼 Eksik görselleri üret</button><button class="btn sm ghost" id="genStop" disabled>Durdur</button></div>
@@ -245,7 +258,7 @@ Sonraki…"></textarea>
   </main>
 </div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611211804"></script>
-<script type="module" src="js/film-app.js?v=202611211804"></script>
+<script src="vendor/jszip.min.js?v=202611221440"></script>
+<script type="module" src="js/film-app.js?v=202611221440"></script>
 </body>
 </html>

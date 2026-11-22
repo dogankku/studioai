@@ -1,5 +1,5 @@
 // Prosedürel 3D sahneler. Her sahne: { scene, update(t) } ; kamera (0,0,10)'dan merkeze bakar.
-import * as THREE from '../../vendor/three-bundle.js?v=202611211804';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221440';
 
 function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 
@@ -69,7 +69,7 @@ function starField(n = 2500, radius = 300, seed = 3, size = 1.6) {
   return p;
 }
 
-function dust(n, box, color = '#ffe8c0', size = 2.2, seed = 9, speed = 0.15) {
+export function dust(n, box, color = '#ffe8c0', size = 2.2, seed = 9, speed = 0.15) {
   const r = rng(seed), pos = new Float32Array(n * 3), ph = new Float32Array(n);
   for (let i = 0; i < n; i++) { pos[i * 3] = (r() - .5) * box[0]; pos[i * 3 + 1] = (r() - .5) * box[1]; pos[i * 3 + 2] = (r() - .5) * box[2]; ph[i] = r() * 6.28; }
   const g = new THREE.BufferGeometry();
