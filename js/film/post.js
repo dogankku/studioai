@@ -1,6 +1,6 @@
 // Son işlem: geçiş karıştırma, ışıma, renk derecelendirme ve film efektleri
-import * as THREE from '../../vendor/three-bundle.js?v=202611221617';
-import { EffectComposer, UnrealBloomPass, ShaderPass, OutputPass, Pass, FullScreenQuad } from '../../vendor/three-bundle.js?v=202611221617';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221618';
+import { EffectComposer, UnrealBloomPass, ShaderPass, OutputPass, Pass, FullScreenQuad } from '../../vendor/three-bundle.js?v=202611221618';
 
 const TRANS_IDS = { fade: 0, dip: 1, flash: 2, zoom: 3, whip: 4, glitch: 5, luma: 6, circle: 7, wipe: 8, cut: 9 };
 
