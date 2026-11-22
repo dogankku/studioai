@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221620">
-<link rel="stylesheet" href="css/style.css?v=202611221620">
-<link rel="stylesheet" href="css/film.css?v=202611221620">
+<link rel="stylesheet" href="css/fonts.css?v=202611221622">
+<link rel="stylesheet" href="css/style.css?v=202611221622">
+<link rel="stylesheet" href="css/film.css?v=202611221622">
 </head>
 <body>
 <div class="app film">
@@ -49,6 +49,7 @@
         <div id="bCountBox"><label class="check" style="margin-top:22px"><input type="checkbox" id="bCountdown"> Geri sayım (5 → 1)</label></div>
       </div>
       <div class="row-btns mt8"><button class="btn primary" id="bMake">🎬 Sahnelere dönüştür</button><button class="btn" id="bAI">✨ Yapay zekâ ile yaz</button><button class="btn ghost" id="bAIStop" disabled>Durdur</button></div>
+      <div class="row-btns mt8"><button class="btn sm" id="bAuto">🎵 Müzik ve çekimleri otomatik seç</button></div>
       <div class="hint" id="bStatus">"Sahnelere dönüştür" metninizi anında formata göre böler. "Yapay zekâ ile yaz" bilgilerinizi kısa, vurucu bir senaryoya çevirir (Ollama gerekir, birkaç dakika sürebilir).</div>
       <details class="card" id="kitBox"><summary class="ttl">Marka kiti <span class="muted" style="text-transform:none;letter-spacing:0">(renkler, yazı tipi, logo, giriş/kapanış)</span></summary>
         <label class="check"><input type="checkbox" id="kitOn"> Marka kitini bütün videolarda kullan</label>
@@ -267,6 +268,21 @@
     <section class="pane" data-pane="uretim">
       <div class="card info" id="outInfo"></div>
       <div class="row-btns"><button class="btn primary" id="render">● Videoyu üret</button><button class="btn ghost" id="cancel" disabled>Durdur</button></div>
+      <details class="card"><summary class="ttl">Toplu üretim</summary>
+        <div class="hint">Her video için ilk satır başlık, alt satırlar metin. Videoları <b>---</b> satırıyla ayırın. Seçili format, stil, marka kiti, ses ve platformlar kullanılır.</div>
+        <textarea id="batchText" rows="7" placeholder="Uyku neden önemli?
+Uyku beyni temizler.
+Yetişkinler 7-9 saat uyumalı.
+---
+Su içmenin 5 faydası
+Cildi canlandırır
+Odaklanmayı artırır
+---
+..."></textarea>
+        <label class="check"><input type="checkbox" id="batchAI"> Her biri için yapay zekâ ile senaryo yaz (yavaş)</label>
+        <label class="check"><input type="checkbox" id="batchAuto"> Her biri için müzik ve çekimleri otomatik seç</label>
+        <div class="row-btns mt8"><button class="btn sm primary" id="batchGo">▶ Toplu üret</button><button class="btn sm ghost" id="batchStop" disabled>Durdur</button><span class="muted" id="batchInfo"></span></div>
+      </details>
       <div class="card"><div class="ttl">Kapak görseli</div><input type="text" id="thumbText" placeholder="Kapak yazısı (boşsa başlık kullanılır)"><div class="row-btns mt8"><button class="btn sm" id="thumbBtn">🖼 Kapak görseli üret</button></div><div class="hint">Seçili her platform için ayrı kapak (YouTube 1280×720, dikeyler 1080×1920) PNG olarak üretilir; arka plan videonuzdan bir kare, logo ve marka renkleri kullanılır.</div></div>
       <div class="overall"><div class="prog"><i id="bar"></i></div><span id="barTxt" class="muted"></span></div>
       <div class="file-row"><button class="btn sm" id="pickDir">📁 Kayıt klasörü</button><span id="dirName" class="muted">Bellekte tutulur</span></div>
@@ -306,7 +322,7 @@
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221620"></script>
-<script type="module" src="js/film-app.js?v=202611221620"></script>
+<script src="vendor/jszip.min.js?v=202611221622"></script>
+<script type="module" src="js/film-app.js?v=202611221622"></script>
 </body>
 </html>

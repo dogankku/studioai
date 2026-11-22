@@ -1,22 +1,22 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221620';
-import { direct, clipsOf } from './film/director.js?v=202611221620';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221620';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221620';
-import { makeItem, plainItem } from './parser.js?v=202611221620';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221620';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221620';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221620';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221620';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221620';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221620';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221620';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221620';
-import { newId } from './parser.js?v=202611221620';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221620';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221620';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221620';
-import { detectScene } from './film/director.js?v=202611221620';
+import { Film } from './film/player.js?v=202611221622';
+import { direct, clipsOf } from './film/director.js?v=202611221622';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221622';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221622';
+import { makeItem, plainItem } from './parser.js?v=202611221622';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221622';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221622';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221622';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221622';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221622';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221622';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221622';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221622';
+import { newId } from './parser.js?v=202611221622';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221622';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221622';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221622';
+import { detectScene } from './film/director.js?v=202611221622';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -483,6 +483,53 @@ $('#bAI').onclick = async () => {
   $('#bAI').disabled = false; $('#bAIStop').disabled = true; bAbort = null;
 };
 $('#bAIStop').onclick = () => bAbort && bAbort.abort();
+/* müzik ve çekimleri otomatik seç */
+const MOOD = { bilgi: { bed: 'kurumsal', q: 'corporate upbeat background' }, liste: { bed: 'enerjik', q: 'upbeat energetic background' }, soz: { bed: 'sinematik', q: 'cinematic ambient piano' }, urun: { bed: 'kurumsal', q: 'happy corporate commercial' } };
+async function autoMusic(status) {
+  const m = MOOD[F.fmt] || MOOD.bilgi;
+  if (F.fsKey.trim()) {
+    try {
+      status('Freesound\'da müzik aranıyor…');
+      const need = Math.max(20, tl.dur * 0.6);
+      const hits = (await freesoundSearch(F.fsKey.trim(), m.q, { type: 'music', cc0: F.fsCC0 })).filter(h => h.dur >= need).sort((a, b) => b.downloads - a.downloads);
+      const h = hits[0];
+      if (h) {
+        status(`Müzik indiriliyor: ${h.name}`);
+        const blob = await freesoundFetch(h); const id = 'fs:' + h.id;
+        if (!music.some(x => x.id === id)) await addMusic(blob, `${h.name} (Freesound, ${h.user})`, id);
+        F.soundtrack = id; if (h.license !== 'CC0') { const c = credits(); c[id] = `"${h.name}" by ${h.user} (freesound.org/s/${h.id}), CC BY`; store.set('vs-credits', c); }
+        renderMusic(); return h.name;
+      }
+    } catch (e) { console.warn(e); }
+  }
+  await ensureBed(m.bed); F.soundtrack = 'bed:' + m.bed; renderMusic(); return BEDS[m.bed].name;
+}
+async function autoFootage(status) {
+  if (!F.pxKey.trim()) return 0;
+  const [W, H] = outDims(); const exclude = new Set(flow.map(v => v.px)); let got = 0;
+  stockAbort = new AbortController();
+  try {
+    for (const [i, it] of items.entries()) {
+      if (it.kind === 'cta' && i > 0) continue;
+      status(`Çekim aranıyor ${i + 1}/${items.length}…`);
+      const hits = await findClips(F.pxKey.trim(), it, itemScene(it), { n: 1, portrait: H > W, noPeople: F.stockNoPeople, exclude, signal: stockAbort.signal });
+      for (const h of hits) { const v = await saveHit(h, W, H, stockAbort.signal, (g, tot) => status(`Çekim ${i + 1}/${items.length} indiriliyor… ${mb(g, tot)}`)); if (v) { flow.push(v); got++; save(); } }
+    }
+  } finally { stockAbort = null; }
+  if (got) { F.stockOn = true; F.stockMode = 'flow'; }
+  return got;
+}
+$('#bAuto').onclick = async () => {
+  if (!items.length) { toast('Önce sahneleri oluşturun'); return; }
+  $('#bAuto').disabled = true; const st = m => ($('#bStatus').textContent = m);
+  try {
+    const mus = await autoMusic(st);
+    let n = 0; if (F.pxKey.trim()) { if (flow.length && !confirm('Mevcut çekim akışı temizlenip yeni çekimler seçilsin mi? (İptal: mevcutların sonuna eklenir)')) { } else { const old = flow; flow = []; old.forEach(flowRemoveFiles); } n = await autoFootage(st); }
+    syncUI(); save(); rebuild(); renderStockGrid(); changed();
+    st(`Müzik: ${mus}.${F.pxKey.trim() ? ` ${n} çekim akışa eklendi.` : ' Çekim için "Yapay zekâ" sekmesine Pixabay anahtarı girin.'}${F.fsKey.trim() ? '' : ' (Freesound anahtarı girilirse gerçek müzik aranır.)'}`);
+  } catch (e) { st('✗ ' + e.message); }
+  $('#bAuto').disabled = false;
+};
 $('#shareCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#shareText').value); toast('Kopyalandı'); } catch (e) { $('#shareText').select(); } };
 
 /* ================= Ses ================= */
@@ -618,7 +665,7 @@ async function renderOne(timeline, name, W, H, mbps, onP) {
 }
 function jobsFor(platKey) {
   const p = PLATFORMS[platKey], jobs = [];
-  const base = slug(items[0] && (items[0].tag || items[0].src) || 'film') || 'film';
+  const base = slug(batchName || brief.title || (items[0] && (items[0].main || items[0].tag)) || 'video') || 'video';
   if (F.mode === 'each') {
     items.forEach((it, i) => {
       const t1 = direct([augItems()[i]], { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn, flow: flowIds() }); // her öğe kendi süresine göre kurgulanır
@@ -652,6 +699,38 @@ async function renderAll() {
   [PW, PH] = previewDims(); cv.width = PW; cv.height = PH; film.resize(PW, PH); film.safe = PV().safe; fitCanvas();
   setBusy(false); rebuild();
 }
+/* toplu üretim */
+let batchName = '', batchStop = false;
+function parseBatch(t) {
+  return (t || '').replace(/\r/g, '').split(/\n\s*-{3,}\s*\n/).map(b => b.trim()).filter(Boolean).map(b => { const ls = b.split('\n'); return { title: ls[0].trim(), text: ls.slice(1).join('\n').trim() }; });
+}
+$('#batchText').addEventListener('input', () => { const n = parseBatch($('#batchText').value).length; $('#batchInfo').textContent = n ? `${n} video üretilecek · ${F.platforms.length} platform → ${n * F.platforms.length} dosya` : ''; });
+$('#batchGo').onclick = async () => {
+  const list = parseBatch($('#batchText').value); if (!list.length) { toast('Önce konuları yazın'); return; }
+  if (busy) return; batchStop = false; $('#batchGo').disabled = true; $('#batchStop').disabled = false;
+  const saved = { items, brief: { ...brief }, flow: [...flow], soundtrack: F.soundtrack };
+  const useAI = $('#batchAI').checked && F.olModel, autoMedia = $('#batchAuto').checked;
+  try {
+    for (const [k, b] of list.entries()) {
+      if (batchStop) break;
+      $('#batchInfo').textContent = `${k + 1}/${list.length}: ${b.title}`;
+      const br = { ...saved.brief, title: b.title, text: b.text || b.title };
+      let scenes;
+      if (useAI) { try { scenes = (await aiScenes(F.fmt, br, { url: F.olUrl, model: F.olModel, onStatus: m => ($('#batchInfo').textContent = `${k + 1}/${list.length}: ${m}`) })).scenes; } catch (e) { scenes = null; } }
+      if (!scenes || !scenes.length) scenes = toScenes(F.fmt, br);
+      items = scenes.map(sc => makeItem({ ...sc, stockQ: sc.q || '' })); brief = br; batchName = b.title;
+      if (autoMedia) { flow = []; rebuild(); await autoMusic(m => ($('#batchInfo').textContent = `${k + 1}/${list.length}: ${m}`)); await autoFootage(m => ($('#batchInfo').textContent = `${k + 1}/${list.length}: ${m}`)); }
+      rebuild(); await renderAll();
+      if (cancelFlag) break;
+    }
+    $('#batchInfo').textContent = batchStop || cancelFlag ? 'Toplu üretim durduruldu' : `${list.length} video üretildi. "Hepsini ZIP indir" ile indirebilirsiniz.`;
+  } catch (e) { $('#batchInfo').textContent = '✗ ' + e.message; }
+  batchName = ''; items = saved.items; brief = saved.brief; if (autoMedia) flow = saved.flow; F.soundtrack = saved.soundtrack;
+  save(); renderList(); loadEditor(); syncBrief(); renderStockGrid(); renderMusic(); rebuild();
+  $('#batchGo').disabled = false; $('#batchStop').disabled = true;
+};
+$('#batchStop').onclick = () => { batchStop = true; cancelFlag = true; };
+
 /* kapak görseli */
 const THUMB_DIMS = { youtube: [1280, 720], shorts: [1080, 1920], reels: [1080, 1920], igpost: [1080, 1350], kare: [1080, 1080] };
 async function makeThumbs() {
@@ -1076,7 +1155,7 @@ async function ensureFonts() {
 }
 window.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 
-window.filmDebug = { tl: () => tl, film, PK, flow: () => flow, setFlow: f => { flow = f; save(); rebuild(); renderStockGrid(); }, pkRender: () => pkRender(), items: () => items, rebuild: () => rebuild(), renderStockGrid: () => renderStockGrid(), loadVideo: id => loadVideo(id), audioOpts: () => audioOpts(tl), mix: async () => { const a = await mixTimeline(tl.dur, audioOpts(tl)); const d = a.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 100) pk = Math.max(pk, Math.abs(d[i])); return { dur: a.duration, peak: pk }; } };
+window.filmDebug = { tl: () => tl, film, PK, results: () => results, flow: () => flow, setFlow: f => { flow = f; save(); rebuild(); renderStockGrid(); }, pkRender: () => pkRender(), items: () => items, rebuild: () => rebuild(), renderStockGrid: () => renderStockGrid(), loadVideo: id => loadVideo(id), audioOpts: () => audioOpts(tl), mix: async () => { const a = await mixTimeline(tl.dur, audioOpts(tl)); const d = a.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 100) pk = Math.max(pk, Math.abs(d[i])); return { dur: a.duration, peak: pk }; } };
 (async function init() {
   resizePreview(); syncUI(); renderList(); loadEditor(); renderRef(); fitCanvas();
   await ensureFonts();
