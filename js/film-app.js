@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221645';
-import { direct, clipsOf } from './film/director.js?v=202611221645';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221645';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221645';
-import { makeItem, plainItem } from './parser.js?v=202611221645';
-import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221645';
-import { TEMPLATES } from './templates.js?v=202611221645';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221645';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221645';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221645';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221645';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221645';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221645';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221645';
-import { newId } from './parser.js?v=202611221645';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221645';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221645';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221645';
-import { detectScene } from './film/director.js?v=202611221645';
+import { Film } from './film/player.js?v=202611221646';
+import { direct, clipsOf } from './film/director.js?v=202611221646';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221646';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221646';
+import { makeItem, plainItem } from './parser.js?v=202611221646';
+import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221646';
+import { TEMPLATES } from './templates.js?v=202611221646';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221646';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221646';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221646';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221646';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221646';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221646';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221646';
+import { newId } from './parser.js?v=202611221646';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221646';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221646';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221646';
+import { detectScene } from './film/director.js?v=202611221646';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -31,7 +31,7 @@ const toast = t => { const l = $('#toast'); l.textContent = t; l.classList.add('
 
 /* ================= Durum ================= */
 const DEFAULTS = {
-  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, fastDecode: true, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
+  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, fastDecode: false, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,

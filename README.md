@@ -42,6 +42,14 @@ Yazdığınız metni **profesyonel kısa videoya** dönüştüren web uygulamas�
 - **Sahne düzenleri:** ortada, sola dayalı, alt bant paneli, sayaçlı büyük istatistik ve fotoğraf kartı.
 - **Kapak görseli:** her platform için PNG olarak üretilir.
 - **Otomatik müzik ve çekim:** formata uygun müzik (Freesound ya da hazır müzik) ve her sahneye uygun Pixabay çekimi tek tıkla seçilir.
+- **Şablon galerisi:** 10 sektör için hazır örnek video var. Seçip kendi bilginizi yazıyorsunuz.
+- **İçerik takvimi:** yapay zekâ bir konu için 5–30 videoluk plan yazar ve plan toplu üretime aktarılır.
+- **Proje kütüphanesi:** projeler tarayıcıda saklanır ve otomatik kaydedilir. Açılabilir, kopyalanabilir, yeniden adlandırılabilir, dosyaya aktarılabilir.
+- **Çok dilli:** video İngilizce, Almanca, Fransızca, İspanyolca, Rusça ya da Arapçaya çevrilir ve o dilin sesiyle seslendirilir.
+- **Kalite kontrolü:** üretimden önce süreyi, yazı uzunluğunu, tempoyu ve ses seviyesini denetler, tek tıkla düzeltir.
+- **Sürükle-bırak kurgu:** zaman çizelgesinde sahne sırası ve sahne süresi sürükleyerek değiştirilir.
+- **SRT altyazı dosyası ve GIF önizleme.**
+- **Hızlı çekim çözme (deneysel):** gerçek çekimleri WebCodecs ile sırayla çözer.
 - **Toplu üretim:** bir konu listesinden çok sayıda video üretilir.
 - **Sahne görselleri (ComfyUI, yerel):** çekim kullanılmayan sahneler için yapay zekâ görseli üretilebilir.
 - **Yönetmen:**
