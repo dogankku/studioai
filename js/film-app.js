@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221706';
-import { direct, clipsOf } from './film/director.js?v=202611221706';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221706';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221706';
-import { makeItem, plainItem } from './parser.js?v=202611221706';
-import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221706';
-import { TEMPLATES } from './templates.js?v=202611221706';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221706';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221706';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221706';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221706';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221706';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221706';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221706';
-import { newId } from './parser.js?v=202611221706';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221706';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221706';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221706';
-import { detectScene } from './film/director.js?v=202611221706';
+import { Film } from './film/player.js?v=202611221713';
+import { direct, clipsOf } from './film/director.js?v=202611221713';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221713';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221713';
+import { makeItem, plainItem } from './parser.js?v=202611221713';
+import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221713';
+import { TEMPLATES } from './templates.js?v=202611221713';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221713';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221713';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221713';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221713';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221713';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221713';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221713';
+import { newId } from './parser.js?v=202611221713';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221713';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221713';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221713';
+import { detectScene } from './film/director.js?v=202611221713';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -31,7 +31,7 @@ const toast = t => { const l = $('#toast'); l.textContent = t; l.classList.add('
 
 /* ================= Durum ================= */
 const DEFAULTS = {
-  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, fastDecode: true, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
+  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, fastDecode: true, ui: 'kolay', sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
@@ -57,6 +57,7 @@ let F = { ...DEFAULTS, ...store.get('film-settings', {}) };
 if (!F.v2) { F.v2 = true; F.latinFont = ''; F.respectKeywords = false; if (!F.soundtrack || F.soundtrack === 'none') F.soundtrack = 'bed:kurumsal'; if (!['modern', 'neonliste', 'marka', 'gercek'].includes(F.style)) F.style = 'modern'; F.ttsOn = true; }
 if (!F.v3) { F.v3 = true; F.respectKeywords = false; }
 if (!F.v4) { F.v4 = true; F.fastDecode = true; }
+if (!F.v5) { F.v5 = true; F.ui = 'kolay'; }
 if (!Array.isArray(F.platforms) || !F.platforms.length) F.platforms = ['reels'];
 F.platforms = F.platforms.filter(k => PLATFORMS[k]); if (!F.platforms.length) F.platforms = ['reels'];
 if (!PLATFORMS[F.previewPlatform]) F.previewPlatform = F.platforms[0];
@@ -180,7 +181,7 @@ function rebuild(keepTime = true) {
   const st = soundtrack(); film.beats = st && st.an ? st.an.beats : null;
   if (!keepTime) curT = 0;
   curT = Math.min(curT, tl.dur);
-  renderTimeline(); updateInspector(); updateTime(); updateOutInfo(); updateAudioUI();
+  renderTimeline(); updateInspector(); updateTime(); updateOutInfo(); updateAudioUI(); try { ezInfoUpd(); } catch (e) { }
   dirty = true;
 }
 
@@ -340,7 +341,7 @@ function fmtOut(o) { const el = document.getElementById(o.dataset.for); const v 
 function syncUI() {
   for (const k of FIELDS) { const el = document.getElementById(k); if (!el) continue; if (el.type === 'checkbox') el.checked = !!F[k]; else el.value = F[k]; }
   $$('#styles .style-card').forEach(c => c.classList.toggle('on', c.dataset.v === F.style));
-  renderPlatforms();
+  renderPlatforms(); ezSync();
   $('#durBox').style.visibility = F.durMode === 'target' ? 'visible' : 'hidden';
   $('#durFmt').textContent = F.durMode === 'target' ? fmtDur(+F.targetDur) : '';
   $$('#durChips [data-d]').forEach(b => b.classList.toggle('on', F.durMode === 'target' && +b.dataset.d === +F.targetDur));
@@ -483,10 +484,11 @@ function renderFormats() {
   $('#bLogoBox').style.display = '';
   $('#bCountBox').style.display = F.fmt === 'liste' ? '' : 'none';
   $('#bRowB').style.display = '';
+  ezSync();
 }
 function syncBrief() {
   $('#bTitle').value = brief.title || ''; $('#bText').value = brief.text || ''; $('#bBrand').value = brief.brand || ''; $('#bAuthor').value = brief.author || ''; $('#bCta').value = brief.cta || ''; $('#bCountdown').checked = !!brief.countdown;
-  const img = film.logo; $('#bLogoPrev').style.display = img ? 'inline-block' : 'none'; $('#bLogoDel').style.display = img ? '' : 'none'; if (img) $('#bLogoPrev').src = img.src;
+  ezSync(); const img = film.logo; $('#bLogoPrev').style.display = img ? 'inline-block' : 'none'; $('#bLogoDel').style.display = img ? '' : 'none'; if (img) $('#bLogoPrev').src = img.src;
 }
 function renderTemplates() { $('#tplGrid').innerHTML = TEMPLATES.map(t => `<button class="tpl" data-tp="${t.id}"><i>${t.icon}</i><b>${esc(t.name)}</b><span>${esc((FORMATS[t.fmt] || {}).name || '')}</span></button>`).join(''); }
 $('#tplGrid').onclick = e => {
@@ -605,6 +607,7 @@ function renderMusic() {
   $('#soundtrack').value = F.soundtrack || 'none';
   $('#bedBtns').innerHTML = Object.entries(BEDS).map(([k, b]) => `<button class="btn sm${F.soundtrack === 'bed:' + k ? ' primary' : ''}" data-bed="${k}">▶ ${esc(b.name)}</button>`).join('');
   $('#noMusicWarn').classList.toggle('show', !soundtrack() && !(F.refUseAudio && refAudio));
+  $('#ezMusic').innerHTML = $('#soundtrack').innerHTML; $('#ezMusic').value = $('#soundtrack').value;
 }
 $('#musicList').onclick = e => { const b = e.target.closest('button[data-id]'); if (!b) return; const k = music.findIndex(m => m.id === b.dataset.id); if (k < 0) return; const [m] = music.splice(k, 1); delFile(m.id); if (F.soundtrack === m.id) F.soundtrack = 'none'; renderMusic(); changed(); };
 $('#soundtrack').onchange = async e => { F.soundtrack = e.target.value; if (F.soundtrack.startsWith('bed:')) await ensureBed(F.soundtrack.slice(4)); renderMusic(); changed(); };
@@ -933,6 +936,7 @@ function slug(s) { return (s || '').toLocaleLowerCase('tr').replace(/[çğıöş
 function renderResults() {
   $('#results').innerHTML = results.map((r, i) => `<div class="q"><div class="no muted">${i + 1}</div><div><div class="tx">${esc(r.name)}</div><div class="st ok">${esc(r.plat || '')} · ${(r.size / 1048576).toFixed(1)} MB${r.file ? ' · klasörde' : ''}</div></div><div class="acts"><button class="btn sm" data-a="view" data-i="${i}">▶</button>${r.blob ? `<button class="btn sm" data-a="dl" data-i="${i}">⬇</button>` : ''}</div></div>`).join('');
   $('#doneBadge').textContent = results.length || ''; $('#zipAll').disabled = !results.some(r => r.blob);
+  $('#ezResults').innerHTML = $('#results').innerHTML;
 }
 $('#results').onclick = async e => {
   const b = e.target.closest('[data-a]'); if (!b) return; const r = results[+b.dataset.i];
@@ -1154,15 +1158,17 @@ function renderFlow() {
   const tot = flow.reduce((a, v) => a + Math.min(+F.flowMax, v.dur || 0), 0);
   box.innerHTML = flow.length ? flow.map((v, k) => `<div class="fl" title="${esc(v.tags || '')}">${v.thumb ? `<img src="${esc(v.thumb)}" alt="">` : (film.videos.has(v.id) ? `<video muted playsinline preload="metadata" src="${esc(film.videos.get(v.id).src)}#t=1"></video>` : '')}<b>${k + 1}</b><span>${Math.round(v.dur || 0)} sn</span><div class="fl-b"><button data-fm="${k}:-1" title="Öne al">◀</button><button data-fm="${k}:1" title="Geri al">▶</button><button data-fx="${k}" title="Çıkar">✕</button></div></div>`).join('') : '<span class="muted">Akış boş. "Pixabay\'de ara ve ekle" ile çekim seçin.</span>';
   if (flow.length) box.insertAdjacentHTML('beforeend', `<span class="muted" style="flex:0 0 auto;font-size:11px">${flow.length} çekim · bir tur ≈ ${Math.round(tot)} sn</span>`);
+  ezSync();
 }
 function flowRemoveFiles(v) { if (!items.some(o => (o.vids || []).some(x => x.id === v.id)) && !flow.some(x => x.id === v.id) && !projRefs().has(v.id)) { delFile(v.id); const el = film.videos.get(v.id); if (el) { URL.revokeObjectURL(el.src); film.videos.delete(v.id); } } }
-$('#flowStrip').addEventListener('click', e => {
+function flowClick(e) {
   const m = e.target.closest('[data-fm]'), x = e.target.closest('[data-fx]');
   if (m) { const [k, d] = m.dataset.fm.split(':').map(Number), j = k + d; if (j < 0 || j >= flow.length) return; [flow[k], flow[j]] = [flow[j], flow[k]]; }
   else if (x) { const [v] = flow.splice(+x.dataset.fx, 1); flowRemoveFiles(v); }
   else return;
   save(); rebuild(); renderFlow();
-});
+}
+$('#flowStrip').addEventListener('click', flowClick);
 $('#flowAdd').onclick = () => openPicker('flow');
 async function addOwnMedia(files, toItem = null) {
   const out = [];
@@ -1366,8 +1372,89 @@ $('#pxTest').onclick = async () => {
 $('#stockGrid').addEventListener('click', e => { const p = e.target.closest('[data-pk]'); if (p && !stockAbort) { openPicker(+p.dataset.pk); return; } const b = e.target.closest('[data-si]'); if (b && !stockAbort) findStock(+b.dataset.si); });
 $('#stockGrid').addEventListener('change', e => { const q = e.target.closest('[data-sq]'); if (q) { items[+q.dataset.sq].stockQ = q.value.trim(); save(); } });
 
+
+/* ================= Kolay mod ================= */
+let ezDirty = false;
+function ezSync() { try { ezSync0(); } catch (e) { } }
+function ezSync0() {
+  if (!document.getElementById('ezFmts')) return;
+  const f = FORMATS[F.fmt] || FORMATS.bilgi;
+  $('#ezFmts').innerHTML = Object.entries(FORMATS).map(([k, x]) => `<button class="ez-chip${F.fmt === k ? ' on' : ''}" data-f="${k}">${x.icon} ${esc(x.name)}</button>`).join('');
+  $('#ezStyles').innerHTML = Object.entries(STYLES).filter(([k]) => ['modern', 'neonliste', 'marka', 'gercek', 'sinematik', 'gece', 'pastel', 'noir'].includes(k)).map(([k, x]) => `<button class="ez-chip${F.style === k ? ' on' : ''}" data-v="${k}" title="${esc(x.desc)}">${esc(x.name)}</button>`).join('');
+  $('#ezPlats').innerHTML = Object.entries(PLATFORMS).map(([k, p]) => `<button class="ez-chip${F.platforms.includes(k) ? ' on' : ''}" data-p="${k}">${esc(p.name)}</button>`).join('');
+  $('#ezTitleLbl').textContent = f.titleLabel || 'Başlık'; $('#ezText').placeholder = f.placeholder || '';
+  if (document.activeElement !== $('#ezTitle')) $('#ezTitle').value = brief.title || '';
+  if (document.activeElement !== $('#ezText')) $('#ezText').value = brief.text || '';
+  $('#ezTts').checked = !!F.ttsOn; $('#ezCap').checked = !!F.capOn;
+  const hasKey = !!(F.pxKey || '').trim();
+  $('#ezKeyBox').style.display = hasKey ? 'none' : '';
+  $('#ezPick').disabled = !hasKey;
+  $('#ezFlow').innerHTML = flow.length ? $('#flowStrip').innerHTML : '';
+  ezInfoUpd();
+}
+function ezInfoUpd() {
+  if (!document.getElementById('ezInfo')) return;
+  const n = items.length, d = (tl && tl.dur) || 0;
+  $('#ezInfo').innerHTML = n ? `${n} sahne hazır${d ? ' · yaklaşık ' + Math.round(d) + ' sn' : ''}${ezDirty ? ' · <b>metin değişti, üretirken yeniden hazırlanacak</b>' : ''}` : 'Metni yazın; sahneler "Videoyu üret"e basınca kendiliğinden hazırlanır.';
+}
+function setUI(m) {
+  F.ui = m; save(); document.body.classList.toggle('ez', m === 'kolay');
+  $$('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  if (m === 'kolay') { $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === 'kolay')); ezSync(); }
+  else switchTab('metin');
+  requestAnimationFrame(fitCanvas);
+}
+$('#modeSeg').onclick = e => { const b = e.target.closest('[data-m]'); if (b) setUI(b.dataset.m); };
+$('#ezEdit').onclick = () => setUI('gelismis');
+$('#ezFmts').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; F.fmt = b.dataset.f; save(); renderFormats(); ezDirty = true; ezSync(); };
+$('#ezTitle').addEventListener('input', e => { brief.title = e.target.value; $('#bTitle').value = brief.title; ezDirty = true; save(); });
+$('#ezText').addEventListener('input', e => { brief.text = e.target.value; $('#bText').value = brief.text; ezDirty = true; save(); });
+$('#ezText').addEventListener('change', ezSync);
+$('#ezTpl').innerHTML = '<option value="">Örnek bir metinle başla…</option>' + TEMPLATES.map(t => `<option value="${t.id}">${t.icon} ${esc(t.name)}</option>`).join('');
+$('#ezTpl').onchange = e => { const v = e.target.value; e.target.value = ''; if (!v) return; const b = $(`#tplGrid [data-tp="${v}"]`); if (b) { b.click(); ezDirty = false; ezSync(); } };
+$('#ezStyles').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; F.style = b.dataset.v; F.fxOv = {}; F.gradeOv = {}; F.colors = {}; changed(); };
+$('#ezPlats').onclick = e => {
+  const b = e.target.closest('[data-p]'); if (!b) return; const k = b.dataset.p;
+  if (F.platforms.includes(k)) { if (F.platforms.length > 1) F.platforms = F.platforms.filter(x => x !== k); else return toast('En az bir platform seçili olmalı'); }
+  else F.platforms.push(k);
+  F.previewPlatform = F.platforms.includes(k) ? k : F.platforms[0];
+  resizePreview(); changed();
+};
+$('#ezTts').onchange = e => { $('#ttsOn').checked = e.target.checked; $('#ttsOn').dispatchEvent(new Event('change')); };
+$('#ezCap').onchange = e => { $('#capOn').checked = e.target.checked; $('#capOn').dispatchEvent(new Event('change')); };
+$('#ezMusic').onchange = e => { $('#soundtrack').value = e.target.value; $('#soundtrack').dispatchEvent(new Event('change')); };
+$('#ezKey').addEventListener('change', async e => {
+  const v = e.target.value.trim(); if (!v) return;
+  $('#pxKey').value = v; $('#pxKey').dispatchEvent(new Event('input'));
+  $('#ezKeySt').textContent = 'Deneniyor…';
+  try { await pixabayTest(v); $('#ezKeySt').textContent = '✓ Anahtar çalışıyor'; } catch (er) { $('#ezKeySt').textContent = '✗ ' + er.message; return; }
+  ezSync();
+});
+function ezStockOn() { if (!F.stockOn || F.stockMode !== 'flow') { F.stockOn = true; F.stockMode = 'flow'; syncUI(); save(); } }
+$('#ezPick').onclick = () => { ezStockOn(); openPicker('flow'); };
+$('#ezOwn').onchange = async e => { const fs = [...e.target.files]; e.target.value = ''; ezStockOn(); await addOwnMedia(fs); };
+$('#ezFlow').addEventListener('click', flowClick);
+$('#ezPlay').onclick = () => $('#play').click();
+$('#ezResults').onclick = e => $('#results').onclick(e);
+$('#ezGo').onclick = async () => {
+  if (busy) return;
+  if (!(brief.text || '').trim() && !(brief.title || '').trim()) { toast('Önce ne anlatmak istediğinizi yazın'); $('#ezText').focus(); return; }
+  $('#ezGo').disabled = true;
+  try {
+    if (!items.length || ezDirty) { $('#bMake').click(); ezDirty = false; }
+    if (!items.length) return;
+    if (!flow.length && (F.pxKey || '').trim()) { ezStockOn(); $('#barTxt').textContent = 'Müzik ve çekimler seçiliyor…'; await $('#bAuto').onclick(); }
+    const L = renderQC(); for (const x of L) if (x.lv === 'err' && x.fix) { try { await x.fix(); } catch (er) { } }
+    renderList(); loadEditor(); rebuild();
+    if (renderQC().some(x => x.lv === 'err')) { const msg = renderQC().filter(x => x.lv === 'err').map(x => x.msg).join(' · '); if (!confirm('Videoda sorun olabilir: ' + msg + '\nYine de üretilsin mi?')) return; }
+    const keep = window.confirm; window.confirm = () => true;
+    try { await renderAll(); } finally { window.confirm = keep; }
+  } finally { $('#ezGo').disabled = false; ezSync(); }
+};
+
 /* ================= Genel ================= */
-function switchTab(n) { if (n === 'uretim') try { renderQC(); } catch (e) { } $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n)); $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === n)); }
+function switchTab(n) { if (n === 'uretim') try { renderQC(); } catch (e) { }
+  if (F.ui === 'kolay') n = 'kolay'; $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n)); $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === n)); }
 $('#tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) switchTab(b.dataset.tab); };
 async function ensureFonts() {
   const fam = s => s.split(',')[0].trim();
@@ -1390,6 +1477,7 @@ window.filmDebug = { tl: () => tl, film, PK, results: () => results, flow: () =>
   rebuild(false); syncUI(); renderImgGrid(); renderStockGrid(); renderMusic(); updateAiAudioStatus();
   // motorlar programla birlikte açılıyorsa birkaç dakika boyunca sessizce yeniden dene
   (async () => { let a = false, b = false; for (let i = 0; i < 25 && !(a && b); i++) { if (i) await new Promise(r => setTimeout(r, 5000)); if (!a) a = await olConnect(true); if (!b) b = await cfConnect(true); } })();
+  setUI(F.ui === 'gelismis' ? 'gelismis' : 'kolay');
   $('#loading').classList.add('hide');
   requestAnimationFrame(loop);
 })();

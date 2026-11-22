@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221706">
-<link rel="stylesheet" href="css/style.css?v=202611221706">
-<link rel="stylesheet" href="css/film.css?v=202611221706">
+<link rel="stylesheet" href="css/fonts.css?v=202611221713">
+<link rel="stylesheet" href="css/style.css?v=202611221713">
+<link rel="stylesheet" href="css/film.css?v=202611221713">
 </head>
 <body>
 <div class="app film">
@@ -15,10 +15,11 @@
     <header>
       <div>
         <h1>Video <span>Stüdyosu</span></h1>
-        <div class="subtitle">Yazın, formatı seçin; sahneler, çekimler, ses ve kurgu hazır. Her şey bilgisayarınızda.</div>
+        <div class="subtitle">Metninizi yazın, video hazır. Her şey bilgisayarınızda.</div>
       </div>
       <div class="hdr-btns">
-        <button class="btn sm primary" id="projBtn">📁 Projeler</button>
+        <div class="seg" id="modeSeg"><button data-m="kolay" class="on">Kolay</button><button data-m="gelismis">Gelişmiş</button></div>
+        <button class="btn sm" id="projBtn">📁 Projeler</button>
       </div>
     </header>
     <nav class="tabs" id="tabs">
@@ -31,8 +32,43 @@
       <button data-tab="uretim">Üretim <b id="doneBadge"></b></button>
     </nav>
 
+    <!-- KOLAY MOD -->
+    <section class="pane on" data-pane="kolay">
+      <div class="ez-step">
+        <div class="ez-h"><i>1</i>Ne anlatmak istiyorsunuz?</div>
+        <div class="ez-chips" id="ezFmts"></div>
+        <label for="ezTitle" id="ezTitleLbl">Başlık</label><input type="text" id="ezTitle">
+        <label for="ezText">Metin</label><textarea id="ezText" rows="7"></textarea>
+        <select id="ezTpl" class="ez-tpl"></select>
+      </div>
+      <div class="ez-step">
+        <div class="ez-h"><i>2</i>Görünüm ve ses</div>
+        <label>Stil</label><div class="ez-chips" id="ezStyles"></div>
+        <label>Nerede paylaşacaksınız?</label><div class="ez-chips" id="ezPlats"></div>
+        <label>Arka plan görüntüleri</label>
+        <div class="row-btns"><button class="btn sm" id="ezPick">🎬 Hazır video seç</button><label class="btn sm">📁 Kendi fotoğraf/videom<input type="file" id="ezOwn" accept="image/*,video/*" multiple hidden></label></div>
+        <div class="ez-key" id="ezKeyBox">
+          <div class="hint" style="margin-top:0">Hazır videolar Pixabay'den ücretsiz gelir, bir kez anahtar girmeniz yeterli. <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener">Anahtarı buradan alın</a> (giriş yapınca sayfadaki <b>key</b> satırında görünür).</div>
+          <input type="password" id="ezKey" autocomplete="off" spellcheck="false" placeholder="Pixabay anahtarını yapıştırın"><span class="muted" id="ezKeySt"></span>
+        </div>
+        <div class="flow-strip ez-flow" id="ezFlow"></div>
+        <div class="ez-two">
+          <label class="check"><input type="checkbox" id="ezTts"> Yapay sesle seslendir</label>
+          <label class="check"><input type="checkbox" id="ezCap"> Altyazı göster</label>
+        </div>
+        <label for="ezMusic">Müzik</label><select id="ezMusic"></select>
+      </div>
+      <div class="ez-step">
+        <div class="ez-h"><i>3</i>Videoyu üret</div>
+        <div class="hint" id="ezInfo" style="margin-top:0"></div>
+        <div class="row-btns mt8"><button class="btn primary ez-go" id="ezGo">● Videoyu üret</button><button class="btn" id="ezPlay">▶ Önizle</button></div>
+        <div id="ezResults" class="queue mt8"></div>
+      </div>
+      <div class="ez-more">Sahneleri tek tek düzenlemek, marka kiti, toplu üretim, kapak ve diğer araçlar için <button class="link" id="ezEdit">Gelişmiş mod</button>.</div>
+    </section>
+
     <!-- SENARYO -->
-    <section class="pane on" data-pane="metin">
+    <section class="pane" data-pane="metin">
       <details class="card" id="tplBox"><summary class="ttl">Hazır şablonlar <span class="muted" style="text-transform:none;letter-spacing:0">(sektöre göre örnek video)</span></summary><div class="tpls" id="tplGrid"></div></details>
       <div class="ttl">1 · Format</div>
       <div class="fmts" id="fmts"></div>
@@ -297,11 +333,9 @@ Odaklanmayı artırır
       </details>
       <div class="card"><div class="ttl">Altyazı dosyası ve GIF</div><div class="row-btns"><button class="btn sm" id="srtBtn">📝 Altyazı dosyası (SRT)</button><button class="btn sm" id="gifBtn">🎞 GIF önizleme</button><select id="gifDur" style="width:auto"><option value="4">4 sn</option><option value="6" selected>6 sn</option><option value="10">10 sn</option></select></div><div class="hint">SRT dosyasını YouTube'a altyazı olarak yükleyebilirsiniz. GIF, videonun başından kısa ve küçük bir önizlemedir.</div></div>
       <div class="card"><div class="ttl">Kapak görseli</div><input type="text" id="thumbText" placeholder="Kapak yazısı (boşsa başlık kullanılır)"><div class="row-btns mt8"><button class="btn sm" id="thumbBtn">🖼 Kapak görseli üret</button></div><div class="hint">Seçili her platform için ayrı kapak (YouTube 1280×720, dikeyler 1080×1920) PNG olarak üretilir; arka plan videonuzdan bir kare, logo ve marka renkleri kullanılır.</div></div>
-      <div class="overall"><div class="prog"><i id="bar"></i></div><span id="barTxt" class="muted"></span></div>
       <div class="file-row"><button class="btn sm" id="pickDir">📁 Kayıt klasörü</button><span id="dirName" class="muted">Bellekte tutulur</span></div>
       <div id="results" class="queue"></div>
       <div class="row-btns" style="margin-top:10px"><button class="btn primary" id="zipAll" disabled>⬇ Hepsini ZIP indir</button></div>
-      <div class="warn" id="hiddenWarn">Üretim sırasında bu sekmeyi önde tutun.</div>
     </section>
   </aside>
 
@@ -318,6 +352,7 @@ Odaklanmayı artırır
       <button class="link" id="iReset">sıfırla</button>
     </div>
     <div class="timeline" id="timeline"><div class="tl-shots" id="tlShots"></div><div class="tl-beats" id="tlBeats"></div><div class="tl-head" id="tlHead"></div></div>
+    <div class="overall"><div class="prog"><i id="bar"></i></div><span id="barTxt" class="muted"></span><div class="warn" id="hiddenWarn">Üretim bitene kadar bu pencereyi önde tutun.</div></div>
     <div class="bar">
       <button class="btn" id="play">▶ Oynat</button>
       <input type="range" id="seek" min="0" max="1000" value="0">
@@ -341,7 +376,7 @@ Odaklanmayı artırır
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221706"></script>
-<script type="module" src="js/film-app.js?v=202611221706"></script>
+<script src="vendor/jszip.min.js?v=202611221713"></script>
+<script type="module" src="js/film-app.js?v=202611221713"></script>
 </body>
 </html>
