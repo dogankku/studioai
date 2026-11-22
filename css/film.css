@@ -224,7 +224,7 @@
 .app.film .tl-head{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.8);pointer-events:none;z-index:5}
 .app.film .tl-head::before{content:"";position:absolute;top:0;left:-5px;border:6px solid transparent;border-top-color:#fff}
 /* kolay mod */
-body.ez .app.film{grid-template-columns:440px minmax(0,1fr);grid-template-rows:50px minmax(0,1fr) 210px;grid-template-areas:"top top" "aside main" "aside tl"}
+body.ez .app.film{grid-template-columns:440px minmax(0,1fr);grid-template-rows:50px minmax(0,1fr) 250px;grid-template-areas:"top top" "aside main" "aside tl"}
 body.ez .rail,body.ez .props,body.ez .tl-edit{display:none}
 body.ez .tl-labels{width:70px;flex-basis:70px}
 @media (max-width:1250px){
@@ -239,3 +239,6 @@ body.ez .tl-labels{width:70px;flex-basis:70px}
   .topbar{flex-wrap:wrap;height:auto;padding:8px}
 }
 .topbar{justify-content:flex-start}
+.props input[type=range]{accent-color:var(--accent)}
+.trk-empty .link{font-size:11px;pointer-events:auto}
+.trk-prep{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;z-index:3;background:#0f1115!important;padding:2px 6px!important;border-radius:4px}

@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611222001';
-import { direct, clipsOf } from './film/director.js?v=202611222001';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611222001';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611222001';
-import { makeItem, plainItem } from './parser.js?v=202611222001';
-import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611222001';
-import { TEMPLATES } from './templates.js?v=202611222001';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611222001';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611222001';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611222001';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611222001';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611222001';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611222001';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611222001';
-import { newId } from './parser.js?v=202611222001';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611222001';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611222001';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611222001';
-import { detectScene } from './film/director.js?v=202611222001';
+import { Film } from './film/player.js?v=202611222003';
+import { direct, clipsOf } from './film/director.js?v=202611222003';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611222003';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611222003';
+import { makeItem, plainItem } from './parser.js?v=202611222003';
+import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611222003';
+import { TEMPLATES } from './templates.js?v=202611222003';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611222003';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611222003';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611222003';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611222003';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611222003';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611222003';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611222003';
+import { newId } from './parser.js?v=202611222003';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611222003';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611222003';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611222003';
+import { detectScene } from './film/director.js?v=202611222003';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -283,6 +283,7 @@ $('#timeline').onclick = e => {
   curT = Math.max(0, Math.min(tl.dur, t)); updateTime(); renderTimeline(); updateInspector(); dirty = true;
   if (was) startPlayback(curT);
   if (e.target.closest('.tl-ruler')) return;
+  if (e.target.closest('[data-act="prep"]')) { const b = e.target.closest('[data-act]'); b.textContent = 'Hazırlanıyor…'; prepareAudio(m => (b.textContent = m)).then(n => { if (!n) toast('Sesler hazırlanamadı. İnternet bağlantısını kontrol edip tekrar deneyin (ses modeli bir kez iner).'); }).catch(() => { }); return; }
   const b = e.target.closest('[data-sel]'); if (b) { const [k, i] = b.dataset.sel.split(':'); setSel(k, i == null ? null : (isNaN(+i) ? i : +i)); } else setSel('scene');
 };
 
@@ -1425,7 +1426,7 @@ function renderTracks() {
     if (s.scene !== 'video' || !(s.videos || []).length) return;
     v += `<div class="clip vid" data-sel="scene" style="left:${pct(s.start)};width:${pct(s.dur)}"><b>🎞</b></div>`;
   });
-  $('#trkVideo').innerHTML = v || '<span class="trk-empty">Video yok · soldan Medya ile ekleyin</span>';
+  $('#trkVideo').innerHTML = v || '<span class="trk-empty">Video yok · Medya bölümünden ekleyin</span>';
   // seslendirme
   let a = ''; const off = itemOff();
   for (const c of tl.clips || []) {
@@ -1433,7 +1434,8 @@ function renderTracks() {
     const n = narrOf(it), ii = +idx - off, d = n ? n.buf.duration : (c.dur || 2);
     a += `<div class="clip voc${n ? '' : ' wait'}${selKind === 'scene' && sel === ii ? ' on' : ''}" data-sel="voice:${ii}" style="left:${pct(c.start)};width:${pct(d)}" title="${esc(voText(it))}">${n ? wave(n.buf, px(d), 0, null) : ''}<span>${esc(voText(it).slice(0, 40))}</span></div>`;
   }
-  $('#trkVoice').innerHTML = a || `<span class="trk-empty">${F.ttsOn ? 'Sesler üretimde hazırlanır' : 'Seslendirme kapalı'}</span>`;
+  $('#trkVoice').innerHTML = a || `<span class="trk-empty">${F.ttsOn ? '<button class="link" data-act="prep">🎙 Sesleri şimdi hazırla</button>' : 'Seslendirme kapalı'}</span>`;
+  if (a && (tl.clips || []).some(c => c.key.startsWith('vo:') && !narrOf(allItems()[+c.key.split(':')[1]] || {}))) $('#trkVoice').insertAdjacentHTML('beforeend', '<button class="link trk-prep" data-act="prep">🎙 Eksik sesleri hazırla</button>');
   // müzik
   const st = soundtrack();
   $('#trkMusic').innerHTML = st && st.buffer ? `<div class="clip mus${selKind === 'music' ? ' on' : ''}" data-sel="music" style="left:0;width:100%">${wave(st.buffer, W, 0, tl.dur)}<span>♪ ${esc(st.name || 'Müzik')}</span></div>` : '<span class="trk-empty" data-sel="music">Müzik yok · tıklayıp seçin</span>';
