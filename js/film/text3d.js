@@ -1,6 +1,6 @@
 // 3D yazı: her kelime ayrı bir düzlem (doku) olarak uzayda canlandırılır. Arapça şekillendirme 2D kanvasla yapılır.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221559';
-import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221559';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221602';
+import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221602';
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeOut = p => 1 - Math.pow(1 - p, 3);
@@ -155,7 +155,7 @@ export function buildText(lines, opts) {
     g.shadowColor = 'transparent'; g.fillStyle = style.badgeText || '#111111'; g.font = `800 ${fs}px Montserrat, Inter, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, c.width / 2, c.height / 2 + fs * 0.05);
     ctaMesh = canvasMesh(c, W / 2, topY + textTotal + gap * 1.1 + ctaH / 2, 'cta');
   }
-  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase('tr'), Math.max(H * (safe.top + 0.02), (pre ? stackTop : topY) - m * 0.09), style.accent, `600 ${Math.round(m * 0.03)}px Inter, sans-serif`, m * 0.03, 1) : null;
+  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase('tr'), Math.max(H * (safe.top + 0.02), (pre ? stackTop : topY) - m * 0.09), style.accent, `${style.font ? 800 : 600} ${Math.round(m * (style.font ? 0.04 : 0.03))}px ${style.font ? 'Montserrat, ' : ''}Inter, sans-serif`, m * (style.font ? 0.04 : 0.03), 1) : null;
   const srcMesh = src ? smallLine('— ' + src.text + ' —', Math.min(H * (1 - safe.bottom - 0.02), y + post + m * 0.03), style.accent, `italic 500 ${Math.round(m * 0.032)}px Lora, serif`, m * 0.032) : null;
   return { group, words, tagMesh, srcMesh, scrim, u, count: gi, badge, logo, bar, ctaMesh };
 }

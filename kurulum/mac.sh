@@ -1,5 +1,5 @@
 #!/bin/bash
-# Film Stüdyosu — yerel yapay zekâ kurulumu (macOS, Intel ya da Apple Silicon)
+# Video Stüdyosu — yerel yapay zekâ kurulumu (macOS, Intel ya da Apple Silicon)
 # Kurar: Ollama + qwen2.5:7b (senarist), ComfyUI + SD-Turbo (sahne görselleri)
 # Her şey kullanıcı klasörüne kurulur; yönetici şifresi istemez. Tekrar çalıştırılabilir.
 set -uo pipefail
@@ -14,7 +14,7 @@ fail() { printf "\n\033[1;31m✗ %s\033[0m\n" "$1"; echo "Bu ekranın görüntü
 main() {
 
 mkdir -p "$DIR" && cd "$DIR" || fail "Klasör oluşturulamadı: $DIR"
-say "Film Stüdyosu yerel AI kurulumu başlıyor (klasör: $DIR)"
+say "Video Stüdyosu yerel AI kurulumu başlıyor (klasör: $DIR)"
 FREE=$(df -g "$HOME" | awk 'NR==2{print $4}')
 [ "${FREE:-0}" -ge 15 ] || fail "En az 15 GB boş disk gerekli, şu an ${FREE} GB var."
 ok "Boş disk: ${FREE} GB · İşlemci: $(uname -m) · macOS $(sw_vers -productVersion)"
@@ -33,7 +33,7 @@ ok "Ollama: $APP"
 OLLAMA="$APP/Contents/Resources/ollama"
 [ -x "$OLLAMA" ] || OLLAMA="$(command -v ollama || true)"
 
-say "Film Stüdyosu'nun Ollama'ya bağlanmasına izin veriliyor"
+say "Video Stüdyosu'nun Ollama'ya bağlanmasına izin veriliyor"
 launchctl setenv OLLAMA_ORIGINS "$ORIGIN"
 PL="$HOME/Library/LaunchAgents/com.filmstudyosu.ollama-origins.plist"
 mkdir -p "$HOME/Library/LaunchAgents"
@@ -74,7 +74,7 @@ install_compat() { # PyTorch 2.2 uyumluluk yaması (yalnızca Intel Mac)
   [ -n "$TORCH_PIN" ] || return 0
   local sp; sp=$("$DIR/ComfyUI/.venv/bin/python" -c "import sysconfig;print(sysconfig.get_paths()['purelib'])") || return 1
   cat > "$sp/fs_torch_compat.py" <<'PYEOF'
-# Film Stüdyosu: Intel Mac'te PyTorch 2.2 ile yeni ComfyUI kodu arasındaki küçük farkları kapatır.
+# Video Stüdyosu: Intel Mac'te PyTorch 2.2 ile yeni ComfyUI kodu arasındaki küçük farkları kapatır.
 # torch içe aktarıldığı anda eksik fonksiyonları ekler; torch'u erkenden yüklemez.
 import sys, importlib.abc, importlib.machinery
 
@@ -187,14 +187,14 @@ chmod +x "$DIR/ComfyUI-Baslat.command"
 ok "Başlatıcı: $DIR/ComfyUI-Baslat.command (Finder'da çift tıklayarak açılır)"
 
 # ---------------- tek tıkla açılan uygulama ----------------
-say "Masaüstüne \"Film Stüdyosu\" simgesi ekleniyor"
+say "Masaüstüne \"Video Stüdyosu\" simgesi ekleniyor"
 cat > "$DIR/baslat.sh" <<SH
 #!/bin/bash
-# Film Stüdyosu: ComfyUI'yi arka planda başlatır, Ollama'yı açar, programı Chrome'da açar.
+# Video Stüdyosu: ComfyUI'yi arka planda başlatır, Ollama'yı açar, programı Chrome'da açar.
 URL="$ORIGIN/studioai/"
 open -ga Ollama 2>/dev/null
 if ! curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then
-  osascript -e 'display notification "Görsel motoru başlatılıyor, yaklaşık yarım dakika…" with title "Film Stüdyosu"' 2>/dev/null
+  osascript -e 'display notification "Görsel motoru başlatılıyor, yaklaşık yarım dakika…" with title "Video Stüdyosu"' 2>/dev/null
   cd "$DIR/ComfyUI" && nohup .venv/bin/python main.py --cpu --listen 127.0.0.1 --port 8188 --enable-cors-header "$ORIGIN" > "$DIR/comfyui.log" 2>&1 < /dev/null &
   for i in \$(seq 1 45); do curl -fs http://127.0.0.1:8188/system_stats >/dev/null && break; sleep 2; done
 fi
@@ -207,7 +207,7 @@ SH
 cat > "$DIR/kapat.sh" <<'SH'
 #!/bin/bash
 # Görsel motorunu (ComfyUI) kapatıp belleği boşaltır.
-pkill -f "main.py --cpu --listen 127.0.0.1 --port 8188" && osascript -e 'display notification "Görsel motoru kapatıldı." with title "Film Stüdyosu"'
+pkill -f "main.py --cpu --listen 127.0.0.1 --port 8188" && osascript -e 'display notification "Görsel motoru kapatıldı." with title "Video Stüdyosu"'
 SH
 chmod +x "$DIR/baslat.sh" "$DIR/kapat.sh"
 mk_app() { # $1 ad, $2 betik
@@ -216,15 +216,15 @@ mk_app() { # $1 ad, $2 betik
   osacompile -o "$tgt" -e "do shell script \"/bin/bash '$2' > /dev/null 2>&1 &\"" || return 1
   rm -rf "$HOME/Desktop/$1.app"; ln -s "$tgt" "$HOME/Desktop/$1.app" 2>/dev/null || cp -R "$tgt" "$HOME/Desktop/"
 }
-mk_app "Film Stüdyosu" "$DIR/baslat.sh" || fail "Uygulama simgesi oluşturulamadı."
-mk_app "Film Stüdyosu'nu Kapat" "$DIR/kapat.sh"
-ok "Masaüstünde: \"Film Stüdyosu\" (aç) ve \"Film Stüdyosu'nu Kapat\" (görsel motorunu kapat)"
+mk_app "Video Stüdyosu" "$DIR/baslat.sh" || fail "Uygulama simgesi oluşturulamadı."
+mk_app "Video Stüdyosu'nu Kapat" "$DIR/kapat.sh"
+ok "Masaüstünde: \"Video Stüdyosu\" (aç) ve \"Video Stüdyosu'nu Kapat\" (görsel motorunu kapat)"
 
 say "Eski ComfyUI pencereleri kapatılıp programa geçiliyor"
 pkill -f "main.py --cpu --listen 127.0.0.1 --port 8188" 2>/dev/null && sleep 3
 /bin/bash "$DIR/baslat.sh"
 if curl -fs http://127.0.0.1:8188/system_stats >/dev/null; then ok "Görsel motoru çalışıyor"; else echo "Görsel motoru henüz açılmadı; ayrıntı: $DIR/comfyui.log"; fi
 
-printf "\n\033[1;32m══════════════════════════════════════════\n  Kurulum tamamlandı.\n  Bundan sonra masaüstündeki \"Film Stüdyosu\" simgesine çift tıklamanız yeterli.\n  Bu Terminal penceresini kapatabilirsiniz.\n══════════════════════════════════════════\033[0m\n"
+printf "\n\033[1;32m══════════════════════════════════════════\n  Kurulum tamamlandı.\n  Bundan sonra masaüstündeki \"Video Stüdyosu\" simgesine çift tıklamanız yeterli.\n  Bu Terminal penceresini kapatabilirsiniz.\n══════════════════════════════════════════\033[0m\n"
 }
 main "$@" < /dev/null

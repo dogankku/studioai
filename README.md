@@ -1,151 +1,76 @@
-# Film Stüdyosu
+# Video Stüdyosu
 
-Ayet, hadis, söz ya da tek bir kelimeden **3D sahneli, kurgulu, efektli film** üreten web uygulaması.
-Yapay zekâ ve üyelik yok; her şey kodla ve tarayıcıda üretilir.
+Yazdığınız metni **profesyonel kısa videoya** dönüştüren web uygulaması: formatı seçin, bilgileri yazın; sahneler, gerçek video çekimleri, Türkçe seslendirme, müzik, ses efektleri ve kurgu hazır. Her şey tarayıcınızda ve bilgisayarınızda çalışır, üyelik gerekmez.
 
-**Canlı:** https://dogankku.github.io/studioai/ · Basit toplu video aracı: https://dogankku.github.io/studioai/basit.html
+**Canlı:** https://dogankku.github.io/studioai/
 
-## Film Stüdyosu neler yapıyor
+## Nasıl çalışır
 
-- **Yönetmen motoru** (kural tabanlı): metni okunabilir ifadelere ve çekimlere böler (Uthmani durak işaretleri dahil), anahtar kelimelere göre sahne seçer (gece → yıldızlı gök, deniz → dalgalar, sabır → çöl, namaz/dua → cami, cennet/rahmet → bulutlar, ilim/kitap → geometrik tünel), kamera hareketlerini ve geçişleri tekrarsız dağıtır. **Yeniden yönet** her basışta farklı kurgu çıkarır.
-- **8 prosedürel 3D sahne** (Three.js): yıldızlı gök ve dağlar, çöl, gece denizi, ışık hüzmeleri, cami silüeti ve fenerler, geometrik tünel, bulut denizi, soyut akış.
-- **9 kamera hareketi**: yaklaşma, uzaklaşma, yörünge, vinç, yana kayma, eğim, elde çekim, sakin nefes, dolly zoom.
-- **7 yazı animasyonu**, her kelime 3D uzayda ayrı canlanır; Arapça şekillendirme ve karışık yön desteği.
-- **10 geçiş**: çapraz, karartma, ışık patlaması, yakınlaşma bulanıklığı, hızlı kaydırma, glitch, doku erimesi, daire, silme, kesme.
-- **10 film stili** ve **14 efekt**: ışıma, film greni, vinyet, renk kayması, tarama çizgileri, VHS, glitch, piksel, posterleştirme, ışık sızıntısı, sinemaskop bant, film titremesi, toz-çizik, halation; pozlama, kontrast, doygunluk, sıcaklık, ton ayarları.
-- **Ritim analizi**: müziğin temposu ve vuruşları bulunur, kesmeler vuruşlara oturtulur, glitch gibi efektler vuruşla nabız atar.
-- **Referans video**: beğendiğiniz bir videoyu yükleyin; kesme noktaları, çekim süreleri, renk paleti, hareket yoğunluğu ve müziğin temposu çıkarılır, aynı kurgu sizin metninizle yeniden kurulur. İsterseniz renk karakteri ve müziği de kullanılır.
-- **Zaman çizelgesi ve çekim düzenleyici**: her çekimin sahnesini, kamerasını, animasyonunu, geçişini, yoğunluğunu ve süresini elle değiştirin; değişiklikler "yeniden yönet"te korunur.
-- **Platforma göre kayıt**: YouTube (16:9, 1920×1080), YouTube Shorts (9:16), Instagram Reels (9:16), Instagram gönderi (4:5), Kare (1:1). Birden fazla platform seçilirse her biri için ayrı dosya üretilir (`…-youtube.mp4`, `…-reels.mp4`). Dikey platformlarda yazılar, uygulamanın kendi düğme ve açıklamalarının kapladığı alanların dışında tutulur; önizlemede bu alanlar gösterilebilir.
-- **İstediğiniz süre**: 5 saniyeden 20 dakikaya kadar hedef süre. Kısa sürede çekimler sıkıştırılır; uzun sürede aynı metin farklı sahne ve kamera açılarından çekilir, başa başlık ve sona kaynak kartı eklenir. Shorts ve Reels için 3 dakika sınırı aşılırsa uyarı verir.
-- **Çıktı**: tek film ya da her öğe ayrı video; MP4 (H.264 + AAC).
-
-## Yapay zekâ (isteğe bağlı, yerel)
-
-Yapay zekâ sekmesi bilgisayarınızda çalışan servislere bağlanır; hesap ya da ücret gerekmez.
-
-- **Senarist (Ollama)**: konu yazın; uygulama Türkçe mealde arama yapıp aday ayetleri bulur, model bunlardan seçer, sıralar, kendi giriş/kapanış cümlesini, sahne ve görsel tariflerini, YouTube başlığı, açıklama ve etiketleri yazar. **Ayet metinleri her zaman uygulamadaki doğrulanmış veriden gelir; model ayet ya da hadis metni üretmez.**
-- **Kâri tilaveti**: her ayet ayrı öğe olduğunda Quran.com (kelime zamanlarıyla) ya da EveryAyah kaydı otomatik eklenir; kelimeler tilavetle birlikte belirir.
-- **Türkçe seslendirme (Piper)**: meal ve Türkçe metinler tarayıcıda seslendirilir (dfki, Fahrettin, Fettah sesleri). Film müziği konuşmada kendiliğinden kısılır.
-- **Sahne görselleri (ComfyUI)**: her öğe için insan içermeyen manzara görseli üretilir ve 3D sahnede derinlik ve kamera hareketiyle kullanılır.
-
-### Intel Mac kurulumu
-
-1. Ollama: https://ollama.com/download → kurun, sonra `ollama pull qwen2.5:7b` (32 GB bellek için; daha hızlı: `qwen2.5:3b`).
-2. Siteye izin: `launchctl setenv OLLAMA_ORIGINS "https://dogankku.github.io"` ve Ollama'yı yeniden başlatın.
-3. ComfyUI:
-   ```
-   cd ~ && git clone https://github.com/comfyanonymous/ComfyUI.git && cd ComfyUI
-   python3 -m venv venv && source venv/bin/activate
-   pip install "torch==2.2.2" "torchvision==0.17.2" "torchaudio==2.2.2" "numpy<2"
-   pip install -r requirements.txt
-   ```
-   PyTorch'un Intel Mac için son sürümü 2.2.2'dir.
-4. `sd_turbo.safetensors` dosyasını https://huggingface.co/stabilityai/sd-turbo adresinden indirip `ComfyUI/models/checkpoints` içine koyun.
-5. Başlatın: `python main.py --cpu --enable-cors-header "https://dogankku.github.io"`
-6. Uygulamada Yapay zekâ → Bağlantılar → "Bağlan".
-
----
-
-# Basit araç: Toplu Video Stüdyosu
-
-Ayet, hadis, söz ya da tek bir kelime listesinden **tek seferde çok sayıda video** üreten web uygulaması.
-**Canlı:** https://dogankku.github.io/studioai/ (GitHub Pages açıldıktan sonra)
-
-Tamamen tarayıcıda çalışır: sunucu, veritabanı, üyelik yok. Yüklediğiniz görsel, video ve sesler bilgisayarınızdan çıkmaz.
+1. **Format seçin**
+   - **Bilgi / eğitim:** dikkat çeken giriş, numaralı bilgiler, kapanış çağrısı.
+   - **Liste (Top 5):** numaralı maddeler. Geri sayım seçeneği var.
+   - **Söz / motivasyon:** tek güçlü söz ve imza, sinematik görünüm.
+   - **Ürün / marka tanıtımı:** sorun, çözüm, özellikler, fiyat, satın alma düğmesi ve logo.
+2. **Bilgileri yazın.** İki dönüştürme yolu var:
+   - **Sahnelere dönüştür:** metni anında, kurallara göre böler.
+   - **Yapay zekâ ile yaz:** bilgilerinizi kısa, vurucu bir senaryoya çevirir. Seslendirme metnini, çekim arama ipuçlarını, YouTube başlığını, açıklamayı ve etiketleri de yazar. Bunun için yerel Ollama gerekir.
+3. **Sahneleri düzenleyin.** Her sahnede şunlar ayrı ayrı ayarlanabilir:
+   - Tür, üst etiket, başlık ve açıklama.
+   - Numara ya da simge (1, ✓, ★).
+   - Düğme yazısı ve alt imza.
+   - Seslendirme metni ve çekim arama ipucu.
+4. **Çekimler**, **ses** ve **platform** seçip videoyu üretin.
 
 ## Özellikler
 
-- **Kur'an'dan ekle**: sûre ve ayet aralığı seçin; doğrulanmış Uthmani metin ve Diyanet meali listeye eklenir (her ayet ayrı video ya da hepsi tek video). Veri uygulamanın içinde, internet gerekmez.
-- **Tilavetle eşleme**: sesi dinlerken her kelimede Boşluk tuşuna basın; kelimeler tilavetle birlikte belirir. Geri al, baştan al, önizle.
-- **Toplu liste**: metinleri `---` ile ayırarak yapıştırın, CSV/Excel'den alın ya da tek tek ekleyin. Her öğede ana metin, alt metin (meal), kaynak ve etiket olabilir.
-- **Arapça desteği**: Arapça metin kendiliğinden algılanır, sağdan sola ve harekeli yazılır; Türkçe cümle içinde geçen Arapça kelimeler de doğru yönde durur. Amiri, Amiri Quran, Scheherazade, Noto Naskh ve Reem Kufi yazı tipleri uygulamaya gömülüdür.
-- **Video bazında ayar**: her videoya ayrı tema, animasyon, yerleşim, arka plan ve ses verilebilir.
-- **Giriş / kapanış kartı**: örneğin başta Besmele, sonda "Takip edin".
-- **Arka plan**
-  - 8 hazır hareketli tema: Gece, Altın, Zümrüt, Gün batımı, Aurora, Okyanus, Bordo, Sade
-  - Düz renk ya da dönen gradyan
-  - Kendi **görseliniz** (yavaş yakınlaşma efektiyle) ya da kendi **videonuz** (döngüde)
-  - Birden fazla görsel/video ekleyip videolara *sırayla* ya da *karışık* dağıtma
-  - Karartma, bulanıklık, parçacıklar (yıldız, ışık tozu, bokeh), geometrik desen, vinyet, çerçeve
-- **Yazı**: 6 animasyon (kelime kelime, karaoke, kinetik, daktilo, satır satır, yumuşak belirme), konum (üst/orta/alt), yarı saydam kutu ya da buzlu cam arka, renkler, imza ve logo.
-- **Ses**: müzik, tilavet ya da seslendirme ekleyin; hepsine aynı sesi, sırayla ya da karışık dağıtın. Video süresi sese eşitlenebilir.
-- **Çıktı**: 9:16, 4:5, 1:1, 16:9 · 720p / 1080p / 1440p · 24/30/60 fps · MP4 (H.264).
-  Chrome ve Edge'de **hızlı mod** (WebCodecs) ile videolar gerçek süresinden hızlı üretilir. Hepsi tek ZIP olarak indirilebilir.
-- **Altyazı**: istenirse her videoya `.srt` dosyası.
-- **Kalıcılık**: metinler, ayarlar, görseller, videolar, sesler ve logo tarayıcıda saklanır; sayfa yenilense de kaybolmaz. "Projeyi kaydet" medyalarla birlikte tek `.zip` üretir, başka bilgisayarda "Proje aç" ile açılır.
-- **Klasöre doğrudan yazma**: Chrome/Edge'de bir klasör seçerseniz her video bitince diske yazılır, bellek dolmaz.
+- **Profesyonel yazı düzenleri:** büyük başlık, numara rozeti, vurgu çizgisi, üst etiket, nabız atan çağrı düğmesi ve logo. Her kelime ayrı canlanır.
+- **Format stilleri:** Modern bilgi, Neon liste, Marka tanıtımı ve Gerçek çekim. Bunların yanında sinematik stiller ve 14 efekt var.
+- **Gerçek video çekimleri (Pixabay, ücretsiz anahtar):**
+  - Arama yapıp önizleyerek seçersiniz.
+  - Seçilen çekimler **tek akış** hâlinde sırayla oynar.
+  - Geçişler örtüşen yumuşak karışımla yapılır, çekimlerin renkleri birbirine eşitlenir ve arka plan kesintisiz hareket eder.
+  - İsterseniz her sahneye ayrı çekim de verebilirsiniz.
+- **Türkçe seslendirme (Piper):** tarayıcıda, ücretsiz çalışır. Her sahnenin süresi seslendirmeye göre ayarlanır, müzik konuşmada kendiliğinden kısılır.
+- **Ses kütüphanesi:**
+  - **Hazır müzikler:** sakin ambiyans, lo-fi, kurumsal, sinematik ve enerjik. Program bunları kendisi sentezler, telif sorunu yoktur.
+  - **Gömülü efektler:** hışırtı, vurgu, pop, yükselen ses, zil ve tık. Sahne türüne göre otomatik yerleşir. Her biri açılıp kapatılabilir ve dinlenebilir.
+  - **Freesound araması (ücretsiz anahtar):** müzik ve efekt aranıp dinlenebilir. Bulunan bir müzik film müziği yapılabilir, bir efekt de herhangi bir gömülü efektin yerine kullanılabilir. CC BY lisanslı seslerin kaynak bilgisi Üretim sekmesinde listelenir.
+- **Sahne görselleri (ComfyUI, yerel):** çekim kullanılmayan sahneler için yapay zekâ görseli üretilebilir.
+- **Yönetmen:**
+  - Kamera hareketlerini ve geçişleri dağıtır. Kesmeleri müziğin ritmine oturtabilir.
+  - Hedef süre verilebilir.
+  - Referans bir videonun kurgusu kopyalanabilir.
+  - Zaman çizelgesinde her çekim elle düzenlenebilir.
+- **Platformlar:** YouTube (16:9), Shorts ve Reels (9:16), Instagram gönderi (4:5) ve Kare (1:1). Her platform ayrı dosya olarak, MP4 (H.264 + AAC) biçiminde çıkar. Yazılar platform arayüzünün kapladığı alanların dışında tutulur.
 
-## Kullanım
+## Yerel yapay zekâ kurulumu (Mac)
 
-1. **Metinler** sekmesinde listeyi oluşturun.
-2. **Arka plan**, **Yazı**, **Ses** sekmelerinde görünümü ayarlayın. Önizlemede `‹ ›` ile öğeler arasında gezin.
-3. **Çıktı** sekmesinde formatı seçin.
-4. **Tümünü üret**'e basın, bitince tek tek ya da ZIP olarak indirin.
-
-### Toplu metin biçimi
+Terminal'de:
 
 ```
-فَإِنَّ مَعَ الْعُسْرِ يُسْرًا
-meal: Demek ki zorlukla beraber bir kolaylık vardır.
-kaynak: İnşirah, 5
-etiket: Günün Ayeti
----
-Sabır, imanın yarısıdır.
----
-SABIR
-meal: Acının içinde dimdik durabilmektir.
+curl -fsSL https://dogankku.github.io/studioai/kurulum/mac.sh | bash
 ```
 
-CSV sütunları: `ana, alt, kaynak, etiket` (başlık satırı varsa adlarına göre eşlenir).
-
-## GitHub Pages ile yayınlama
-
-1. Bu depoyu GitHub'a yükleyin.
-2. **Settings → Pages → Build and deployment** bölümünde *Source: Deploy from a branch*, *Branch: `main` / `(root)`* seçin.
-3. Birkaç dakika sonra uygulama `https://dogankku.github.io/studioai/` adresinde açılır.
-
-Kodda değişiklik yaptıktan sonra `./bump-version.sh` çalıştırın; dosyalara sürüm etiketi ekler, böylece kullanıcıların tarayıcısı eski dosyaları önbellekten kullanmaz.
-
-Yerelde denemek için klasörde bir sunucu açın (modüller `file://` ile çalışmaz):
-
-```
-python3 -m http.server 8000
-```
-
-ve `http://localhost:8000` adresine gidin.
-
-## Notlar
-
-- En iyi sonuç için masaüstü **Chrome** ya da **Edge** kullanın. Firefox/Safari'de video gerçek zamanlı kaydedilir (her video kendi süresi kadar sürer).
-- Linux'taki Chrome AAC ses kodlayamayabilir; o durumda ses Opus olarak eklenir. iPhone uyumluluğu için Windows/Mac'te üretin.
-- Sekme arka plandayken üretim yavaşlayabilir; sekmeyi önde tutun.
-- Video arka plan kullanırken kare kare arama yapıldığı için üretim biraz yavaşlar; kısa ve düşük çözünürlüklü arka plan videoları daha hızlıdır.
+- **Kurulanlar:** Ollama ve qwen2.5:7b (senarist), ComfyUI ve SD-Turbo (görseller). Yaklaşık 12 GB indirilir, yönetici şifresi gerekmez.
+- **Masaüstüne eklenenler:** **Video Stüdyosu** simgesi ve görsel motorunu kapatan simge.
+- **Intel Mac'ler:** PyTorch 2.2.2 ile uyumlu ComfyUI sürümü (v0.3.77) ve gereken uyumluluk düzeltmesi otomatik kurulur.
 
 ## Dosyalar
 
 ```
-index.html          arayüz
-css/style.css       görünüm
-js/app.js           durum, liste, önizleme, üretim kuyruğu
-js/renderer.js      metin yerleşimi ve animasyon
-js/backgrounds.js   temalar, görsel/video arka plan, efektler
-js/encoder.js       MP4 kodlama (WebCodecs + mp4-muxer, yedek: MediaRecorder)
-js/audio.js         ses çözme ve karıştırma
-js/parser.js        toplu metin ve CSV ayrıştırma
-js/quran.js         Kur'an verisi
-js/storage.js       medya saklama (IndexedDB)
-vendor/             mp4-muxer (MIT), JSZip (MIT)
-fonts/, css/fonts.css  gömülü yazı tipleri (SIL OFL 1.1, Fontsource)
-data/quran/         114 sûre: Arapça metin + Türkçe meal
+index.html            Arayüz
+css/                  Stiller ve gömülü yazı tipleri
+js/film-app.js        Uygulama mantığı
+js/formats.js         Format motoru (kural tabanlı + yapay zekâ)
+js/sfx.js             Gömülü efektler ve müzik sentezi, efekt yerleşimi
+js/audio.js           Ses karışımı (müzik, seslendirme, efektler, kısma)
+js/encoder.js         MP4 kaydı (WebCodecs + mp4-muxer)
+js/film/              Yönetmen, oynatıcı, 3D sahneler, çekim sahnesi, yazı, son işlem, stiller
+js/ai/                Pixabay, Freesound, Ollama/ComfyUI, Piper seslendirme
+kurulum/mac.sh        Yerel yapay zekâ kurulumu
+vendor/               three.js paketi, mp4-muxer, jszip, Piper
 ```
-
-## Veri kaynakları
-
-- Arapça metin: King Fahd Kur'an Kompleksi Uthmani hattı ([quranenc.com](https://quranenc.com)).
-- Türkçe meal: Diyanet İşleri Başkanlığı ([tanzil.net](https://tanzil.net/trans/tr.diyanet)).
-- Paket: [quran-json](https://github.com/risan/quran-json), CC BY-SA 4.0. Meal metinlerinin kullanım koşulları için ilgili kaynaklara bakınız.
 
 ## Lisans
 
-Uygulama kodu MIT. Yazı tipleri SIL OFL 1.1, Kur'an verisi CC BY-SA 4.0 (yukarıya bakınız).
+Kod: MIT. Yazı tipleri: SIL OFL. Pixabay videoları Pixabay İçerik Lisansı'na, Freesound sesleri her sesin kendi lisansına (CC0 / CC BY) tabidir.
