@@ -1,11 +1,12 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611221602';
-import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221602';
-import { applyCamera } from './camera.js?v=202611221602';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611221602';
-import { Post } from './post.js?v=202611221602';
-import { StockScene } from './stock-scene.js?v=202611221602';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221602';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221607';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221607';
+import { applyCamera } from './camera.js?v=202611221607';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611221607';
+import { Post } from './post.js?v=202611221607';
+import { Captions } from '../captions.js?v=202611221607';
+import { StockScene } from './stock-scene.js?v=202611221607';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221607';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -16,7 +17,7 @@ export class Film {
     this.renderer.toneMappingExposure = 1.0;
     this.camA = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
     this.camB = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
-    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null;
+    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null; this.caps = new Captions(); this.capOn = false; this.capMode = 'pop';
     this.post = null;
     this.resize(W, H);
     this.timeline = { shots: [], dur: 0 };
@@ -142,6 +143,10 @@ export class Film {
     if (this.beats && this.beats.length) { let lb = -1; for (const b of this.beats) { if (b <= t) lb = b; else break; } if (lb >= 0) pulse = Math.exp(-(t - lb) * 7); }
     const D = this.timeline.dur;
     const fade = Math.max(t < this.fadeIn ? 1 - t / this.fadeIn : 0, t > D - this.fadeOut ? (t - (D - this.fadeOut)) / this.fadeOut : 0);
+    if (this.capOn && this.caps.chunks.length) {
+      const sk = `${this.W}x${this.H}:${JSON.stringify(this.safe)}`; if (this._capKey !== sk) { this._capKey = sk; this.caps.setSize(this.W, this.H, this.safe); }
+      const c = this.caps.frame(t, this.style, this.style.accent, `${this.style.font || 'Montserrat'}, Inter, sans-serif`, this.capMode); if (c) texts.push(c);
+    }
     this.post.render(job, t, pulse, Math.min(1, fade), texts);
   }
   dispose() { this.clearTexts(); this.renderer.dispose(); }

@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221602">
-<link rel="stylesheet" href="css/style.css?v=202611221602">
-<link rel="stylesheet" href="css/film.css?v=202611221602">
+<link rel="stylesheet" href="css/fonts.css?v=202611221607">
+<link rel="stylesheet" href="css/style.css?v=202611221607">
+<link rel="stylesheet" href="css/film.css?v=202611221607">
 </head>
 <body>
 <div class="app film">
@@ -112,6 +112,8 @@
       <div class="card">
         <div class="ttl">Türkçe seslendirme</div>
         <label class="check"><input type="checkbox" id="ttsOn"> Sahneleri seslendir (yazılar sese göre zamanlanır)</label>
+        <label class="check"><input type="checkbox" id="capOn"> Kelime kelime altyazı (konuşulan kelime vurgulanır)</label>
+        <div class="row"><div><select id="capMode"></select></div><div><label class="check" style="margin:6px 0"><input type="checkbox" id="capHideSub"> Altyazı varken açıklamayı gizle</label></div></div>
         <div class="row"><div><select id="voice"></select></div><div><button class="btn sm" id="voiceDl">Ses modelini indir</button></div></div>
         <div class="row-btns mt8"><button class="btn sm primary" id="prepAudio">Sesleri hazırla</button><span class="muted" id="audioStatus"></span></div>
         <div class="hint">Tilavet Quran.com ya da EveryAyah'tan gelir (her ayet ayrı öğe olmalı). Seslendirme tarayıcıda çalışır; ses modeli bir kez iner (~63 MB). Film müziği konuşma sırasında kendiliğinden kısılır.</div>
@@ -280,7 +282,7 @@
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221602"></script>
-<script type="module" src="js/film-app.js?v=202611221602"></script>
+<script src="vendor/jszip.min.js?v=202611221607"></script>
+<script type="module" src="js/film-app.js?v=202611221607"></script>
 </body>
 </html>

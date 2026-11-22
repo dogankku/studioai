@@ -1,7 +1,7 @@
 // Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
-import { STYLES, SCENES } from './styles.js?v=202611221602';
+import { STYLES, SCENES } from './styles.js?v=202611221607';
 const SCENE_KEYS = Object.keys(SCENES).filter(k => k !== 'gorsel' && k !== 'video');
-import { isMostlyRTL } from '../renderer.js?v=202611221602';
+import { isMostlyRTL } from '../renderer.js?v=202611221607';
 
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -75,7 +75,7 @@ export function direct(items, o = {}) {
       if (it.num) L.push({ role: 'num', text: String(it.num) });
       if (it.logo) L.push({ role: 'logo', text: '' });
       if (main) L.push({ role: 'main', text: main });
-      if (sub) L.push({ role: 'sub', text: sub });
+      if (sub && !(o.capHideSub && it._vo)) L.push({ role: 'sub', text: sub });
       if (it.cta) L.push({ role: 'cta', text: it.cta });
       if (src) L.push({ role: 'src', text: src });
       const base = readTime(`${main} ${sub}`, pace) + (it.cta ? 1.2 : 0) + (it.kind === 'hook' ? 0.4 : 0);

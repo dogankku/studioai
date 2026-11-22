@@ -1,21 +1,22 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221602';
-import { direct, clipsOf } from './film/director.js?v=202611221602';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221602';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221602';
-import { makeItem, plainItem } from './parser.js?v=202611221602';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221602';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221602';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221602';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221602';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221602';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221602';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221602';
-import { newId } from './parser.js?v=202611221602';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221602';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221602';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221602';
-import { detectScene } from './film/director.js?v=202611221602';
+import { Film } from './film/player.js?v=202611221607';
+import { direct, clipsOf } from './film/director.js?v=202611221607';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221607';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221607';
+import { makeItem, plainItem } from './parser.js?v=202611221607';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221607';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221607';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221607';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221607';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221607';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221607';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221607';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221607';
+import { newId } from './parser.js?v=202611221607';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221607';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221607';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221607';
+import { detectScene } from './film/director.js?v=202611221607';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -29,7 +30,7 @@ const toast = t => { const l = $('#toast'); l.textContent = t; l.classList.add('
 
 /* ================= Durum ================= */
 const DEFAULTS = {
-  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
+  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
@@ -100,6 +101,16 @@ function augItems() {
     return a;
   });
 }
+function captionChunks(timeline) {
+  const out = [];
+  for (const c of timeline.clips || []) {
+    const [kind, idx] = c.key.split(':'); if (kind !== 'vo') continue; const it = items[+idx]; if (!it) continue;
+    const n = narrCache.get(it.id + ':' + F.voice); if (!n || !n.buf) continue;
+    if (!n.words) n.words = wordTimes(n.text, n.buf);
+    out.push(...chunkWords(n.words.map(w => ({ w: w.w, s: w.s + c.start, e: w.e + c.start }))));
+  }
+  return out;
+}
 function clipBuffers(timeline) {
   const out = [];
   for (const c of timeline.clips || clipsOf(timeline.shots)) {
@@ -136,8 +147,9 @@ function rebuild(keepTime = true) {
   film.safe = PV().safe;
   film.setStyle(F.style, { grade: { ...(ref && F.refUseColors ? ref.analysis.grade : {}), ...F.gradeOv }, fx: F.fxOv, colors: F.colors });
   film.flow = { ids: flowIds(), xf: +F.flowXF, maxLen: +F.flowMax, match: !!F.flowMatch };
-  tl = applyOverrides(direct(augItems(), { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn, flow: flowIds() }));
+  tl = applyOverrides(direct(augItems(), { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn, flow: flowIds(), capHideSub: F.capOn && F.ttsOn && F.capHideSub }));
   tl.clips = clipsOf(tl.shots);
+  film.capOn = F.capOn && F.ttsOn; film.capMode = F.capMode; film.caps.chunks = film.capOn ? captionChunks(tl) : [];
   film.setTimeline(tl);
   const st = soundtrack(); film.beats = st && st.an ? st.an.beats : null;
   if (!keepTime) curT = 0;
@@ -246,7 +258,7 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0'];
+const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
@@ -254,7 +266,7 @@ for (const k of FIELDS) {
     if (['olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'pxKey', 'stockNoPeople', 'stockN', 'fsKey', 'fsCC0'].includes(k)) { save(); return; }
     if (['sfxOn', 'sfxVol'].includes(k)) { save(); return; }
     if (['stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch'].includes(k)) { save(); rebuild(); renderStockGrid(); return; }
-    if (['ttsOn', 'voice'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); return; }
+    if (['ttsOn', 'voice', 'capOn', 'capMode', 'capHideSub'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); return; }
     if (k === 'targetDur') F.targetDur = Math.max(5, Math.min(1200, Math.round(+el.value || 60)));
     if (['latinFont', 'arabicFont'].includes(k)) ensureFonts().then(changed); else changed();
   });
@@ -605,6 +617,7 @@ $('#loadProj').onchange = async e => {
 
 
 /* ================= Yapay zekâ ================= */
+$('#capMode').innerHTML = Object.entries(CAP_STYLES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
 $('#voice').innerHTML = Object.entries(VOICES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
 const GUIDE = `<ol>
 <li><b>Tek komutla kurulum (Mac):</b> Terminal'i açın ve şu satırı yapıştırın:
