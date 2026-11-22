@@ -1,6 +1,6 @@
 // Gerçek video çekimi sahnesi: arka planda çekim (ekranı kaplar), çekimler arasında yumuşak geçiş, önde hafif ışık tozu.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221445';
-import { dust } from './scenes.js?v=202611221445';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221449';
+import { dust } from './scenes.js?v=202611221449';
 
 const texCache = new WeakMap();
 function texOf(video) {
@@ -18,6 +18,13 @@ export class StockScene {
       const p = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m); p.position.z = z; p.visible = false; this.scene.add(p); return p;
     };
     this.back = mk(-40, false); this.front = mk(-39.9, true);
+    // yazının okunması için: ortası hafif, kenarları biraz daha koyu bir karartma katmanı
+    const shade = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, depthTest: false, toneMapped: false, fog: false,
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy * 2.0, 0.0, 1.0); }',
+      fragmentShader: 'varying vec2 vUv; void main(){ float d = length((vUv - 0.5) * vec2(1.0, 1.25)); float a = 0.30 + 0.25 * smoothstep(0.2, 0.75, d); gl_FragColor = vec4(0.0, 0.0, 0.0, a); }'
+    });
+    this.shade = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shade); this.shade.frustumCulled = false; this.shade.renderOrder = 10; this.scene.add(this.shade);
     this.motes = dust(160, [40, 30, 30], '#fff4e0', 1.1, 47, 0.03);
     this.scene.add(this.motes);
   }

@@ -1,20 +1,20 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221445';
-import { direct, clipsOf } from './film/director.js?v=202611221445';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221445';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221445';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221445';
-import { surahs, buildItems } from './quran.js?v=202611221445';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221445';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221445';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221445';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221445';
-import { newId } from './parser.js?v=202611221445';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221445';
-import { writeScript } from './ai/senarist.js?v=202611221445';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221445';
-import { findClips, downloadClip, pixabayTest, queriesFor } from './ai/stock.js?v=202611221445';
-import { detectScene } from './film/director.js?v=202611221445';
+import { Film } from './film/player.js?v=202611221449';
+import { direct, clipsOf } from './film/director.js?v=202611221449';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221449';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221449';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221449';
+import { surahs, buildItems } from './quran.js?v=202611221449';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221449';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221449';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221449';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221449';
+import { newId } from './parser.js?v=202611221449';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221449';
+import { writeScript } from './ai/senarist.js?v=202611221449';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221449';
+import { findClips, downloadClip, pixabayTest, queriesFor } from './ai/stock.js?v=202611221449';
+import { detectScene } from './film/director.js?v=202611221449';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];

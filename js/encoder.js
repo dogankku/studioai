@@ -1,6 +1,6 @@
 // Video kodlama: WebCodecs ile hızlı MP4, yoksa gerçek zamanlı MediaRecorder
-import { Muxer, ArrayBufferTarget, StreamTarget } from '../vendor/mp4-muxer.mjs?v=202611221445';
-import { SR } from './audio.js?v=202611221445';
+import { Muxer, ArrayBufferTarget, StreamTarget } from '../vendor/mp4-muxer.mjs?v=202611221449';
+import { SR } from './audio.js?v=202611221449';
 
 const VCODECS = ['avc1.640033', 'avc1.64002A', 'avc1.640028', 'avc1.4D4033', 'avc1.4D4028', 'avc1.42E033', 'avc1.42E028', 'avc1.42E01F'];
 
