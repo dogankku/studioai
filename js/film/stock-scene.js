@@ -1,11 +1,11 @@
 // Gerçek video çekimi sahnesi: arka planda çekim (ekranı kaplar), çekimler arasında yumuşak geçiş, önde hafif ışık tozu.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221440';
-import { dust } from './scenes.js?v=202611221440';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221445';
+import { dust } from './scenes.js?v=202611221445';
 
 const texCache = new WeakMap();
 function texOf(video) {
   let t = texCache.get(video);
-  if (!t) { t = new THREE.Texture(video); t.colorSpace = THREE.SRGBColorSpace; t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; texCache.set(video, t); }
+  if (!t) { t = new THREE.VideoTexture(video); t.colorSpace = THREE.SRGBColorSpace; t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; texCache.set(video, t); }
   return t;
 }
 

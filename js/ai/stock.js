@@ -81,9 +81,13 @@ export async function pixabayTest(key) { await pixabaySearch(key, 'ocean', { per
 
 /** Hedef boyuta en uygun dosya sürümü (dikey hedefte dikey çekim tam oturur; yataydan kırpılır) */
 export function pickRendition(hit, W, H) {
-  const want = Math.max(W, H) >= 1600 ? ['large', 'medium', 'small'] : ['medium', 'large', 'small'];
-  for (const k of want) { const x = hit.v[k]; if (x && x.url && (!x.size || x.size < 60e6)) return { key: k, ...x }; }
-  const any = Object.entries(hit.v)[0]; return any ? { key: any[0], ...any[1] } : null;
+  // 4K gereksiz: çözme yavaş, dosya büyük. Hedefin uzun kenarına en yakın, 1920'yi aşmayan sürümü seç.
+  const need = Math.min(1920, Math.max(W, H));
+  const all = Object.entries(hit.v).map(([key, x]) => ({ key, ...x, long: Math.max(x.w || 0, x.h || 0) })).filter(x => x.url && x.long);
+  const ok = all.filter(x => x.long <= 1920 && (!x.size || x.size < 60e6));
+  const pool = ok.length ? ok : all;
+  pool.sort((a, b) => (a.long >= need ? a.long - need : (need - a.long) * 3) - (b.long >= need ? b.long - need : (need - b.long) * 3));
+  return pool[0] || null;
 }
 function thumbOf(hit) { for (const k of ['tiny', 'small', 'medium', 'large']) if (hit.v[k] && hit.v[k].thumb) return hit.v[k].thumb; return ''; }
 
