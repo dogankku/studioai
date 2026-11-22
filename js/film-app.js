@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221646';
-import { direct, clipsOf } from './film/director.js?v=202611221646';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221646';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221646';
-import { makeItem, plainItem } from './parser.js?v=202611221646';
-import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221646';
-import { TEMPLATES } from './templates.js?v=202611221646';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221646';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221646';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221646';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221646';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221646';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221646';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221646';
-import { newId } from './parser.js?v=202611221646';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221646';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221646';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221646';
-import { detectScene } from './film/director.js?v=202611221646';
+import { Film } from './film/player.js?v=202611221654';
+import { direct, clipsOf } from './film/director.js?v=202611221654';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221654';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221654';
+import { makeItem, plainItem } from './parser.js?v=202611221654';
+import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221654';
+import { TEMPLATES } from './templates.js?v=202611221654';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221654';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221654';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221654';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221654';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221654';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221654';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221654';
+import { newId } from './parser.js?v=202611221654';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221654';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221654';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221654';
+import { detectScene } from './film/director.js?v=202611221654';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -242,7 +242,7 @@ $('#tlShots').addEventListener('pointerdown', e => {
     const it = allItems()[s.item], n = it && narrOf(it); const min = s.clip && n ? n.buf.duration + 0.9 : 1.0;
     tlDrag = { mode: 'rz', s, x0: e.clientX, d0: s.dur, min, W, total0: tl.dur };
   } else tlDrag = { mode: 'mv', s, x0: e.clientX, moved: false, W };
-  d.setPointerCapture(e.pointerId); e.preventDefault();
+  try { d.setPointerCapture(e.pointerId); } catch (er) { } e.preventDefault();
 });
 $('#tlShots').addEventListener('pointermove', e => {
   if (!tlDrag) return; const D = tlDrag, dx = e.clientX - D.x0;
@@ -790,7 +790,12 @@ function buildSRT() {
   // seslendirme varsa: cümle parçaları (en çok ~7 kelime) seslendirme zamanlarıyla
   const words = [];
   for (const c of tl.clips || []) { const [kind, idx] = c.key.split(':'); if (kind !== 'vo') continue; const it = allItems()[+idx]; const n = it && narrOf(it); if (!n) continue; if (!n.words) n.words = wordTimes(n.text || voText(it), n.buf); words.push(n.words.map(w => ({ w: w.w, s: w.s + c.start, e: w.e + c.start }))); }
-  if (words.length) for (const ws of words) for (const ch of chunkWords(ws, 7, 42)) cues.push([ch.s, ch.e + 0.15, ch.words.map(w => w.w).join(' ')]);
+  if (words.length) for (const ws of words) { // cümle sonunda böl, çok kısa parçaları sonrakine kat
+    let cur = [];
+    const push = () => { if (cur.length) cues.push([cur[0].s, cur[cur.length - 1].e + 0.15, cur.map(w => w.w).join(' ')]); cur = []; };
+    for (const w of ws) { cur.push(w); const n = cur.length; if (n >= 9 || (/[.!?…]$/.test(w.w) && n >= 3) || (/[,;:]$/.test(w.w) && n >= 6)) push(); }
+    push();
+  }
   else for (const s of tl.shots) { if (s.cont) continue; const txt = s.lines.filter(l => ['main', 'sub'].includes(l.role)).map(l => l.text).join('\n'); if (txt.trim()) cues.push([s.start + 0.2, s.start + s.dur - 0.1, txt]); }
   return cues.map((c, i) => `${i + 1}\n${srtTime(c[0])} --> ${srtTime(c[1])}\n${c[2]}\n`).join('\n');
 }
