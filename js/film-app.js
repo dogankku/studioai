@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221656';
-import { direct, clipsOf } from './film/director.js?v=202611221656';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221656';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221656';
-import { makeItem, plainItem } from './parser.js?v=202611221656';
-import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221656';
-import { TEMPLATES } from './templates.js?v=202611221656';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221656';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221656';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221656';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221656';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221656';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221656';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221656';
-import { newId } from './parser.js?v=202611221656';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221656';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221656';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221656';
-import { detectScene } from './film/director.js?v=202611221656';
+import { Film } from './film/player.js?v=202611221706';
+import { direct, clipsOf } from './film/director.js?v=202611221706';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221706';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221706';
+import { makeItem, plainItem } from './parser.js?v=202611221706';
+import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221706';
+import { TEMPLATES } from './templates.js?v=202611221706';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221706';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221706';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221706';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221706';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221706';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221706';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221706';
+import { newId } from './parser.js?v=202611221706';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221706';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221706';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221706';
+import { detectScene } from './film/director.js?v=202611221706';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -31,7 +31,7 @@ const toast = t => { const l = $('#toast'); l.textContent = t; l.classList.add('
 
 /* ================= Durum ================= */
 const DEFAULTS = {
-  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, fastDecode: false, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
+  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, fastDecode: true, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
@@ -56,6 +56,7 @@ const SAMPLE = toScenes('bilgi', SAMPLE_BRIEF);
 let F = { ...DEFAULTS, ...store.get('film-settings', {}) };
 if (!F.v2) { F.v2 = true; F.latinFont = ''; F.respectKeywords = false; if (!F.soundtrack || F.soundtrack === 'none') F.soundtrack = 'bed:kurumsal'; if (!['modern', 'neonliste', 'marka', 'gercek'].includes(F.style)) F.style = 'modern'; F.ttsOn = true; }
 if (!F.v3) { F.v3 = true; F.respectKeywords = false; }
+if (!F.v4) { F.v4 = true; F.fastDecode = true; }
 if (!Array.isArray(F.platforms) || !F.platforms.length) F.platforms = ['reels'];
 F.platforms = F.platforms.filter(k => PLATFORMS[k]); if (!F.platforms.length) F.platforms = ['reels'];
 if (!PLATFORMS[F.previewPlatform]) F.previewPlatform = F.platforms[0];
