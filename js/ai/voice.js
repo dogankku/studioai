@@ -3,7 +3,13 @@ import { getFile, putFile } from '../storage.js';
 import { decodeBlob } from '../audio.js';
 
 /* ---------------- Türkçe seslendirme (Piper) ---------------- */
-export const VOICES = { 'tr_TR-dfki-medium': 'Erkek (dfki)', 'tr_TR-fahrettin-medium': 'Erkek (Fahrettin)', 'tr_TR-fettah-medium': 'Erkek (Fettah)' };
+export const VOICES = {
+  'tr_TR-dfki-medium': 'Türkçe · Erkek (dfki)', 'tr_TR-fahrettin-medium': 'Türkçe · Erkek (Fahrettin)', 'tr_TR-fettah-medium': 'Türkçe · Erkek (Fettah)',
+  'en_US-amy-medium': 'English · Kadın (Amy)', 'en_US-lessac-medium': 'English · Kadın (Lessac)', 'en_US-ryan-medium': 'English · Erkek (Ryan)', 'en_US-joe-medium': 'English · Erkek (Joe)',
+  'de_DE-thorsten-medium': 'Deutsch · Erkek (Thorsten)', 'fr_FR-siwis-medium': 'Français · Kadın (Siwis)', 'es_ES-davefx-medium': 'Español · Erkek (Davefx)',
+  'ru_RU-irina-medium': 'Русский · Kadın (Irina)', 'ar_JO-kareem-medium': 'العربية · Erkek (Kareem)'
+};
+export const LANGS = { tr: { name: 'Türkçe', voice: 'tr_TR-dfki-medium' }, en: { name: 'English', voice: 'en_US-amy-medium' }, de: { name: 'Deutsch', voice: 'de_DE-thorsten-medium' }, fr: { name: 'Français', voice: 'fr_FR-siwis-medium' }, es: { name: 'Español', voice: 'es_ES-davefx-medium' }, ru: { name: 'Русский', voice: 'ru_RU-irina-medium' }, ar: { name: 'العربية', voice: 'ar_JO-kareem-medium' } };
 let piperMod = null; const sessions = new Map();
 async function piper() { if (!piperMod) piperMod = await import('../../vendor/piper-bundle.js'); return piperMod; }
 

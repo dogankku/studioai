@@ -2,7 +2,7 @@
 // Sahne: { kind, tag, main, sub, num, cta, src, vo, q }
 //   kind: hook | point | item | quote | problem | solution | feature | price | cta
 //   vo: seslendirilecek metin (yoksa main + sub okunur), q: çekim arama ipucu
-import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221642';
+import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221643';
 
 export const FORMATS = {
   bilgi: {
@@ -149,4 +149,18 @@ export async function aiCalendar(topic, n, fmt, { url, model, signal, onStatus =
   const j = parseJSONLoose(raw);
   if (!j || !Array.isArray(j.videos) || !j.videos.length) throw new Error('Model geçerli bir plan döndürmedi, tekrar deneyin');
   return j.videos.filter(v => v.title).slice(0, n).map(v => ({ title: String(v.title).trim(), text: String(v.text || '').trim() }));
+}
+
+/** Sahneleri başka dile çevir (yapı ve sayılar korunur) */
+export async function aiTranslate(scenes, langName, { url, model, signal, onStatus = () => { } } = {}) {
+  const src = scenes.map((s, i) => ({ i, tag: s.tag || '', main: s.main || '', sub: s.sub || '', cta: s.cta || '', vo: s.vo || '', src: s.src || '' }));
+  const schema = { type: 'object', properties: { scenes: { type: 'array', items: { type: 'object', properties: { i: { type: 'integer' }, tag: { type: 'string' }, main: { type: 'string' }, sub: { type: 'string' }, cta: { type: 'string' }, vo: { type: 'string' }, src: { type: 'string' } }, required: ['i', 'main'] } } }, required: ['scenes'] };
+  onStatus(`${langName} diline çevriliyor…`);
+  const raw = await ollamaChat(url, model, [
+    { role: 'system', content: `You are a professional translator for short social media videos. Translate every non-empty field into ${langName}. Keep it short and natural for on-screen text, keep numbers, units, brand names and emojis unchanged, keep empty fields empty. Return only JSON.` },
+    { role: 'user', content: JSON.stringify({ scenes: src }) }
+  ], { schema, temperature: 0.2, signal, onToken: n => onStatus(`${langName} diline çevriliyor… ${n} parça`) });
+  const j = parseJSONLoose(raw);
+  if (!j || !Array.isArray(j.scenes)) throw new Error('Çeviri alınamadı, tekrar deneyin');
+  return scenes.map((s, i) => { const t = j.scenes.find(x => x.i === i) || {}; return { ...s, tag: t.tag ?? s.tag, main: t.main || s.main, sub: s.sub ? (t.sub || s.sub) : '', cta: s.cta ? (t.cta || s.cta) : '', vo: s.vo ? (t.vo || '') : '', src: s.src ? (t.src || s.src) : '' }; });
 }

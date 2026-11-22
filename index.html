@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221642">
-<link rel="stylesheet" href="css/style.css?v=202611221642">
-<link rel="stylesheet" href="css/film.css?v=202611221642">
+<link rel="stylesheet" href="css/fonts.css?v=202611221643">
+<link rel="stylesheet" href="css/style.css?v=202611221643">
+<link rel="stylesheet" href="css/film.css?v=202611221643">
 </head>
 <body>
 <div class="app film">
@@ -51,6 +51,10 @@
       <div class="row-btns mt8"><button class="btn primary" id="bMake">🎬 Sahnelere dönüştür</button><button class="btn" id="bAI">✨ Yapay zekâ ile yaz</button><button class="btn ghost" id="bAIStop" disabled>Durdur</button></div>
       <div class="row-btns mt8"><button class="btn sm" id="bAuto">🎵 Müzik ve çekimleri otomatik seç</button></div>
       <div class="hint" id="bStatus">"Sahnelere dönüştür" metninizi anında formata göre böler. "Yapay zekâ ile yaz" bilgilerinizi kısa, vurucu bir senaryoya çevirir (Ollama gerekir, birkaç dakika sürebilir).</div>
+      <details class="card"><summary class="ttl">Çok dilli <span class="muted" style="text-transform:none;letter-spacing:0">(videonun başka dildeki kopyası)</span></summary>
+        <div class="row" style="grid-template-columns:1fr auto"><div><select id="trLang"></select></div><div><button class="btn sm primary" id="trGo">🌍 Çevrilmiş kopyasını oluştur</button></div></div>
+        <div class="hint" id="trInfo">Sahneler yapay zekâ ile çevrilir, o dilin sesiyle seslendirilir ve altyazılanır. Orijinal proje korunur, çeviri ayrı proje olarak açılır. Ollama gerekir.</div>
+      </details>
       <details class="card" id="kitBox"><summary class="ttl">Marka kiti <span class="muted" style="text-transform:none;letter-spacing:0">(renkler, yazı tipi, logo, giriş/kapanış)</span></summary>
         <label class="check"><input type="checkbox" id="kitOn"> Marka kitini bütün videolarda kullan</label>
         <div id="kitBody">
@@ -336,7 +340,7 @@ Odaklanmayı artırır
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221642"></script>
-<script type="module" src="js/film-app.js?v=202611221642"></script>
+<script src="vendor/jszip.min.js?v=202611221643"></script>
+<script type="module" src="js/film-app.js?v=202611221643"></script>
 </body>
 </html>

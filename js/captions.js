@@ -1,5 +1,5 @@
 // Kelime kelime altyazı: kelime zamanlarını seslendirme dalgasından tahmin eder, TikTok tarzı altyazıyı çizer.
-import * as THREE from '../vendor/three-bundle.js?v=202611221642';
+import * as THREE from '../vendor/three-bundle.js?v=202611221643';
 
 const VOW = /[aeıioöuüâîûAEIİOÖUÜÂÎÛ]/g;
 const syl = w => Math.max(1, (w.match(VOW) || []).length);
@@ -93,7 +93,10 @@ export class Captions {
     const { g, c } = this; g.clearRect(0, 0, c.width, c.height);
     const m = Math.min(this.W, this.H), fs = Math.round(m * 0.072), maxW = c.width * (1 - this.safe.side * 2 - 0.06);
     const f = (b = 1) => `900 ${Math.round(fs * b)}px ${font}`;
-    const txt = k.words.map(w => w.w.toLocaleUpperCase('tr'));
+    const rtl = k.words.some(w => /[\u0590-\u08FF]/.test(w.w));
+    const order = k.words.map((w, i) => i); if (rtl) order.reverse();
+    const txt0 = k.words.map(w => rtl ? w.w : w.w.toLocaleUpperCase(this.lang || 'tr'));
+    const txt = order.map(i => txt0[i]); cur = cur >= 0 ? order.indexOf(cur) : -1;
     g.font = f(); let widths = txt.map(s => g.measureText(s).width); const sp = fs * 0.42;
     let tot = widths.reduce((a, b) => a + b, 0) + sp * (txt.length - 1); const sc = tot > maxW ? maxW / tot : 1;
     let x = c.width / 2 - tot * sc / 2; const y = c.height / 2;

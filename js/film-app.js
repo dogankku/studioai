@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221642';
-import { direct, clipsOf } from './film/director.js?v=202611221642';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221642';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221642';
-import { makeItem, plainItem } from './parser.js?v=202611221642';
-import { FORMATS, toScenes, aiScenes, aiCalendar } from './formats.js?v=202611221642';
-import { TEMPLATES } from './templates.js?v=202611221642';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221642';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221642';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221642';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221642';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221642';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221642';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221642';
-import { newId } from './parser.js?v=202611221642';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221642';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221642';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221642';
-import { detectScene } from './film/director.js?v=202611221642';
+import { Film } from './film/player.js?v=202611221643';
+import { direct, clipsOf } from './film/director.js?v=202611221643';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221643';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221643';
+import { makeItem, plainItem } from './parser.js?v=202611221643';
+import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221643';
+import { TEMPLATES } from './templates.js?v=202611221643';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221643';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221643';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221643';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221643';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221643';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221643';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221643';
+import { newId } from './parser.js?v=202611221643';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221643';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221643';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221643';
+import { detectScene } from './film/director.js?v=202611221643';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -173,6 +173,7 @@ function rebuild(keepTime = true) {
   film.flow = { ids: flowIds(), xf: +F.flowXF, maxLen: +F.flowMax, match: !!F.flowMatch };
   tl = applyOverrides(direct(augItems(), { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn, flow: flowIds(), capHideSub: F.capOn && F.ttsOn && F.capHideSub }));
   tl.clips = clipsOf(tl.shots);
+  film.lang = F.lang || 'tr'; film.caps.lang = film.lang;
   film.capOn = F.capOn && F.ttsOn; film.capMode = F.capMode; film.caps.chunks = film.capOn ? captionChunks(tl) : [];
   film.setTimeline(tl);
   const st = soundtrack(); film.beats = st && st.an ? st.an.beats : null;
@@ -222,7 +223,7 @@ function renderTimeline() {
     const main = s.lines.find(l => l.role === 'main');
     return `<div class="tl-shot${s.i === selShot ? ' on' : ''}" data-i="${s.i}" style="width:${s.dur / tl.dur * 100}%;background:linear-gradient(180deg,${SCENE_COLORS[s.scene] || '#333'},#111)">
       ${s.i > 0 && s.transition !== 'cut' ? '<span class="tr" title="' + esc(TRANSITIONS[s.transition] || '') + '"></span>' : ''}${s.edited ? '<span class="ov">✎</span>' : ''}
-      <b>${esc(SCENES[s.scene] || s.scene)}</b><small>${esc(CAMERAS[s.camera] || '')} · ${esc((main ? main.text : '').slice(0, 28))}</small></div>`;
+      <b>${esc(SCENES[s.scene] || s.scene)}</b><small>${esc(CAMERAS[s.camera] || '')} · ${esc((main ? main.text : '').slice(0, 28))}</small><span class="rz" title="Sürükleyerek süreyi değiştir"></span></div>`;
   }).join('');
   const st = soundtrack(), beats = F.beatSync && st && st.an ? st.an.beats : [];
   $('#tlBeats').innerHTML = beats.filter(b => b < tl.dur).map(b => `<i style="left:${b / tl.dur * 100}%"></i>`).join('');
@@ -231,7 +232,45 @@ function highlightShotAt(t) {
   const s = tl.shots.findLast ? tl.shots.findLast(x => x.start <= t) : [...tl.shots].reverse().find(x => x.start <= t);
   if (s && s.i !== selShot) { selShot = s.i; $$('.tl-shot').forEach(d => d.classList.toggle('on', +d.dataset.i === selShot)); updateInspector(); }
 }
+/* sürükle-bırak kurgu: sahneyi sürükleyerek sırala, sağ kenarından çekerek süreyi değiştir */
+let tlDrag = null, tlJustDragged = false;
+const itemOff = () => (allItems()[0] && allItems()[0].kind === 'intro' ? 1 : 0);
+$('#tlShots').addEventListener('pointerdown', e => {
+  const d = e.target.closest('.tl-shot'); if (!d || busy) return; const s = tl.shots.find(x => x.i === +d.dataset.i); if (!s) return;
+  const W = $('#timeline').getBoundingClientRect().width;
+  if (e.target.classList.contains('rz')) {
+    const it = allItems()[s.item], n = it && narrOf(it); const min = s.clip && n ? n.buf.duration + 0.9 : 1.0;
+    tlDrag = { mode: 'rz', s, x0: e.clientX, d0: s.dur, min, W, total0: tl.dur };
+  } else tlDrag = { mode: 'mv', s, x0: e.clientX, moved: false, W };
+  d.setPointerCapture(e.pointerId); e.preventDefault();
+});
+$('#tlShots').addEventListener('pointermove', e => {
+  if (!tlDrag) return; const D = tlDrag, dx = e.clientX - D.x0;
+  if (D.mode === 'rz') {
+    const nd = Math.max(D.min, Math.min(60, D.d0 + dx / D.W * D.total0));
+    const k = D.s.key + '@' + F.style; overrides[k] = { ...(overrides[k] || {}), dur: +nd.toFixed(2) };
+    clearTimeout(D.t); D.t = setTimeout(() => { rebuild(); renderTimeline(); }, 60);
+    $('#iDur').textContent = nd.toFixed(1) + ' sn';
+  } else {
+    if (Math.abs(dx) > 6) D.moved = true; if (!D.moved) return;
+    const tgt = document.elementFromPoint(e.clientX, e.clientY); const td = tgt && tgt.closest('.tl-shot');
+    $$('.tl-shot').forEach(x => x.classList.remove('drop-l', 'drop-r'));
+    if (td && td.dataset.i !== String(D.s.i)) { const r = td.getBoundingClientRect(); td.classList.add(e.clientX < r.left + r.width / 2 ? 'drop-l' : 'drop-r'); D.target = { i: +td.dataset.i, before: e.clientX < r.left + r.width / 2 }; } else D.target = null;
+  }
+});
+$('#tlShots').addEventListener('pointerup', () => {
+  const D = tlDrag; tlDrag = null; if (!D) return;
+  $$('.tl-shot').forEach(x => x.classList.remove('drop-l', 'drop-r'));
+  if (D.mode === 'rz') { tlJustDragged = true; save(); rebuild(); renderTimeline(); updateInspector(); setTimeout(() => (tlJustDragged = false), 50); return; }
+  if (!D.moved) return; tlJustDragged = true; setTimeout(() => (tlJustDragged = false), 50);
+  if (!D.target) return;
+  const off = itemOff(), from = D.s.item - off, ts = tl.shots.find(x => x.i === D.target.i); if (!ts) return;
+  let to = ts.item - off; if (from < 0 || from >= items.length || to < 0 || to >= items.length) { toast('Giriş ve kapanış kartları taşınamaz'); return; }
+  if (!D.target.before) to += 1; if (to > from) to -= 1; if (to === from) return;
+  const [it] = items.splice(from, 1); items.splice(to, 0, it); sel = to; listChanged(); toast('Sahne taşındı');
+});
 $('#timeline').onclick = e => {
+  if (tlJustDragged) return;
   const r = $('#timeline').getBoundingClientRect(); const t = (e.clientX - r.left) / r.width * tl.dur;
   const was = playing; stopPlayback();
   const s = [...tl.shots].reverse().find(x => x.start <= t); selShot = s ? s.i : -1;
@@ -778,6 +817,27 @@ $('#gifBtn').onclick = async () => {
   [PW, PH] = previewDims(); cv.width = PW; cv.height = PH; film.resize(PW, PH); film.safe = PV().safe; fitCanvas(); setBusy(false); rebuild();
 };
 
+/* çok dilli: çevrilmiş kopya */
+$('#trLang').innerHTML = Object.entries(LANGS).filter(([k]) => k !== 'tr').map(([k, l]) => `<option value="${k}">${esc(l.name)}</option>`).join('');
+$('#trGo').onclick = async () => {
+  if (!items.length) { toast('Önce sahneleri oluşturun'); return; }
+  if (!F.olModel && !(await olConnect(false))) { $('#trInfo').textContent = '✗ Ollama\'ya bağlanılamadı.'; return; }
+  const lang = $('#trLang').value, L = LANGS[lang]; $('#trGo').disabled = true; const t0 = performance.now();
+  try {
+    const tr = await aiTranslate(items.map(plainItem), L.name, { url: F.olUrl, model: F.olModel, onStatus: m => ($('#trInfo').textContent = m) });
+    if (!curProj) projSave(brief.title || 'Proje');
+    const baseName = (projList().find(p => p.id === curProj) || {}).name || brief.title || 'Proje';
+    projSave(); // orijinali kaydet
+    const src = items; curProj = ''; store.set('vs-cur-proj', '');
+    items = tr.map((t, i) => ({ ...makeItem({ ...t, vids: src[i] && src[i].vids, stockQ: src[i] && src[i].stockQ }), layout: src[i] && src[i].layout }));
+    F.voice = L.voice; F.lang = lang; brief = { ...brief, title: (tr[0] && tr[0].main) || brief.title };
+    projSave(`${baseName} (${L.name})`);
+    save(); syncBrief(); renderList(); loadEditor(); syncUI(); rebuild(); updateAiAudioStatus();
+    $('#trInfo').textContent = `${L.name} kopyası oluşturuldu ve açıldı (${((performance.now() - t0) / 1000).toFixed(0)} sn). Seslendirme ${VOICES[L.voice]} sesine geçti. Orijinali "Projeler"den açabilirsiniz.`;
+  } catch (e) { $('#trInfo').textContent = '✗ ' + e.message; }
+  $('#trGo').disabled = false;
+};
+
 /* içerik takvimi */
 let calAbort = null;
 $('#calGo').onclick = async () => {
@@ -888,7 +948,7 @@ function projRefs() {
   for (const p of projList()) { if (p.id === curProj) continue; const d = store.get('vs-proj:' + p.id, null); if (!d) continue; for (const it of d.items || []) { for (const v of it.vids || []) set.add(v.id); if (it.imgId) set.add(it.imgId); } for (const v of d.flow || []) set.add(v.id); if (d.brief && d.brief.logoId) set.add(d.brief.logoId); }
   return set;
 }
-const PROJ_KEYS = ['fmt', 'style', 'seed', 'pace', 'mode', 'platforms', 'previewPlatform', 'durMode', 'targetDur', 'soundtrack', 'musicVol', 'colors', 'fxOv', 'gradeOv', 'stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'ttsOn', 'voice', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'capOn', 'capMode', 'capHideSub', 'sfxOn', 'sfxVol', 'sfxOff', 'latinFont', 'size'];
+const PROJ_KEYS = ['lang', 'fmt', 'style', 'seed', 'pace', 'mode', 'platforms', 'previewPlatform', 'durMode', 'targetDur', 'soundtrack', 'musicVol', 'colors', 'fxOv', 'gradeOv', 'stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'ttsOn', 'voice', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'capOn', 'capMode', 'capHideSub', 'sfxOn', 'sfxVol', 'sfxOff', 'latinFont', 'size'];
 function projSnapshot() { return { settings: Object.fromEntries(PROJ_KEYS.map(k => [k, F[k]])), items: items.map(plainItem).map((p, i) => ({ ...p, id: items[i].id })), brief: { ...brief }, flow: [...flow], overrides }; }
 function projThumb() { try { const c = document.createElement('canvas'); const k = 180 / Math.max(cv.width, cv.height); c.width = Math.round(cv.width * k); c.height = Math.round(cv.height * k); c.getContext('2d').drawImage(cv, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.7); } catch (e) { return ''; } }
 function projSave(name) {
@@ -902,7 +962,7 @@ async function projOpen(id) {
   const d = store.get('vs-proj:' + id, null); if (!d) { toast('Proje bulunamadı'); return; }
   if (curProj) projSave(); // açık olanı kaydet
   curProj = id; store.set('vs-cur-proj', id);
-  Object.assign(F, d.settings || {}); items = (d.items || []).map(it => ({ ...makeItem(it), id: it.id || newId() })); brief = { ...SAMPLE_BRIEF, ...(d.brief || {}) }; flow = d.flow || []; overrides = d.overrides || {}; sel = 0;
+  Object.assign(F, d.settings || {}); F.lang = (d.settings || {}).lang || 'tr'; items = (d.items || []).map(it => ({ ...makeItem(it), id: it.id || newId() })); brief = { ...SAMPLE_BRIEF, ...(d.brief || {}) }; flow = d.flow || []; overrides = d.overrides || {}; sel = 0;
   for (const it of items) { if (it.imgId) await loadImage(it.imgId); for (const v of it.vids || []) await loadVideo(v.id); }
   for (const v of flow) await loadVideo(v.id);
   await loadLogo(); if (String(F.soundtrack).startsWith('bed:')) await ensureBed(F.soundtrack.slice(4));
@@ -910,7 +970,7 @@ async function projOpen(id) {
 }
 function projNew() {
   if (curProj) projSave();
-  curProj = ''; store.set('vs-cur-proj', '');
+  curProj = ''; store.set('vs-cur-proj', ''); F.lang = 'tr'; if (!/^tr_/.test(F.voice)) F.voice = 'tr_TR-dfki-medium';
   items = toScenes(F.fmt, { title: '', text: '' }).map(makeItem); brief = { ...SAMPLE_BRIEF, title: '', text: '', logoId: brief.logoId }; flow = []; overrides = {}; sel = 0;
   save(); syncBrief(); renderList(); loadEditor(); renderStockGrid(); rebuild(false); renderProjects(); switchTab('metin'); toast('Yeni proje');
 }

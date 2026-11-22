@@ -1,12 +1,12 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611221642';
-import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221642';
-import { applyCamera } from './camera.js?v=202611221642';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611221642';
-import { Post } from './post.js?v=202611221642';
-import { Captions } from '../captions.js?v=202611221642';
-import { StockScene } from './stock-scene.js?v=202611221642';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221642';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221643';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221643';
+import { applyCamera } from './camera.js?v=202611221643';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611221643';
+import { Post } from './post.js?v=202611221643';
+import { Captions } from '../captions.js?v=202611221643';
+import { StockScene } from './stock-scene.js?v=202611221643';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221643';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -17,7 +17,7 @@ export class Film {
     this.renderer.toneMappingExposure = 1.0;
     this.camA = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
     this.camB = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
-    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null; this.caps = new Captions(); this.watermark = null; this.markPos = 'sag-ust'; this._wm = null; this.capOn = false; this.capMode = 'pop';
+    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null; this.caps = new Captions(); this.lang = 'tr'; this.watermark = null; this.markPos = 'sag-ust'; this._wm = null; this.capOn = false; this.capMode = 'pop';
     this.post = null;
     this.resize(W, H);
     this.timeline = { shots: [], dur: 0 };
@@ -119,7 +119,7 @@ export class Film {
   }
   pauseVideos() { for (const v of this.videos.values()) if (v.tagName !== 'IMG' && !v.paused) v.pause(); }
   textFor(shot) {
-    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { layout: shot.layout, card: shot.card ? this.videos.get(shot.card) || this.images.get(shot.card) : null, W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.capOn && this.caps.chunks.length ? { ...(this.safe || { top: 0.08, bottom: 0.08, side: 0.1 }), bottom: (this.safe ? this.safe.bottom : 0.08) + 0.24 } : this.safe, logo: this.logo }));
+    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { lang: this.lang || 'tr', layout: shot.layout, card: shot.card ? this.videos.get(shot.card) || this.images.get(shot.card) : null, W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.capOn && this.caps.chunks.length ? { ...(this.safe || { top: 0.08, bottom: 0.08, side: 0.1 }), bottom: (this.safe ? this.safe.bottom : 0.08) + 0.24 } : this.safe, logo: this.logo }));
     return this.texts.get(shot.i);
   }
   pruneTexts(keep) { for (const [k, T] of this.texts) if (!keep.has(k)) { disposeText(T); this.texts.delete(k); } }

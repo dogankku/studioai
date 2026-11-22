@@ -1,6 +1,6 @@
 // 3D yazı: her kelime ayrı bir düzlem (doku) olarak uzayda canlandırılır. Arapça şekillendirme 2D kanvasla yapılır.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221642';
-import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221642';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221643';
+import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221643';
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeOut = p => 1 - Math.pow(1 - p, 3);
@@ -167,7 +167,7 @@ export function buildText(lines, opts) {
   }
   if (cta) {
     const fs = Math.round(m * 0.046), c0 = document.createElement('canvas').getContext('2d'); c0.font = `800 ${fs}px Montserrat, Inter, sans-serif`;
-    const txt = cta.text.toLocaleUpperCase('tr'); const tw = c0.measureText(txt).width;
+    const txt = cta.text.toLocaleUpperCase(opts.lang || 'tr'); const tw = c0.measureText(txt).width;
     const pw = Math.ceil(tw + fs * 2.4), ph = Math.ceil(fs * 2.2), pad = Math.ceil(fs * 0.6);
     const c = document.createElement('canvas'); c.width = pw + pad * 2; c.height = ph + pad * 2; const g = c.getContext('2d');
     g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = fs * 0.5; g.shadowOffsetY = fs * 0.12;
@@ -193,7 +193,7 @@ export function buildText(lines, opts) {
     const topFree = H * safe.top, botFree = stackTop - gap;
     cardMesh = canvasMesh(c, W / 2, Math.max(topFree + c.height / 2, (topFree + botFree) / 2), 'card');
   }
-  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase('tr'), Math.max(H * (safe.top + 0.02), (pre ? stackTop : topY) - m * 0.09), style.accent, `${style.font ? 800 : 600} ${Math.round(m * (style.font ? 0.04 : 0.03))}px ${style.font ? 'Montserrat, ' : ''}Inter, sans-serif`, m * (style.font ? 0.04 : 0.03), 1) : null;
+  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase(opts.lang || 'tr'), Math.max(H * (safe.top + 0.02), (pre ? stackTop : topY) - m * 0.09), style.accent, `${style.font ? 800 : 600} ${Math.round(m * (style.font ? 0.04 : 0.03))}px ${style.font ? 'Montserrat, ' : ''}Inter, sans-serif`, m * (style.font ? 0.04 : 0.03), 1) : null;
   const srcMesh = src ? smallLine('— ' + src.text + ' —', Math.min(H * (1 - safe.bottom - 0.02), y + post + m * 0.03), style.accent, `italic 500 ${Math.round(m * 0.032)}px Lora, serif`, m * 0.032) : null;
   return { group, words, tagMesh, srcMesh, scrim, u, count: gi, badge, logo, bar, ctaMesh, stat, cardMesh };
 }
