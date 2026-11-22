@@ -1,5 +1,5 @@
 // Sahne yerleşimi ve kare çizimi
-import { THEMES, clamp, rgba, mix, drawBackground } from './backgrounds.js?v=202611221957';
+import { THEMES, clamp, rgba, mix, drawBackground } from './backgrounds.js?v=202611221959';
 
 const STRONG_RTL = /[֐-ࣿיִ-﷿ﹰ-﻿]/;
 const STRONG_LTR = /[A-Za-zÀ-ɏͰ-ϿЀ-ӿ]/;
