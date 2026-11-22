@@ -1,7 +1,7 @@
 // Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
-import { STYLES, SCENES } from './styles.js?v=202611221501';
+import { STYLES, SCENES } from './styles.js?v=202611221506';
 const SCENE_KEYS = Object.keys(SCENES).filter(k => k !== 'gorsel' && k !== 'video');
-import { isMostlyRTL } from '../renderer.js?v=202611221501';
+import { isMostlyRTL } from '../renderer.js?v=202611221506';
 
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -176,7 +176,8 @@ export function direct(items, o = {}) {
     let scene = itemScene[s.item];
     if (s.nInItem >= 4 && s.kInItem >= Math.ceil(s.nInItem / 2)) scene = pickNot(style.scenes.filter(x => x !== itemScene[s.item]).concat(itemScene[s.item]), itemScene[s.item], rng(s.item + 99));
     if (s.cont && s.cov % 2 === 1 && style.scenes.length > 1) scene = pickNot(style.scenes, itemScene[s.item], rng(s.item * 13 + s.cov + (o.seed || 0)));
-    const vids = items[s.item] && items[s.item]._vids && o.stock !== false ? items[s.item]._vids : null;
+    const flow = o.flow && o.flow.length ? o.flow : null;
+    const vids = flow || (items[s.item] && items[s.item]._vids && o.stock !== false ? items[s.item]._vids : null);
     if (vids && vids.length) scene = 'video';
     else if (scene === 'video') scene = items[s.item] && items[s.item]._img ? 'gorsel' : (style.scenes.find(x => x !== 'video') || 'nur');
     const camera = pickNot(style.cameras, prevCam, r); prevCam = camera;
@@ -189,9 +190,10 @@ export function direct(items, o = {}) {
     if (s.cont && i > 0) { transition = style.transitions.includes('cut') && r() < 0.5 ? 'cut' : 'fade'; transDur = transition === 'cut' ? 0.05 : 0.9; }
     if (energy != null && energy > 0.6 && i > 0) { transition = energy > 0.8 ? 'cut' : (style.transitions.includes('whip') ? 'whip' : transition); transDur = transition === 'cut' ? 0.05 : 0.45; }
     if (transition === 'cut') transDur = 0.05;
+    if (flow && i > 0) { transition = 'fade'; transDur = s.cont ? 0.6 : 0.7; } // arka plan aynı akış: yalnız yazı değişir
     shots.push({
       image: (scene === 'gorsel' || scene === 'video') && items[s.item] ? items[s.item]._img || null : null,
-      videos: scene === 'video' ? vids : null,
+      videos: scene === 'video' ? vids : null, flow: scene === 'video' && !!flow,
       i, key: `${s.item}:${s.kInItem}${s.cov ? ':' + s.cov : ''}`, cont: !!s.cont, title: !!s.title, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
       lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.cont ? null : (s.timing || null), clip: s.clip || null
     });

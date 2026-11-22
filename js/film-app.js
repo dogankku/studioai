@@ -1,20 +1,20 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221501';
-import { direct, clipsOf } from './film/director.js?v=202611221501';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221501';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221501';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221501';
-import { surahs, buildItems } from './quran.js?v=202611221501';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221501';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221501';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221501';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221501';
-import { newId } from './parser.js?v=202611221501';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221501';
-import { writeScript } from './ai/senarist.js?v=202611221501';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221501';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221501';
-import { detectScene } from './film/director.js?v=202611221501';
+import { Film } from './film/player.js?v=202611221506';
+import { direct, clipsOf } from './film/director.js?v=202611221506';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221506';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221506';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221506';
+import { surahs, buildItems } from './quran.js?v=202611221506';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221506';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221506';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221506';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221506';
+import { newId } from './parser.js?v=202611221506';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221506';
+import { writeScript } from './ai/senarist.js?v=202611221506';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221506';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221506';
+import { detectScene } from './film/director.js?v=202611221506';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -34,7 +34,7 @@ const DEFAULTS = {
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
   refUseCuts: true, refUseEnergy: true, refUseColors: false, refUseAudio: false,
   olUrl: 'http://localhost:11434', olModel: '', cfUrl: 'http://127.0.0.1:8188', cfCkpt: '',
-  recOn: false, reciter: '7', ttsOn: false, voice: 'tr_TR-dfki-medium', imgOn: true, stockOn: true, pxKey: '', stockNoPeople: true, stockN: '3', aiCount: '3', aiTone: 'huzur', aiNarr: true, aiTopic: ''
+  recOn: false, reciter: '7', ttsOn: false, voice: 'tr_TR-dfki-medium', imgOn: true, stockOn: true, pxKey: '', stockNoPeople: true, stockN: '3', stockMode: 'flow', flowXF: 1.2, flowMax: 6, flowMatch: true, aiCount: '3', aiTone: 'huzur', aiNarr: true, aiTopic: ''
 };
 // Platform ayarları (YouTube ve Instagram önerilerine göre)
 const PLATFORMS = {
@@ -54,13 +54,14 @@ if (!Array.isArray(F.platforms) || !F.platforms.length) F.platforms = ['reels'];
 F.platforms = F.platforms.filter(k => PLATFORMS[k]); if (!F.platforms.length) F.platforms = ['reels'];
 if (!PLATFORMS[F.previewPlatform]) F.previewPlatform = F.platforms[0];
 let items = (store.get('tvs-items', null) || SAMPLE).map(makeItem);
+let flow = (store.get('film-flow', null) || []).filter(v => v && v.id);
 let overrides = store.get('film-overrides', {});
 let ref = store.get('film-ref', null); // {name, analysis(without audio)}
 let refAudio = null; // AudioBuffer (yalnızca bu oturumda)
 let sel = 0, selShot = -1;
 const music = []; // {id, name, buffer, blob, an}
 let saveT = 0;
-const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('tvs-items', items.map(plainItem)); store.set('film-overrides', overrides); }, 300); };
+const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('tvs-items', items.map(plainItem)); store.set('film-overrides', overrides); store.set('film-flow', flow); }, 300); };
 
 /* ================= Film motoru ================= */
 const cv = $('#cv');
@@ -126,7 +127,8 @@ function rebuild(keepTime = true) {
   film.size = +F.size;
   film.safe = PV().safe;
   film.setStyle(F.style, { grade: { ...(ref && F.refUseColors ? ref.analysis.grade : {}), ...F.gradeOv }, fx: F.fxOv, colors: F.colors });
-  tl = applyOverrides(direct(augItems(), { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn }));
+  film.flow = { ids: flowIds(), xf: +F.flowXF, maxLen: +F.flowMax, match: !!F.flowMatch };
+  tl = applyOverrides(direct(augItems(), { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn, flow: flowIds() }));
   tl.clips = clipsOf(tl.shots);
   film.setTimeline(tl);
   const st = soundtrack(); film.beats = st && st.an ? st.an.beats : null;
@@ -236,13 +238,13 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mealMode', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'recOn', 'reciter', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'aiCount', 'aiTone', 'aiNarr', 'aiTopic'];
+const FIELDS = ['pace', 'mealMode', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'recOn', 'reciter', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'aiCount', 'aiTone', 'aiNarr', 'aiTopic'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
     F[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value;
     if (['olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'aiCount', 'aiTone', 'aiNarr', 'aiTopic', 'pxKey', 'stockNoPeople', 'stockN'].includes(k)) { save(); return; }
-    if (k === 'stockOn') { save(); rebuild(); return; }
+    if (['stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch'].includes(k)) { save(); rebuild(); renderStockGrid(); return; }
     if (['recOn', 'ttsOn', 'reciter', 'voice'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); return; }
     if (k === 'targetDur') F.targetDur = Math.max(5, Math.min(1200, Math.round(+el.value || 60)));
     if (['latinFont', 'arabicFont'].includes(k)) ensureFonts().then(changed); else changed();
@@ -422,7 +424,7 @@ function jobsFor(platKey) {
   const base = slug(items[0] && (items[0].tag || items[0].src) || 'film') || 'film';
   if (F.mode === 'each') {
     items.forEach((it, i) => {
-      const t1 = direct([augItems()[i]], { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn }); // her öğe kendi süresine göre kurgulanır
+      const t1 = direct([augItems()[i]], { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn, flow: flowIds() }); // her öğe kendi süresine göre kurgulanır
       t1.shots.forEach(s => { s.key = s.key.replace(/^0:/, i + ':'); });
       const t2 = applyOverrides(t1); t2.clips = clipsOf(t2.shots).map(c => ({ ...c, key: c.key.replace(/:0$/, ':' + i) }));
       jobs.push({ tl: t2, name: `${String(i + 1).padStart(2, '0')}-${slug(it.src || it.tag || 'video')}-${p.suffix}` });
@@ -638,11 +640,45 @@ async function loadVideo(id) {
   v.muted = true; v.playsInline = true; v.preload = 'auto'; v.loop = false; v.src = URL.createObjectURL(r.blob);
   try {
     await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error('video')); setTimeout(() => rej(new Error('zaman aşımı')), 20000); });
+    v._mean = await meanColor(v);
     film.videos.set(id, v); return true;
   } catch (e) { return false; }
 }
+async function meanColor(v) {
+  try {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 18; const g = c.getContext('2d', { willReadFrequently: true });
+    const acc = [0, 0, 0]; let n = 0;
+    for (const f of [0.25, 0.5, 0.75]) {
+      await new Promise(r => { const fin = () => { v.removeEventListener('seeked', fin); r(); }; v.addEventListener('seeked', fin); v.currentTime = (v.duration || 1) * f; setTimeout(fin, 2000); });
+      g.drawImage(v, 0, 0, 32, 18); const d = g.getImageData(0, 0, 32, 18).data;
+      for (let i = 0; i < d.length; i += 4) { acc[0] += d[i]; acc[1] += d[i + 1]; acc[2] += d[i + 2]; n++; }
+    }
+    v.currentTime = 0;
+    return acc.map(x => x / n / 255);
+  } catch (e) { return null; }
+}
+const flowIds = () => (F.stockOn && F.stockMode === 'flow') ? flow.map(v => v.id).filter(id => film.videos.has(id)) : [];
+function renderFlow() {
+  const box = $('#flowStrip'); if (!box) return;
+  $('#flowBox').style.display = F.stockMode === 'flow' ? '' : 'none';
+  $('#stockGrid').style.display = F.stockMode === 'flow' ? 'none' : '';
+  const tot = flow.reduce((a, v) => a + Math.min(+F.flowMax, v.dur || 0), 0);
+  box.innerHTML = flow.length ? flow.map((v, k) => `<div class="fl" title="${esc(v.tags || '')}">${v.thumb ? `<img src="${esc(v.thumb)}" alt="">` : (film.videos.has(v.id) ? `<video muted playsinline preload="metadata" src="${esc(film.videos.get(v.id).src)}#t=1"></video>` : '')}<b>${k + 1}</b><span>${Math.round(v.dur || 0)} sn</span><div class="fl-b"><button data-fm="${k}:-1" title="Öne al">◀</button><button data-fm="${k}:1" title="Geri al">▶</button><button data-fx="${k}" title="Çıkar">✕</button></div></div>`).join('') : '<span class="muted">Akış boş. "Pixabay\'de ara ve ekle" ile çekim seçin.</span>';
+  if (flow.length) box.insertAdjacentHTML('beforeend', `<span class="muted" style="flex:0 0 auto;font-size:11px">${flow.length} çekim · bir tur ≈ ${Math.round(tot)} sn</span>`);
+}
+function flowRemoveFiles(v) { if (!items.some(o => (o.vids || []).some(x => x.id === v.id)) && !flow.some(x => x.id === v.id)) { delFile(v.id); const el = film.videos.get(v.id); if (el) { URL.revokeObjectURL(el.src); film.videos.delete(v.id); } } }
+$('#flowStrip').addEventListener('click', e => {
+  const m = e.target.closest('[data-fm]'), x = e.target.closest('[data-fx]');
+  if (m) { const [k, d] = m.dataset.fm.split(':').map(Number), j = k + d; if (j < 0 || j >= flow.length) return; [flow[k], flow[j]] = [flow[j], flow[k]]; }
+  else if (x) { const [v] = flow.splice(+x.dataset.fx, 1); flowRemoveFiles(v); }
+  else return;
+  save(); rebuild(); renderFlow();
+});
+$('#flowAdd').onclick = () => openPicker('flow');
+$('#flowClear').onclick = () => { if (!flow.length || !confirm('Akıştaki bütün çekimler çıkarılsın mı?')) return; const old = flow; flow = []; old.forEach(flowRemoveFiles); save(); rebuild(); renderFlow(); };
 function itemScene(it) { return it.sceneHint || detectScene(`${it.main} ${it.sub}`) || (STYLES[F.style] || STYLES.nur).scenes.find(x => x !== 'video') || 'nur'; }
 function renderStockGrid() {
+  renderFlow();
   const box = $('#stockGrid'); if (!box) return;
   box.innerHTML = items.map((it, i) => {
     const vs = (it.vids || []).filter(x => film.videos.has(x.id));
@@ -679,15 +715,25 @@ function setVids(i, vids) {
 
 /* --- çekim seçme penceresi --- */
 const PK = { i: -1, q: '', page: 1, hits: [], sel: [], busy: false, abort: null };
-function pkUsedElsewhere(px) { return items.some((o, j) => j !== PK.i && (o.vids || []).some(x => x.px === px)); }
+function pkUsedElsewhere(px) { return PK.i === 'flow' ? flow.some(x => x.px === px) : items.some((o, j) => j !== PK.i && (o.vids || []).some(x => x.px === px)); }
 async function openPicker(i) {
   if (!F.pxKey.trim()) { $('#stockStatus').textContent = 'Önce Pixabay anahtarınızı girin.'; $('#pxKey').focus(); return; }
-  const it = items[i];
-  PK.i = i; PK.page = 1; PK.hits = []; PK.sel = (it.vids || []).filter(v => film.videos.has(v.id)).map(v => v.px);
-  // mevcut çekimler en başta
-  PK.local = (it.vids || []).filter(v => film.videos.has(v.id)).map(v => ({ px: v.px, dur: v.dur, tags: v.tags, user: v.user, page: v.page, local: v, v: {} }));
-  PK.q = it.stockQ || (queriesFor({ ...it, stockQ: '' }, itemScene(it))[0] || {}).q || '';
-  $('#pickTitle').textContent = `#${i + 1} için çekim seç · ${(it.sub || it.main || '').slice(0, 70)}`;
+  PK.i = i; PK.page = 1; PK.hits = [];
+  if (i === 'flow') {
+    const it = items[0] || {};
+    PK.sel = []; PK.local = [];
+    PK.q = PK.lastFlowQ || (items[0] ? (queriesFor({ ...it, stockQ: '' }, itemScene(it))[0] || {}).q : '') || 'nature';
+    $('#pickTitle').textContent = 'Akışa çekim ekle: seçtikleriniz akışın sonuna, seçme sırasıyla eklenir';
+    $('#pickUse').textContent = 'Seçilenleri akışa ekle';
+  } else {
+    const it = items[i];
+    PK.sel = (it.vids || []).filter(v => film.videos.has(v.id)).map(v => v.px);
+    // mevcut çekimler en başta
+    PK.local = (it.vids || []).filter(v => film.videos.has(v.id)).map(v => ({ px: v.px, dur: v.dur, tags: v.tags, user: v.user, page: v.page, local: v, v: {} }));
+    PK.q = it.stockQ || (queriesFor({ ...it, stockQ: '' }, itemScene(it))[0] || {}).q || '';
+    $('#pickTitle').textContent = `#${i + 1} için çekim seç · ${(it.sub || it.main || '').slice(0, 70)}`;
+    $('#pickUse').textContent = 'Seçilenleri kullan';
+  }
   $('#pickQ').value = PK.q; $('#pick').classList.add('show');
   await pkSearch(true);
 }
@@ -739,6 +785,24 @@ $('#pickClose').onclick = () => { if (PK.abort) PK.abort.abort(); $('#pick').cla
 $('#pickUse').onclick = async () => {
   if (PK.busy) return; PK.busy = true; $('#pickUse').disabled = true;
   const i = PK.i, it = items[i]; const [W, H] = outDims(); PK.abort = new AbortController();
+  if (i === 'flow') {
+    try {
+      let added = 0;
+      for (const [k, px] of PK.sel.entries()) {
+        if (flow.some(v => v.px === px)) continue;
+        const have = items.flatMap(o => o.vids || []).find(v => v.px === px && film.videos.has(v.id));
+        const h = pkFind(px); if (!have && !h) continue;
+        const v = have || await saveHit({ ...h, q: PK.q }, W, H, PK.abort.signal, (g, tot) => ($('#pickInfo').textContent = `Çekim ${k + 1}/${PK.sel.length} indiriliyor… ${mb(g, tot)}`));
+        if (v) { flow.push(v); added++; save(); }
+      }
+      PK.lastFlowQ = PK.q;
+      if (!F.stockOn || F.stockMode !== 'flow') { F.stockOn = true; F.stockMode = 'flow'; syncUI(); }
+      if (!['gercek', 'sinematik', 'noir', 'gece'].includes(F.style)) { F.style = 'gercek'; syncUI(); }
+      save(); rebuild(); renderStockGrid(); $('#pick').classList.remove('show');
+      $('#stockStatus').textContent = `${added} çekim akışa eklendi · akışta ${flow.length} çekim`;
+    } catch (e) { $('#pickInfo').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
+    PK.busy = false; PK.abort = null; $('#pickUse').disabled = false; return;
+  }
   try {
     const out = [];
     for (const [k, px] of PK.sel.entries()) {
@@ -760,6 +824,20 @@ $('#pickUse').onclick = async () => {
 async function findStock(only = null) {
   if (!F.pxKey.trim()) { $('#stockStatus').textContent = 'Önce Pixabay anahtarınızı girin.'; $('#pxKey').focus(); return; }
   stockAbort = new AbortController(); $('#findStock').disabled = true; $('#stockStop').disabled = false;
+  if (F.stockMode === 'flow' && only == null) {
+    stockAbort = new AbortController(); $('#findStock').disabled = true; $('#stockStop').disabled = false;
+    try {
+      const [W, H] = outDims(); const exclude = new Set(flow.map(v => v.px)); let got = 0;
+      if (!['gercek', 'sinematik', 'noir', 'gece'].includes(F.style)) { F.style = 'gercek'; syncUI(); }
+      for (const [i, it] of items.entries()) {
+        $('#stockStatus').textContent = `#${i + 1} için çekim aranıyor…`;
+        const hits = await findClips(F.pxKey.trim(), it, itemScene(it), { n: 2, portrait: H > W, noPeople: F.stockNoPeople, exclude, signal: stockAbort.signal });
+        for (const [k, h] of hits.entries()) { const v = await saveHit(h, W, H, stockAbort.signal, (g, tot) => ($('#stockStatus').textContent = `#${i + 1} · çekim ${k + 1}/${hits.length} indiriliyor… ${mb(g, tot)}`)); if (v) { flow.push(v); got++; save(); renderFlow(); } }
+      }
+      rebuild(); $('#stockStatus').textContent = `${got} çekim akışa eklendi. Sırayı değiştirebilir, beğenmediğinizi ✕ ile çıkarabilirsiniz.`;
+    } catch (e) { $('#stockStatus').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
+    save(); rebuild(); renderStockGrid(); $('#findStock').disabled = false; $('#stockStop').disabled = true; stockAbort = null; return;
+  }
   const list = only != null ? [only] : items.map((it, i) => ((it.vids || []).some(x => film.videos.has(x.id)) ? -1 : i)).filter(i => i >= 0);
   const exclude = new Set(items.flatMap((it, j) => (only != null && j === only) ? [] : (it.vids || []).map(x => x.px)));
   if (only != null) for (const x of items[only].vids || []) exclude.add(x.px); // ↻: farklı çekimler gelsin
@@ -792,7 +870,7 @@ async function ensureFonts() {
 }
 window.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 
-window.filmDebug = { tl: () => tl, film, PK, pkRender: () => pkRender(), items: () => items, rebuild: () => rebuild(), renderStockGrid: () => renderStockGrid(), loadVideo: id => loadVideo(id), audioOpts: () => audioOpts(tl), mix: async () => { const a = await mixTimeline(tl.dur, audioOpts(tl)); const d = a.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 100) pk = Math.max(pk, Math.abs(d[i])); return { dur: a.duration, peak: pk }; } };
+window.filmDebug = { tl: () => tl, film, PK, flow: () => flow, setFlow: f => { flow = f; save(); rebuild(); renderStockGrid(); }, pkRender: () => pkRender(), items: () => items, rebuild: () => rebuild(), renderStockGrid: () => renderStockGrid(), loadVideo: id => loadVideo(id), audioOpts: () => audioOpts(tl), mix: async () => { const a = await mixTimeline(tl.dur, audioOpts(tl)); const d = a.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 100) pk = Math.max(pk, Math.abs(d[i])); return { dur: a.duration, peak: pk }; } };
 (async function init() {
   resizePreview(); syncUI(); renderList(); loadEditor(); renderRef(); fitCanvas();
   await ensureFonts();
@@ -800,6 +878,7 @@ window.filmDebug = { tl: () => tl, film, PK, pkRender: () => pkRender(), items: 
   renderMusic();
   for (const it of items) if (it.imgId) await loadImage(it.imgId);
   for (const it of items) for (const v of it.vids || []) await loadVideo(v.id);
+  for (const v of flow) await loadVideo(v.id);
   rebuild(false); syncUI(); renderPlan(); renderImgGrid(); renderStockGrid(); updateAiAudioStatus();
   // motorlar programla birlikte açılıyorsa birkaç dakika boyunca sessizce yeniden dene
   (async () => { let a = false, b = false; for (let i = 0; i < 25 && !(a && b); i++) { if (i) await new Promise(r => setTimeout(r, 5000)); if (!a) a = await olConnect(true); if (!b) b = await cfConnect(true); } })();

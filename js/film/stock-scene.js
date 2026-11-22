@@ -1,6 +1,6 @@
 // Gerçek video çekimi sahnesi: arka planda çekim (ekranı kaplar), çekimler arasında yumuşak geçiş, önde hafif ışık tozu.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221501';
-import { dust } from './scenes.js?v=202611221501';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221506';
+import { dust } from './scenes.js?v=202611221506';
 
 const texCache = new WeakMap();
 function texOf(video) {
@@ -29,7 +29,7 @@ export class StockScene {
     this.scene.add(this.motes);
   }
   /** plan: [{video, alpha}] — ilk eleman arkada, ikinci (geçişteki) önde */
-  set(plan, t) {
+  set(plan, t, flow = false) {
     const dist = 50, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(20)) * 1.5;
     const fit = (mesh, e) => {
       if (!e) { mesh.visible = false; return; }
@@ -37,10 +37,13 @@ export class StockScene {
       if (v.readyState >= 2) tex.needsUpdate = true;
       mesh.material.map = tex; mesh.material.needsUpdate = mesh.material._map !== tex; mesh.material._map = tex;
       mesh.material.opacity = e.alpha;
+      const g = e.gain || [1, 1, 1]; mesh.material.color.setRGB(g[0], g[1], g[2]);
       const ar = (v.videoWidth || 16) / Math.max(1, v.videoHeight || 9);
       const h = Math.max(visH, visH * (16 / 9) / ar), w = h * ar;
-      const k = 1 + 0.025 * Math.sin(t * 0.06);
+      // akışta tek, kesintisiz yavaş hareket (çekim değişse de kamera aynı yolda devam eder)
+      const k = flow ? 1.07 + 0.035 * Math.sin(t * 0.045) : 1 + 0.025 * Math.sin(t * 0.06);
       mesh.scale.set(w * k, h * k, 1); mesh.visible = true;
+      if (flow) mesh.position.set(Math.sin(t * 0.031) * w * 0.012, Math.cos(t * 0.027) * h * 0.008, mesh.position.z); else mesh.position.set(0, 0, mesh.position.z);
     };
     fit(this.back, plan[0]); fit(this.front, plan[1]);
     this.motes.userData.update(t);
