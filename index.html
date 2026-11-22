@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221639">
-<link rel="stylesheet" href="css/style.css?v=202611221639">
-<link rel="stylesheet" href="css/film.css?v=202611221639">
+<link rel="stylesheet" href="css/fonts.css?v=202611221641">
+<link rel="stylesheet" href="css/style.css?v=202611221641">
+<link rel="stylesheet" href="css/film.css?v=202611221641">
 </head>
 <body>
 <div class="app film">
@@ -18,8 +18,7 @@
         <div class="subtitle">Yazın, formatı seçin; sahneler, çekimler, ses ve kurgu hazır. Her şey bilgisayarınızda.</div>
       </div>
       <div class="hdr-btns">
-        <button class="btn sm" id="saveProj">Projeyi kaydet</button>
-        <label class="btn sm">Proje aç<input type="file" id="loadProj" accept=".json,application/json" hidden></label>
+        <button class="btn sm primary" id="projBtn">📁 Projeler</button>
       </div>
     </header>
     <nav class="tabs" id="tabs">
@@ -316,6 +315,12 @@ Odaklanmayı artırır
     </div>
   </main>
 </div>
+<div class="modal" id="projModal"><div class="pick-box">
+  <div class="pick-head"><b>Projeler</b><button class="btn sm ghost" id="projClose">✕</button></div>
+  <div class="row-btns"><button class="btn sm primary" id="projSaveBtn">💾 Bu projeyi kaydet</button><button class="btn sm" id="projNewBtn">＋ Yeni proje</button><button class="btn sm ghost" id="saveProj">Dosyaya aktar</button><label class="btn sm ghost">Dosyadan al<input type="file" id="loadProj" accept=".json,application/json" hidden></label></div>
+  <div class="hint" id="projCur"></div>
+  <div class="pj-list" id="projList"></div>
+</div></div>
 <div class="modal" id="pick"><div class="pick-box">
   <div class="pick-head"><b id="pickTitle">Çekim seç</b><button class="btn sm ghost" id="pickClose">✕</button></div>
   <div class="pick-search"><input type="text" id="pickQ" placeholder="Ne arıyorsunuz? (ör. deniz, desert sunset, mosque)"><button class="btn sm primary" id="pickGo">Ara</button></div>
@@ -324,7 +329,7 @@ Odaklanmayı artırır
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221639"></script>
-<script type="module" src="js/film-app.js?v=202611221639"></script>
+<script src="vendor/jszip.min.js?v=202611221641"></script>
+<script type="module" src="js/film-app.js?v=202611221641"></script>
 </body>
 </html>

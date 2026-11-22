@@ -1,22 +1,22 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221639';
-import { direct, clipsOf } from './film/director.js?v=202611221639';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221639';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221639';
-import { makeItem, plainItem } from './parser.js?v=202611221639';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221639';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221639';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221639';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221639';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221639';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221639';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221639';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221639';
-import { newId } from './parser.js?v=202611221639';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221639';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221639';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221639';
-import { detectScene } from './film/director.js?v=202611221639';
+import { Film } from './film/player.js?v=202611221641';
+import { direct, clipsOf } from './film/director.js?v=202611221641';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221641';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221641';
+import { makeItem, plainItem } from './parser.js?v=202611221641';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221641';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221641';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221641';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221641';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221641';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221641';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221641';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221641';
+import { newId } from './parser.js?v=202611221641';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221641';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221641';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221641';
+import { detectScene } from './film/director.js?v=202611221641';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -66,7 +66,7 @@ let refAudio = null; // AudioBuffer (yalnızca bu oturumda)
 let sel = 0, selShot = -1;
 const music = []; // {id, name, buffer, blob, an}
 let saveT = 0;
-const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('vs-items', items.map(plainItem)); store.set('film-brief', brief); store.set('vs-kit', kit); store.set('film-overrides', overrides); store.set('film-flow', flow); }, 300); };
+const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('vs-items', items.map(plainItem)); store.set('film-brief', brief); store.set('vs-kit', kit); store.set('film-overrides', overrides); store.set('film-flow', flow); projAuto(); }, 300); };
 
 /* ================= Film motoru ================= */
 const cv = $('#cv');
@@ -452,11 +452,11 @@ async function loadLogo() {
 }
 $('#bLogo').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  if (brief.logoId) delFile(brief.logoId);
+  if (brief.logoId && !projRefs().has(brief.logoId)) delFile(brief.logoId);
   brief.logoId = 'logo:' + newId(); await putFile({ id: brief.logoId, kind: 'logo', name: f.name, type: f.type, blob: f, order: Date.now() });
   await loadLogo(); save(); syncBrief(); film.clearTexts(); dirty = true;
 };
-$('#bLogoDel').onclick = () => { if (brief.logoId) delFile(brief.logoId); brief.logoId = ''; film.logo = null; save(); syncBrief(); film.clearTexts(); dirty = true; };
+$('#bLogoDel').onclick = () => { if (brief.logoId && !projRefs().has(brief.logoId)) delFile(brief.logoId); brief.logoId = ''; film.logo = null; save(); syncBrief(); film.clearTexts(); dirty = true; };
 function applyScenes(scenes, label) {
   items = scenes.map(sc => makeItem({ ...sc, stockQ: sc.q || '' })); sel = 0;
   const f = FORMATS[F.fmt]; if (f && f.style && STYLES[f.style]) F.style = f.style;
@@ -855,6 +855,57 @@ async function saveFile(blob, name) {
 $('#zipAll').onclick = async () => { const z = new JSZip(); results.filter(r => r.blob).forEach(r => z.file(r.name, r.blob)); saveFile(await z.generateAsync({ type: 'blob', compression: 'STORE' }), 'filmler.zip'); };
 
 /* ================= Proje ================= */
+/* proje kütüphanesi */
+let curProj = store.get('vs-cur-proj', '');
+const projList = () => store.get('vs-projects', []);
+function projRefs() {
+  const set = new Set();
+  for (const p of projList()) { if (p.id === curProj) continue; const d = store.get('vs-proj:' + p.id, null); if (!d) continue; for (const it of d.items || []) { for (const v of it.vids || []) set.add(v.id); if (it.imgId) set.add(it.imgId); } for (const v of d.flow || []) set.add(v.id); if (d.brief && d.brief.logoId) set.add(d.brief.logoId); }
+  return set;
+}
+const PROJ_KEYS = ['fmt', 'style', 'seed', 'pace', 'mode', 'platforms', 'previewPlatform', 'durMode', 'targetDur', 'soundtrack', 'musicVol', 'colors', 'fxOv', 'gradeOv', 'stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'ttsOn', 'voice', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'capOn', 'capMode', 'capHideSub', 'sfxOn', 'sfxVol', 'sfxOff', 'latinFont', 'size'];
+function projSnapshot() { return { settings: Object.fromEntries(PROJ_KEYS.map(k => [k, F[k]])), items: items.map(plainItem).map((p, i) => ({ ...p, id: items[i].id })), brief: { ...brief }, flow: [...flow], overrides }; }
+function projThumb() { try { const c = document.createElement('canvas'); const k = 180 / Math.max(cv.width, cv.height); c.width = Math.round(cv.width * k); c.height = Math.round(cv.height * k); c.getContext('2d').drawImage(cv, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.7); } catch (e) { return ''; } }
+function projSave(name) {
+  if (!curProj) curProj = 'p' + newId();
+  const list = projList().filter(p => p.id !== curProj);
+  const old = projList().find(p => p.id === curProj);
+  list.unshift({ id: curProj, name: name || (old && old.name) || brief.title || 'Adsız proje', updated: Date.now(), thumb: projThumb(), fmt: F.fmt });
+  store.set('vs-projects', list); store.set('vs-proj:' + curProj, projSnapshot()); store.set('vs-cur-proj', curProj);
+}
+async function projOpen(id) {
+  const d = store.get('vs-proj:' + id, null); if (!d) { toast('Proje bulunamadı'); return; }
+  if (curProj) projSave(); // açık olanı kaydet
+  curProj = id; store.set('vs-cur-proj', id);
+  Object.assign(F, d.settings || {}); items = (d.items || []).map(it => ({ ...makeItem(it), id: it.id || newId() })); brief = { ...SAMPLE_BRIEF, ...(d.brief || {}) }; flow = d.flow || []; overrides = d.overrides || {}; sel = 0;
+  for (const it of items) { if (it.imgId) await loadImage(it.imgId); for (const v of it.vids || []) await loadVideo(v.id); }
+  for (const v of flow) await loadVideo(v.id);
+  await loadLogo(); if (String(F.soundtrack).startsWith('bed:')) await ensureBed(F.soundtrack.slice(4));
+  save(); renderFormats(); syncBrief(); renderList(); loadEditor(); renderStockGrid(); renderMusic(); resizePreview(); syncUI(); rebuild(false); renderProjects(); toast('Proje açıldı');
+}
+function projNew() {
+  if (curProj) projSave();
+  curProj = ''; store.set('vs-cur-proj', '');
+  items = toScenes(F.fmt, { title: '', text: '' }).map(makeItem); brief = { ...SAMPLE_BRIEF, title: '', text: '', logoId: brief.logoId }; flow = []; overrides = {}; sel = 0;
+  save(); syncBrief(); renderList(); loadEditor(); renderStockGrid(); rebuild(false); renderProjects(); switchTab('metin'); toast('Yeni proje');
+}
+function renderProjects() {
+  const L = projList();
+  $('#projList').innerHTML = L.length ? L.map(p => `<div class="pj${p.id === curProj ? ' on' : ''}" data-pj="${p.id}">${p.thumb ? `<img src="${p.thumb}" alt="">` : '<div class="pj-ph">🎬</div>'}<div class="pj-tx"><b>${esc(p.name)}</b><span>${esc((FORMATS[p.fmt] || {}).name || '')} · ${new Date(p.updated).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span></div><div class="pj-b"><button class="btn sm" data-pa="open">Aç</button><button class="btn sm ghost" data-pa="copy">Kopyala</button><button class="btn sm ghost" data-pa="ren">Ad</button><button class="btn sm ghost" data-pa="del">✕</button></div></div>`).join('') : '<div class="muted">Henüz kayıtlı proje yok. "Bu projeyi kaydet" ile başlayın.</div>';
+  $('#projCur').textContent = curProj ? `Açık proje: ${(L.find(p => p.id === curProj) || {}).name || ''} (değişiklikler otomatik kaydedilir)` : 'Açık proje kaydedilmedi.';
+}
+$('#projBtn').onclick = () => { renderProjects(); $('#projModal').classList.add('show'); };
+$('#projClose').onclick = () => $('#projModal').classList.remove('show');
+$('#projSaveBtn').onclick = () => { const n = prompt('Proje adı', (projList().find(p => p.id === curProj) || {}).name || brief.title || 'Adsız proje'); if (n === null) return; projSave(n.trim() || 'Adsız proje'); renderProjects(); toast('Proje kaydedildi'); };
+$('#projNewBtn').onclick = projNew;
+$('#projList').addEventListener('click', async e => {
+  const row = e.target.closest('[data-pj]'), b = e.target.closest('[data-pa]'); if (!row || !b) return; const id = row.dataset.pj, a = b.dataset.pa;
+  if (a === 'open') { await projOpen(id); $('#projModal').classList.remove('show'); }
+  else if (a === 'copy') { const d = store.get('vs-proj:' + id, null); const m = projList().find(p => p.id === id); if (!d || !m) return; const nid = 'p' + newId(); store.set('vs-proj:' + nid, { ...d, items: d.items.map(it => ({ ...it, id: newId() })) }); store.set('vs-projects', [{ ...m, id: nid, name: m.name + ' (kopya)', updated: Date.now() }, ...projList()]); renderProjects(); }
+  else if (a === 'ren') { const m = projList().find(p => p.id === id); const n = prompt('Yeni ad', m ? m.name : ''); if (!n) return; store.set('vs-projects', projList().map(p => p.id === id ? { ...p, name: n.trim() } : p)); renderProjects(); }
+  else if (a === 'del') { if (!confirm('Proje silinsin mi? (Videolar ve çekimler bu tarayıcıdan da kaldırılabilir)')) return; store.set('vs-projects', projList().filter(p => p.id !== id)); try { localStorage.removeItem('vs-proj:' + id); } catch (er) { } if (id === curProj) { curProj = ''; store.set('vs-cur-proj', ''); } renderProjects(); }
+});
+let projT = 0; const projAuto = () => { if (!curProj) return; clearTimeout(projT); projT = setTimeout(() => projSave(), 1500); };
 $('#saveProj').onclick = () => saveFile(new Blob([JSON.stringify({ app: 'film-studyosu', version: 1, settings: { ...F, pxKey: '' }, items: items.map(plainItem), overrides, ref }, null, 2)], { type: 'application/json' }), 'film-projesi.json');
 $('#loadProj').onchange = async e => {
   const f = e.target.files[0]; if (!f) return; e.target.value = '';
@@ -944,7 +995,7 @@ async function genImage(i) {
   const blob = await comfyGenerate(F.cfUrl, { ckpt: F.cfCkpt, prompt: promptFor(it), w: Math.max(512, w), h: Math.max(512, h) }, { signal: genAbort.signal, onProgress: sec => ($('#imgStatus').textContent = `#${i + 1} üretiliyor… ${sec.toFixed(0)} sn`) });
   const id = 'aiimg:' + newId();
   await putFile({ id, kind: 'aiimg', name: id, type: blob.type, blob, order: Date.now() });
-  if (it.imgId) delFile(it.imgId);
+  if (it.imgId && !projRefs().has(it.imgId)) delFile(it.imgId);
   it.imgId = id; await loadImage(id); save();
 }
 async function genMissing(only = null) {
@@ -1004,7 +1055,7 @@ function renderFlow() {
   box.innerHTML = flow.length ? flow.map((v, k) => `<div class="fl" title="${esc(v.tags || '')}">${v.thumb ? `<img src="${esc(v.thumb)}" alt="">` : (film.videos.has(v.id) ? `<video muted playsinline preload="metadata" src="${esc(film.videos.get(v.id).src)}#t=1"></video>` : '')}<b>${k + 1}</b><span>${Math.round(v.dur || 0)} sn</span><div class="fl-b"><button data-fm="${k}:-1" title="Öne al">◀</button><button data-fm="${k}:1" title="Geri al">▶</button><button data-fx="${k}" title="Çıkar">✕</button></div></div>`).join('') : '<span class="muted">Akış boş. "Pixabay\'de ara ve ekle" ile çekim seçin.</span>';
   if (flow.length) box.insertAdjacentHTML('beforeend', `<span class="muted" style="flex:0 0 auto;font-size:11px">${flow.length} çekim · bir tur ≈ ${Math.round(tot)} sn</span>`);
 }
-function flowRemoveFiles(v) { if (!items.some(o => (o.vids || []).some(x => x.id === v.id)) && !flow.some(x => x.id === v.id)) { delFile(v.id); const el = film.videos.get(v.id); if (el) { URL.revokeObjectURL(el.src); film.videos.delete(v.id); } } }
+function flowRemoveFiles(v) { if (!items.some(o => (o.vids || []).some(x => x.id === v.id)) && !flow.some(x => x.id === v.id) && !projRefs().has(v.id)) { delFile(v.id); const el = film.videos.get(v.id); if (el) { URL.revokeObjectURL(el.src); film.videos.delete(v.id); } } }
 $('#flowStrip').addEventListener('click', e => {
   const m = e.target.closest('[data-fm]'), x = e.target.closest('[data-fx]');
   if (m) { const [k, d] = m.dataset.fm.split(':').map(Number), j = k + d; if (j < 0 || j >= flow.length) return; [flow[k], flow[j]] = [flow[j], flow[k]]; }
@@ -1063,7 +1114,7 @@ async function saveHit(h, W, H, signal, onProgress) {
 }
 function setVids(i, vids) {
   const it = items[i]; const keep = new Set(vids.map(v => v.id));
-  for (const old of it.vids || []) if (!keep.has(old.id) && !items.some((o, j) => j !== i && (o.vids || []).some(x => x.id === old.id))) { delFile(old.id); const v = film.videos.get(old.id); if (v) { URL.revokeObjectURL(v.src); film.videos.delete(old.id); } }
+  for (const old of it.vids || []) if (!keep.has(old.id) && !items.some((o, j) => j !== i && (o.vids || []).some(x => x.id === old.id)) && !projRefs().has(old.id)) { delFile(old.id); const v = film.videos.get(old.id); if (v) { URL.revokeObjectURL(v.src); film.videos.delete(old.id); } }
   it.vids = vids; save();
 }
 
