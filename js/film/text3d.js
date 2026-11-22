@@ -1,6 +1,6 @@
 // 3D yazı: her kelime ayrı bir düzlem (doku) olarak uzayda canlandırılır. Arapça şekillendirme 2D kanvasla yapılır.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221616';
-import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221616';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221617';
+import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221617';
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeOut = p => 1 - Math.pow(1 - p, 3);
@@ -40,6 +40,8 @@ export function buildText(lines, opts) {
   const group = new THREE.Group();
   const words = [];
   const safe = opts.safe || { top: 0.08, bottom: 0.08, side: 0.1 };
+  const lay = opts.layout || 'merkez';
+  const left = (lay === 'sol' || lay === 'alt') && !lines.some(l => l.text && isMostlyRTL(l.text));
   let maxW = W * Math.min(portrait ? 0.8 : 0.7, 1 - safe.side * 2);
   let areaH = H * (1 - safe.top - safe.bottom), centerY = H * (safe.top + (1 - safe.top - safe.bottom) / 2);
   if (lay === 'alt') { areaH = H * (portrait ? 0.3 : 0.36); centerY = H * (1 - safe.bottom) - areaH / 2; maxW = W * Math.min(portrait ? 0.82 : 0.6, 1 - safe.side * 2); }
@@ -48,8 +50,6 @@ export function buildText(lines, opts) {
   if (card) { areaH -= cardH + Math.min(W, H) * 0.05; centerY = H * (1 - safe.bottom) - areaH / 2; }
   const leftX = W / 2 - maxW / 2;
   const get = role => lines.find(l => l.role === role && l.text && l.text.trim());
-  const lay = opts.layout || 'merkez';
-  const left = (lay === 'sol' || lay === 'alt') && !lines.some(l => l.text && isMostlyRTL(l.text));
   const tag = get('tag'), mainL = get('main'), sub = get('sub'), src = get('src'), num = get('num'), cta = get('cta');
   const logoImg = lines.some(l => l.role === 'logo') ? opts.logo : null;
   const statM = lay === 'istatistik' && mainL ? mainL.text.match(/^(.*?)([-+]?\d+(?:[.,]\d+)?)(.*)$/s) : null;

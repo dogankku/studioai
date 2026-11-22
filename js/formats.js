@@ -2,7 +2,7 @@
 // Sahne: { kind, tag, main, sub, num, cta, src, vo, q }
 //   kind: hook | point | item | quote | problem | solution | feature | price | cta
 //   vo: seslendirilecek metin (yoksa main + sub okunur), q: çekim arama ipucu
-import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221616';
+import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221617';
 
 export const FORMATS = {
   bilgi: {
