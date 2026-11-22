@@ -1,7 +1,7 @@
 // Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
-import { STYLES, SCENES } from './styles.js?v=202611221607';
+import { STYLES, SCENES } from './styles.js?v=202611221612';
 const SCENE_KEYS = Object.keys(SCENES).filter(k => k !== 'gorsel' && k !== 'video');
-import { isMostlyRTL } from '../renderer.js?v=202611221607';
+import { isMostlyRTL } from '../renderer.js?v=202611221612';
 
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -78,7 +78,7 @@ export function direct(items, o = {}) {
       if (sub && !(o.capHideSub && it._vo)) L.push({ role: 'sub', text: sub });
       if (it.cta) L.push({ role: 'cta', text: it.cta });
       if (src) L.push({ role: 'src', text: src });
-      const base = readTime(`${main} ${sub}`, pace) + (it.cta ? 1.2 : 0) + (it.kind === 'hook' ? 0.4 : 0);
+      const base = (it.kind === 'intro' || it.kind === 'outro') ? 2.6 : readTime(`${main} ${sub}`, pace) + (it.cta ? 1.2 : 0) + (it.kind === 'hook' ? 0.4 : 0);
       if (it._vo) local.push({ lines: L, rt: Math.max(2.4, LEAD + it._vo.dur + 0.55), lock: true, clip: { key: `vo:${ii}`, offset: LEAD }, kind: it.kind });
       else local.push({ lines: L, rt: Math.max(it.kind === 'hook' ? 2.6 : 2.2, base), kind: it.kind });
       local.forEach((sg, k) => segs.push({ ...sg, item: ii, first: k === 0, last: k === local.length - 1, kInItem: k, nInItem: local.length, keyText: `${main} ${sub}` }));

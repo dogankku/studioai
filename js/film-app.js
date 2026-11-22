@@ -1,22 +1,22 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221607';
-import { direct, clipsOf } from './film/director.js?v=202611221607';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221607';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221607';
-import { makeItem, plainItem } from './parser.js?v=202611221607';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221607';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221607';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221607';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221607';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221607';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221607';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221607';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221607';
-import { newId } from './parser.js?v=202611221607';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221607';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221607';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221607';
-import { detectScene } from './film/director.js?v=202611221607';
+import { Film } from './film/player.js?v=202611221612';
+import { direct, clipsOf } from './film/director.js?v=202611221612';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221612';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221612';
+import { makeItem, plainItem } from './parser.js?v=202611221612';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221612';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221612';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221612';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221612';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221612';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221612';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221612';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221612';
+import { newId } from './parser.js?v=202611221612';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221612';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221612';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221612';
+import { detectScene } from './film/director.js?v=202611221612';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -30,7 +30,7 @@ const toast = t => { const l = $('#toast'); l.textContent = t; l.classList.add('
 
 /* ================= Durum ================= */
 const DEFAULTS = {
-  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
+  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
@@ -49,9 +49,12 @@ const PLATFORMS = {
 const PV = () => PLATFORMS[F.previewPlatform] || PLATFORMS[F.platforms[0]] || PLATFORMS.reels;
 const SAMPLE_BRIEF = { title: 'Uyku neden bu kadar önemli?', text: 'Uyku, beynin kendini temizlediği zamandır. Gün boyu biriken atıklar uykuda atılır.\n\nYetişkinlerin gecede 7–9 saat uykuya ihtiyacı vardır.\n\nUykusuzluk dikkat, hafıza ve bağışıklığı zayıflatır.', brand: '', author: '', cta: '', countdown: false, logoId: '' };
 let brief = { ...SAMPLE_BRIEF, ...store.get('film-brief', {}) };
+const KIT_DEFAULT = { on: false, accent: '#ffd84a', text: '#ffffff', sub: '#e9edf3', font: '', intro: false, introText: '', outro: false, outroText: '', mark: false, markPos: 'sag-ust' };
+let kit = { ...KIT_DEFAULT, ...store.get('vs-kit', {}) };
 const SAMPLE = toScenes('bilgi', SAMPLE_BRIEF);
 let F = { ...DEFAULTS, ...store.get('film-settings', {}) };
 if (!F.v2) { F.v2 = true; F.latinFont = ''; F.respectKeywords = false; if (!F.soundtrack || F.soundtrack === 'none') F.soundtrack = 'bed:kurumsal'; if (!['modern', 'neonliste', 'marka', 'gercek'].includes(F.style)) F.style = 'modern'; F.ttsOn = true; }
+if (!F.v3) { F.v3 = true; F.respectKeywords = false; }
 if (!Array.isArray(F.platforms) || !F.platforms.length) F.platforms = ['reels'];
 F.platforms = F.platforms.filter(k => PLATFORMS[k]); if (!F.platforms.length) F.platforms = ['reels'];
 if (!PLATFORMS[F.previewPlatform]) F.previewPlatform = F.platforms[0];
@@ -63,7 +66,7 @@ let refAudio = null; // AudioBuffer (yalnızca bu oturumda)
 let sel = 0, selShot = -1;
 const music = []; // {id, name, buffer, blob, an}
 let saveT = 0;
-const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('vs-items', items.map(plainItem)); store.set('film-brief', brief); store.set('film-overrides', overrides); store.set('film-flow', flow); }, 300); };
+const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('vs-items', items.map(plainItem)); store.set('film-brief', brief); store.set('vs-kit', kit); store.set('film-overrides', overrides); store.set('film-flow', flow); }, 300); };
 
 /* ================= Film motoru ================= */
 const cv = $('#cv');
@@ -87,14 +90,29 @@ function directOpts() {
   return { style: F.style, seed: F.seed, pace: F.pace, respectKeywords: F.respectKeywords, beats, template, targetDur: F.durMode === 'target' ? +F.targetDur : 0 };
 }
 /* yapay zekâ sesleri ve görselleri: öğe kimliğine göre önbellek */
-const narrCache = new Map();
+const narrCache = new Map(), ownVoice = new Map();
+const ttsCfg = () => `${F.voice}|${(+F.ttsSpeed).toFixed(2)}|${(+F.ttsPitch).toFixed(2)}|${(+F.ttsPause).toFixed(2)}`;
+/** sahnenin geçerli seslendirmesi: kendi kaydınız > yapay ses (metin ve ayarlar değişmediyse) */
+function narrOf(it) {
+  const o = ownVoice.get(it.id); if (o) return o;
+  const n = narrCache.get(it.id); return n && n.buf && n.text === voText(it) && n.cfg === ttsCfg() ? n : null;
+}
 const credits = () => store.get('vs-credits', {});
-const voText = it => (it.vo || [it.main, it.sub].filter(Boolean).join('. ')).trim();
+const voText = it => (it.kind === 'intro' || it.kind === 'outro') ? '' : (it.vo || [it.main, it.sub].filter(Boolean).join('. ')).trim();
+const INTRO = { id: '__intro', kind: 'intro', main: '', logo: true }, OUTRO = { id: '__outro', kind: 'outro', main: '', logo: true };
+function allItems() {
+  if (!kit.on) return items;
+  const a = [];
+  if (kit.intro && (kit.introText || film.logo)) a.push({ ...INTRO, main: kit.introText || ' ', logo: !!film.logo });
+  a.push(...items);
+  if (kit.outro && (kit.outroText || film.logo)) a.push({ ...OUTRO, main: kit.outroText || ' ', logo: !!film.logo });
+  return a;
+}
 function augItems() {
-  return items.map(it => {
+  return allItems().map(it => {
     const a = { ...it };
-    const n = narrCache.get(it.id + ':' + F.voice);
-    if (F.ttsOn && n && n.text === voText(it) && n.buf) a._vo = { dur: n.buf.duration };
+    const n = narrOf(it);
+    if ((F.ttsOn || ownVoice.has(it.id)) && n) a._vo = { dur: n.buf.duration };
     if (it.imgId && film.images.has(it.imgId)) a._img = it.imgId;
     if (F.stockOn && Array.isArray(it.vids)) { const v = it.vids.map(x => x.id).filter(id => film.videos.has(id)); if (v.length) a._vids = v; }
     if (it.sceneHint) a._scene = it.sceneHint;
@@ -104,8 +122,8 @@ function augItems() {
 function captionChunks(timeline) {
   const out = [];
   for (const c of timeline.clips || []) {
-    const [kind, idx] = c.key.split(':'); if (kind !== 'vo') continue; const it = items[+idx]; if (!it) continue;
-    const n = narrCache.get(it.id + ':' + F.voice); if (!n || !n.buf) continue;
+    const [kind, idx] = c.key.split(':'); if (kind !== 'vo') continue; const it = allItems()[+idx]; if (!it) continue;
+    const n = narrOf(it); if (!n) continue;
     if (!n.words) n.words = wordTimes(n.text, n.buf);
     out.push(...chunkWords(n.words.map(w => ({ w: w.w, s: w.s + c.start, e: w.e + c.start }))));
   }
@@ -114,9 +132,9 @@ function captionChunks(timeline) {
 function clipBuffers(timeline) {
   const out = [];
   for (const c of timeline.clips || clipsOf(timeline.shots)) {
-    const [kind, idx] = c.key.split(':'); const it = items[+idx]; if (!it) continue;
+    const [kind, idx] = c.key.split(':'); const it = allItems()[+idx]; if (!it) continue;
     let b = null;
-    if (kind === 'vo') { const n = narrCache.get(it.id + ':' + F.voice); b = n && n.buf; }
+    if (kind === 'vo') { const n = narrOf(it); b = n && n.buf; }
     if (b) out.push({ start: c.start, buffer: b, gain: 1.6 });
   }
   return out;
@@ -142,10 +160,11 @@ function applyOverrides(t) {
 }
 function rebuild(keepTime = true) {
   const stl = STYLES[F.style] || {};
-  film.fonts = { latin: F.latinFont || (stl.font ? `${stl.font}, sans-serif` : '"Playfair Display", serif'), ar: F.arabicFont, sub: stl.subFont || 'Lora, serif' };
+  film.fonts = { latin: F.latinFont || (kit.on && kit.font ? kit.font : '') || (stl.font ? `${stl.font}, sans-serif` : '"Playfair Display", serif'), ar: F.arabicFont, sub: stl.subFont || 'Lora, serif' };
   film.size = +F.size;
   film.safe = PV().safe;
-  film.setStyle(F.style, { grade: { ...(ref && F.refUseColors ? ref.analysis.grade : {}), ...F.gradeOv }, fx: F.fxOv, colors: F.colors });
+  film.setStyle(F.style, { grade: { ...(ref && F.refUseColors ? ref.analysis.grade : {}), ...F.gradeOv }, fx: F.fxOv, colors: kit.on ? { text: kit.text, accent: kit.accent, sub: kit.sub, ...F.colors } : F.colors });
+  film.watermark = kit.on && kit.mark ? film.logo : null; film.markPos = kit.markPos;
   film.flow = { ids: flowIds(), xf: +F.flowXF, maxLen: +F.flowMax, match: !!F.flowMatch };
   tl = applyOverrides(direct(augItems(), { ...directOpts(), aiImages: F.imgOn, stock: F.stockOn, flow: flowIds(), capHideSub: F.capOn && F.ttsOn && F.capHideSub }));
   tl.clips = clipsOf(tl.shots);
@@ -258,7 +277,7 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub'];
+const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
@@ -266,7 +285,7 @@ for (const k of FIELDS) {
     if (['olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'pxKey', 'stockNoPeople', 'stockN', 'fsKey', 'fsCC0'].includes(k)) { save(); return; }
     if (['sfxOn', 'sfxVol'].includes(k)) { save(); return; }
     if (['stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch'].includes(k)) { save(); rebuild(); renderStockGrid(); return; }
-    if (['ttsOn', 'voice', 'capOn', 'capMode', 'capHideSub'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); return; }
+    if (['ttsOn', 'voice', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); $$('output[data-for]').forEach(fmtOut); return; }
     if (k === 'targetDur') F.targetDur = Math.max(5, Math.min(1200, Math.round(+el.value || 60)));
     if (['latinFont', 'arabicFont'].includes(k)) ensureFonts().then(changed); else changed();
   });
@@ -336,7 +355,7 @@ $('#itemList').onclick = e => {
   else if (a === 'del') { items.splice(i, 1); sel = Math.max(0, Math.min(sel, items.length - 1)); }
   else sel = i;
   listChanged();
-  const s = tl.shots.find(x => x.item === sel); if (s) { curT = s.start + 0.3; selShot = s.i; updateTime(); renderTimeline(); updateInspector(); dirty = true; }
+  const off = allItems()[0] && allItems()[0].kind === 'intro' ? 1 : 0; const s = tl.shots.find(x => x.item === sel + off); if (s) { curT = s.start + 0.3; selShot = s.i; updateTime(); renderTimeline(); updateInspector(); dirty = true; }
 };
 function loadEditor() {
   const it = items[sel]; $('#editor').style.display = it ? '' : 'none'; if (!it) return;
@@ -344,6 +363,7 @@ function loadEditor() {
   $('#eMain').value = it.main; $('#eSub').value = it.sub; $('#eSrc').value = it.src; $('#eTag').value = it.tag;
   $('#eKind').value = it.kind || 'point'; $('#eNum').value = it.num || ''; $('#eCta').value = it.cta || ''; $('#eVo').value = it.vo || ''; $('#eQ').value = it.stockQ || '';
   $('#eVo').placeholder = [it.main, it.sub].filter(Boolean).join('. ');
+  renderRecUI();
   ['eMain', 'eSub'].forEach(id => $('#' + id).classList.toggle('rtl', isMostlyRTL($('#' + id).value)));
 }
 let editT = 0;
@@ -352,9 +372,55 @@ let editT = 0;
   ['eMain', 'eSub'].forEach(x => $('#' + x).classList.toggle('rtl', isMostlyRTL($('#' + x).value)));
   save(); clearTimeout(editT); editT = setTimeout(() => { renderList(); rebuild(); }, 350);
 }));
+/* kendi sesini kaydetme (sahne başına) */
+let recState = null;
+async function loadOwnVoices() { for (const r of await allFiles()) if (r.kind === 'myvoice' && r.item) { try { ownVoice.set(r.item, { buf: await decodeBlob(r.blob), own: true }); } catch (e) { } } }
+function renderRecUI() { const it = items[sel]; if (!it) return; const has = ownVoice.has(it.id); $('#eRec').textContent = recState ? '■ Durdur' : (has ? '🎙 Yeniden kaydet' : '🎙 Kendi sesimle kaydet'); $('#eRecPlay').style.display = has && !recState ? '' : 'none'; $('#eRecDel').style.display = has && !recState ? '' : 'none'; $('#eRecInfo').textContent = recState ? 'Kayıt sürüyor… sahnenin metnini okuyun' : has ? `Kendi kaydınız kullanılıyor (${ownVoice.get(it.id).buf.duration.toFixed(1)} sn)` : ''; }
+$('#eRec').onclick = async () => {
+  const it = items[sel]; if (!it) return;
+  if (recState) { recState.rec.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    const rec = new MediaRecorder(stream); const parts = [];
+    rec.ondataavailable = e => e.data.size && parts.push(e.data);
+    rec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop()); recState = null;
+      const blob = new Blob(parts, { type: rec.mimeType || 'audio/webm' });
+      try {
+        let buf = await decodeBlob(blob);
+        buf = trimSilence(buf);
+        for (const r of await allFiles()) if (r.kind === 'myvoice' && r.item === it.id) delFile(r.id);
+        await putFile({ id: 'myvoice:' + it.id + ':' + newId(), kind: 'myvoice', item: it.id, name: 'kayıt', type: blob.type, blob, order: Date.now() });
+        ownVoice.set(it.id, { buf, own: true }); rebuild(); updateAiAudioStatus();
+      } catch (e) { toast('Kayıt okunamadı'); }
+      renderRecUI();
+    };
+    rec.start(); recState = { rec }; renderRecUI();
+  } catch (e) { toast('Mikrofona erişilemedi: tarayıcı izin vermedi'); }
+};
+function trimSilence(buf) {
+  const d = buf.getChannelData(0), sr = buf.sampleRate, thr = 0.02; let a = 0, b = d.length - 1;
+  while (a < d.length && Math.abs(d[a]) < thr) a++; while (b > a && Math.abs(d[b]) < thr) b--;
+  a = Math.max(0, a - Math.round(sr * 0.08)); b = Math.min(d.length - 1, b + Math.round(sr * 0.15));
+  const out = new AudioBuffer({ numberOfChannels: buf.numberOfChannels, length: Math.max(1, b - a), sampleRate: sr });
+  for (let c = 0; c < buf.numberOfChannels; c++) out.getChannelData(c).set(buf.getChannelData(c).subarray(a, b));
+  return out;
+}
+$('#eRecPlay').onclick = () => { const o = ownVoice.get((items[sel] || {}).id); if (o) audition(o.buf, 60); };
+$('#eRecDel').onclick = async () => { const it = items[sel]; if (!it) return; for (const r of await allFiles()) if (r.kind === 'myvoice' && r.item === it.id) delFile(r.id); ownVoice.delete(it.id); rebuild(); updateAiAudioStatus(); renderRecUI(); };
 function listChanged() { save(); renderList(); loadEditor(); rebuild(); renderImgGrid(); updateAiAudioStatus(); }
 $('#addItem').onclick = () => { items.splice(sel + 1, 0, makeItem({ kind: 'point', main: 'Yeni sahne' })); sel = Math.min(sel + 1, items.length - 1); listChanged(); $('#eMain').focus(); $('#eMain').select(); };
 $('#clearList').onclick = () => { if (!items.length) return; if (!confirm('Tüm liste silinsin mi?')) return; items = []; sel = 0; listChanged(); };
+/* ================= Marka kiti ================= */
+function syncKit() {
+  $('#kitOn').checked = kit.on; $('#kitAccent').value = kit.accent; $('#kitText').value = kit.text; $('#kitSub').value = kit.sub; $('#kitFont').value = kit.font;
+  $('#kitIntro').checked = kit.intro; $('#kitIntroText').value = kit.introText; $('#kitOutro').checked = kit.outro; $('#kitOutroText').value = kit.outroText; $('#kitMark').checked = kit.mark; $('#kitMarkPos').value = kit.markPos;
+  $('#kitBody').style.opacity = kit.on ? 1 : 0.55;
+}
+[['kitOn', 'on', 'c'], ['kitAccent', 'accent'], ['kitText', 'text'], ['kitSub', 'sub'], ['kitFont', 'font'], ['kitIntro', 'intro', 'c'], ['kitIntroText', 'introText'], ['kitOutro', 'outro', 'c'], ['kitOutroText', 'outroText'], ['kitMark', 'mark', 'c'], ['kitMarkPos', 'markPos']].forEach(([id, k, c]) => {
+  const el = $('#' + id); el.addEventListener(c || el.tagName === 'SELECT' || el.type === 'color' ? 'change' : 'input', () => { kit[k] = c ? el.checked : el.value; save(); syncKit(); clearTimeout(editT); editT = setTimeout(() => { if (k === 'font') ensureFonts().then(rebuild); else rebuild(); }, 250); });
+});
+
 /* ================= Senaryo: format + bilgiler ================= */
 function renderFormats() {
   $('#fmts').innerHTML = Object.entries(FORMATS).map(([k, f]) => `<button class="fmt${F.fmt === k ? ' on' : ''}" data-f="${k}"><i>${f.icon}</i><b>${esc(f.name)}</b><span>${esc(f.desc)}</span></button>`).join('');
@@ -364,9 +430,9 @@ function renderFormats() {
   $('#bBrandBox').style.display = F.fmt === 'urun' ? '' : 'none';
   $('#bAuthorBox').style.display = F.fmt === 'soz' ? '' : 'none';
   $('#bCtaBox').style.display = F.fmt === 'soz' ? 'none' : '';
-  $('#bLogoBox').style.display = F.fmt === 'urun' ? '' : 'none';
+  $('#bLogoBox').style.display = '';
   $('#bCountBox').style.display = F.fmt === 'liste' ? '' : 'none';
-  $('#bRowB').style.display = F.fmt === 'urun' || F.fmt === 'liste' ? '' : 'none';
+  $('#bRowB').style.display = '';
 }
 function syncBrief() {
   $('#bTitle').value = brief.title || ''; $('#bText').value = brief.text || ''; $('#bBrand').value = brief.brand || ''; $('#bAuthor').value = brief.author || ''; $('#bCta').value = brief.cta || ''; $('#bCountdown').checked = !!brief.countdown;
@@ -653,7 +719,7 @@ $('#cfTest').onclick = () => cfConnect(false);
 
 /* ses hazırlama */
 function updateAiAudioStatus() {
-  const need = items.filter(it => F.ttsOn && voText(it) && !(narrCache.get(it.id + ':' + F.voice) || {}).buf || (F.ttsOn && voText(it) && (narrCache.get(it.id + ':' + F.voice) || {}).text !== voText(it))).length;
+  const need = items.filter(it => F.ttsOn && voText(it) && !narrOf(it)).length;
   $('#audioStatus').textContent = F.ttsOn ? (need ? `${need} sahnenin seslendirmesi hazırlanmayı bekliyor` : '✓ Seslendirme hazır') : '';
 }
 async function prepareAudio(onStatus = m => ($('#audioStatus').textContent = m)) {
@@ -661,9 +727,8 @@ async function prepareAudio(onStatus = m => ($('#audioStatus').textContent = m))
   if (!F.ttsOn) return 0;
   for (const [i, it] of items.entries()) {
     const text = voText(it); if (!text) continue;
-    const key = it.id + ':' + F.voice, c = narrCache.get(key);
-    if (c && c.text === text && c.buf) continue;
-    try { const buf = await speak(text, F.voice, m => onStatus(`Seslendirme ${i + 1}/${items.length}: ${m}`)); narrCache.set(key, { text, buf }); n++; }
+    if (narrOf(it)) continue;
+    try { const buf = await speak(text, F.voice, m => onStatus(`Seslendirme ${i + 1}/${items.length}: ${m}`), { speed: F.ttsSpeed, pitch: F.ttsPitch, pause: F.ttsPause }); narrCache.set(it.id, { text, buf, cfg: ttsCfg() }); n++; }
     catch (e) { fails++; console.warn('tts', e); }
   }
   rebuild(); updateAiAudioStatus();
@@ -722,6 +787,12 @@ $('#imgOn').addEventListener('change', () => rebuild());
 async function loadVideo(id) {
   if (film.videos.has(id)) return true;
   const r = await getFile(id); if (!r) return false;
+  if ((r.type || '').startsWith('image/')) { // fotoğraf: hareketsiz çekim gibi davranır (akışta yavaş yakınlaşma)
+    const img = new Image(); img.src = URL.createObjectURL(r.blob);
+    try { await img.decode(); } catch (e) { return false; }
+    img.duration = +r.still || 5; img.videoWidth = img.naturalWidth; img.videoHeight = img.naturalHeight; img.readyState = 4; img.paused = true; img.pause = () => { }; img.play = () => Promise.resolve();
+    img._mean = await meanColor(img); film.videos.set(id, img); return true;
+  }
   const v = document.createElement('video');
   v.muted = true; v.playsInline = true; v.preload = 'auto'; v.loop = false; v.src = URL.createObjectURL(r.blob);
   try {
@@ -734,12 +805,12 @@ async function meanColor(v) {
   try {
     const c = document.createElement('canvas'); c.width = 32; c.height = 18; const g = c.getContext('2d', { willReadFrequently: true });
     const acc = [0, 0, 0]; let n = 0;
-    for (const f of [0.25, 0.5, 0.75]) {
-      await new Promise(r => { const fin = () => { v.removeEventListener('seeked', fin); r(); }; v.addEventListener('seeked', fin); v.currentTime = (v.duration || 1) * f; setTimeout(fin, 2000); });
+    for (const f of (v.tagName === 'IMG' ? [0.5] : [0.25, 0.5, 0.75])) {
+      if (v.tagName !== 'IMG') await new Promise(r => { const fin = () => { v.removeEventListener('seeked', fin); r(); }; v.addEventListener('seeked', fin); v.currentTime = (v.duration || 1) * f; setTimeout(fin, 2000); });
       g.drawImage(v, 0, 0, 32, 18); const d = g.getImageData(0, 0, 32, 18).data;
       for (let i = 0; i < d.length; i += 4) { acc[0] += d[i]; acc[1] += d[i + 1]; acc[2] += d[i + 2]; n++; }
     }
-    v.currentTime = 0;
+    if (v.tagName !== 'IMG') v.currentTime = 0;
     return acc.map(x => x / n / 255);
   } catch (e) { return null; }
 }
@@ -761,6 +832,22 @@ $('#flowStrip').addEventListener('click', e => {
   save(); rebuild(); renderFlow();
 });
 $('#flowAdd').onclick = () => openPicker('flow');
+async function addOwnMedia(files, toItem = null) {
+  const out = [];
+  for (const f of files) {
+    if (!/^(image|video)\//.test(f.type)) continue;
+    const id = 'own:' + newId();
+    await putFile({ id, kind: 'stock', name: f.name, type: f.type, blob: f, order: Date.now(), still: 5 });
+    if (await loadVideo(id)) { const el = film.videos.get(id); out.push({ id, px: id, dur: el.duration, w: el.videoWidth, h: el.videoHeight, thumb: f.type.startsWith('image/') ? el.src : '', page: '', user: 'siz', tags: f.name, own: true }); }
+    else toast(`${f.name} açılamadı`);
+  }
+  if (!out.length) return;
+  if (toItem != null) { const it = items[toItem]; it.vids = [...(it.vids || []), ...out]; if (!F.stockOn) F.stockOn = true; if (F.stockMode !== 'item') F.stockMode = 'item'; }
+  else { flow.push(...out); if (!F.stockOn || F.stockMode !== 'flow') { F.stockOn = true; F.stockMode = 'flow'; } }
+  syncUI(); save(); rebuild(); renderStockGrid(); toast(`${out.length} dosya eklendi`);
+}
+$('#flowOwn').onchange = async e => { const fs = [...e.target.files]; e.target.value = ''; await addOwnMedia(fs); };
+$('#stockGrid').addEventListener('change', async e => { const f = e.target.closest('[data-own]'); if (!f) return; const fs = [...f.files]; f.value = ''; await addOwnMedia(fs, +f.dataset.own); });
 $('#flowClear').onclick = () => { if (!flow.length || !confirm('Akıştaki bütün çekimler çıkarılsın mı?')) return; const old = flow; flow = []; old.forEach(flowRemoveFiles); save(); rebuild(); renderFlow(); };
 function itemScene(it) { return it.sceneHint || detectScene(`${it.main} ${it.sub}`) || (STYLES[F.style] || STYLES.nur).scenes.find(x => x !== 'video') || 'nur'; }
 function renderStockGrid() {
@@ -769,7 +856,7 @@ function renderStockGrid() {
   box.innerHTML = items.map((it, i) => {
     const vs = (it.vids || []).filter(x => film.videos.has(x.id));
     const q = it.stockQ || (queriesFor({ ...it, stockQ: '' }, itemScene(it))[0] || {}).q || '';
-    return `<div class="stk"><div class="stk-h"><b>${i + 1}</b><input type="text" data-sq="${i}" value="${esc(it.stockQ || '')}" placeholder="${esc(q)}" title="Arama kelimeleri (İngilizce ya da Türkçe). Boş bırakırsanız otomatik seçilir."><button class="btn sm" data-pk="${i}" title="Arama sonuçlarından kendiniz seçin">Seç</button><button class="btn sm ghost" data-si="${i}" title="Otomatik olarak başka çekimler bul">↻</button></div>
+    return `<div class="stk"><div class="stk-h"><b>${i + 1}</b><input type="text" data-sq="${i}" value="${esc(it.stockQ || '')}" placeholder="${esc(q)}" title="Arama kelimeleri (İngilizce ya da Türkçe). Boş bırakırsanız otomatik seçilir."><button class="btn sm" data-pk="${i}" title="Arama sonuçlarından kendiniz seçin">Seç</button><label class="btn sm" title="Kendi fotoğraf ya da videonuzu ekleyin">📁<input type="file" data-own="${i}" accept="image/*,video/*" multiple hidden></label><button class="btn sm ghost" data-si="${i}" title="Otomatik olarak başka çekimler bul">↻</button></div>
       <div class="stk-row">${vs.length ? vs.map(x => `<a href="${esc(x.page || '#')}" target="_blank" rel="noopener" title="${esc(x.tags || '')} · ${esc(x.user || '')}">${x.thumb ? `<img src="${esc(x.thumb)}" alt="">` : '🎬'}</a>`).join('') : '<span class="muted">çekim yok</span>'}</div></div>`;
   }).join('');
 }
@@ -965,7 +1052,7 @@ window.filmDebug = { tl: () => tl, film, PK, flow: () => flow, setFlow: f => { f
   for (const it of items) if (it.imgId) await loadImage(it.imgId);
   for (const it of items) for (const v of it.vids || []) await loadVideo(v.id);
   for (const v of flow) await loadVideo(v.id);
-  await loadLogo(); await loadSfx(); renderFormats(); syncBrief();
+  await loadLogo(); await loadSfx(); await loadOwnVoices(); renderFormats(); syncBrief(); syncKit();
   { const sh = store.get('vs-share', ''); if (sh) { $('#shareText').value = sh; $('#shareBox').style.display = ''; } }
   if (String(F.soundtrack).startsWith('bed:')) await ensureBed(F.soundtrack.slice(4));
   rebuild(false); syncUI(); renderImgGrid(); renderStockGrid(); renderMusic(); updateAiAudioStatus();

@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221607">
-<link rel="stylesheet" href="css/style.css?v=202611221607">
-<link rel="stylesheet" href="css/film.css?v=202611221607">
+<link rel="stylesheet" href="css/fonts.css?v=202611221612">
+<link rel="stylesheet" href="css/style.css?v=202611221612">
+<link rel="stylesheet" href="css/film.css?v=202611221612">
 </head>
 <body>
 <div class="app film">
@@ -50,6 +50,22 @@
       </div>
       <div class="row-btns mt8"><button class="btn primary" id="bMake">🎬 Sahnelere dönüştür</button><button class="btn" id="bAI">✨ Yapay zekâ ile yaz</button><button class="btn ghost" id="bAIStop" disabled>Durdur</button></div>
       <div class="hint" id="bStatus">"Sahnelere dönüştür" metninizi anında formata göre böler. "Yapay zekâ ile yaz" bilgilerinizi kısa, vurucu bir senaryoya çevirir (Ollama gerekir, birkaç dakika sürebilir).</div>
+      <details class="card" id="kitBox"><summary class="ttl">Marka kiti <span class="muted" style="text-transform:none;letter-spacing:0">(renkler, yazı tipi, logo, giriş/kapanış)</span></summary>
+        <label class="check"><input type="checkbox" id="kitOn"> Marka kitini bütün videolarda kullan</label>
+        <div id="kitBody">
+          <div class="row3">
+            <div><label for="kitAccent">Vurgu rengi</label><input type="color" id="kitAccent"></div>
+            <div><label for="kitText">Yazı rengi</label><input type="color" id="kitText"></div>
+            <div><label for="kitSub">Açıklama rengi</label><input type="color" id="kitSub"></div>
+          </div>
+          <label for="kitFont">Yazı tipi</label>
+          <select id="kitFont"><option value="">Stile göre</option><option value='Montserrat, sans-serif'>Montserrat</option><option value='Inter, sans-serif'>Inter</option><option value='"Bebas Neue", sans-serif'>Bebas Neue</option><option value='"Playfair Display", serif'>Playfair</option><option value='Lora, serif'>Lora</option><option value='"Cormorant Garamond", serif'>Cormorant</option></select>
+          <div class="hint">Logo, yukarıdaki "Logo yükle" ile yüklenir (Ürün formatında görünür) ve marka kitinde de kullanılır.</div>
+          <label class="check"><input type="checkbox" id="kitIntro"> Logolu giriş kartı</label><input type="text" id="kitIntroText" placeholder="ör. Marka adınız ya da sloganınız">
+          <label class="check"><input type="checkbox" id="kitOutro"> Logolu kapanış kartı</label><input type="text" id="kitOutroText" placeholder="ör. @hesabiniz · siteniz.com">
+          <div class="row"><div><label class="check"><input type="checkbox" id="kitMark"> Köşede logo filigranı</label></div><div><select id="kitMarkPos"><option value="sag-ust">Sağ üst</option><option value="sol-ust">Sol üst</option><option value="sag-alt">Sağ alt</option><option value="sol-alt">Sol alt</option></select></div></div>
+        </div>
+      </details>
       <details class="card" id="shareBox" style="display:none"><summary class="ttl">Paylaşım metni (YouTube / Instagram)</summary><textarea id="shareText" rows="6"></textarea><div class="row-btns mt8"><button class="btn sm" id="shareCopy">Kopyala</button></div></details>
 
       <div class="list-head mt">
@@ -71,6 +87,7 @@
           <div><label for="eSrc">Alt imza</label><input type="text" id="eSrc"></div>
         </div>
         <label for="eVo">Seslendirme metni <span class="muted">(boşsa başlık ve açıklama okunur)</span></label><textarea id="eVo" rows="2"></textarea>
+        <div class="row-btns mt8"><button class="btn sm" id="eRec">🎙 Kendi sesimle kaydet</button><button class="btn sm ghost" id="eRecPlay" style="display:none">▶ Dinle</button><button class="btn sm ghost" id="eRecDel" style="display:none">✕ Kaydı sil</button><span class="muted" id="eRecInfo"></span></div>
         <label for="eQ">Çekim arama ipucu <span class="muted">(metne göre çekim düzeninde)</span></label><input type="text" id="eQ" placeholder="ör. ocean sunset">
       </div>
     </section>
@@ -112,6 +129,11 @@
       <div class="card">
         <div class="ttl">Türkçe seslendirme</div>
         <label class="check"><input type="checkbox" id="ttsOn"> Sahneleri seslendir (yazılar sese göre zamanlanır)</label>
+        <div class="row3">
+          <div><label for="ttsSpeed">Hız <output data-for="ttsSpeed"></output></label><input type="range" id="ttsSpeed" min="0.75" max="1.35" step="0.05"></div>
+          <div><label for="ttsPitch">Ton <output data-for="ttsPitch"></output></label><input type="range" id="ttsPitch" min="0.85" max="1.2" step="0.01"></div>
+          <div><label for="ttsPause">Cümle arası <output data-for="ttsPause"></output> sn</label><input type="range" id="ttsPause" min="0" max="0.8" step="0.05"></div>
+        </div>
         <label class="check"><input type="checkbox" id="capOn"> Kelime kelime altyazı (konuşulan kelime vurgulanır)</label>
         <div class="row"><div><select id="capMode"></select></div><div><label class="check" style="margin:6px 0"><input type="checkbox" id="capHideSub"> Altyazı varken açıklamayı gizle</label></div></div>
         <div class="row"><div><select id="voice"></select></div><div><button class="btn sm" id="voiceDl">Ses modelini indir</button></div></div>
@@ -129,7 +151,7 @@
         <label for="stockMode">Çekim düzeni</label>
         <select id="stockMode"><option value="flow">Tek akış: seçtiğim çekimler sırayla, yumuşak geçişle (önerilen)</option><option value="item">Metne göre: her metnin kendi çekimleri</option></select>
         <div id="flowBox">
-          <div class="row-btns mt8"><button class="btn sm primary" id="flowAdd">＋ Pixabay'de ara ve ekle</button><button class="btn sm ghost" id="flowClear">Akışı temizle</button></div>
+          <div class="row-btns mt8"><button class="btn sm primary" id="flowAdd">＋ Pixabay'de ara ve ekle</button><label class="btn sm">📁 Kendi fotoğraf/videom<input type="file" id="flowOwn" accept="image/*,video/*" multiple hidden></label><button class="btn sm ghost" id="flowClear">Akışı temizle</button></div>
           <div class="flow-strip" id="flowStrip"></div>
           <div class="row">
             <div><label for="flowXF">Geçiş süresi <output data-for="flowXF"></output> sn</label><input type="range" id="flowXF" min="0.4" max="2.5" step="0.1"></div>
@@ -282,7 +304,7 @@
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221607"></script>
-<script type="module" src="js/film-app.js?v=202611221607"></script>
+<script src="vendor/jszip.min.js?v=202611221612"></script>
+<script type="module" src="js/film-app.js?v=202611221612"></script>
 </body>
 </html>

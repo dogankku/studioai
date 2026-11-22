@@ -1,12 +1,12 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611221607';
-import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221607';
-import { applyCamera } from './camera.js?v=202611221607';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611221607';
-import { Post } from './post.js?v=202611221607';
-import { Captions } from '../captions.js?v=202611221607';
-import { StockScene } from './stock-scene.js?v=202611221607';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221607';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221612';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221612';
+import { applyCamera } from './camera.js?v=202611221612';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611221612';
+import { Post } from './post.js?v=202611221612';
+import { Captions } from '../captions.js?v=202611221612';
+import { StockScene } from './stock-scene.js?v=202611221612';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221612';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -17,7 +17,7 @@ export class Film {
     this.renderer.toneMappingExposure = 1.0;
     this.camA = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
     this.camB = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
-    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null; this.caps = new Captions(); this.capOn = false; this.capMode = 'pop';
+    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null; this.caps = new Captions(); this.watermark = null; this.markPos = 'sag-ust'; this._wm = null; this.capOn = false; this.capMode = 'pop';
     this.post = null;
     this.resize(W, H);
     this.timeline = { shots: [], dur: 0 };
@@ -90,17 +90,36 @@ export class Film {
     const L = this.locate(t); if (!L) return false;
     const used = new Set(), jobs = []; let changed = false;
     for (const shot of [L.a, L.b]) if (shot && shot.scene === 'video') for (const e of this.vplan(shot, t)) {
-      used.add(e.video); const v = e.video;
+      used.add(e.video); const v = e.video; if (v.tagName === 'IMG') continue;
       if (live) { if (v.paused) v.play().catch(() => { }); if (Math.abs(v.currentTime - e.time) > 0.35) v.currentTime = e.time; }
       else { if (!v.paused) v.pause(); if (Math.abs(v.currentTime - e.time) > 0.01 || v.readyState < 2) { changed = true; jobs.push(seekTo(v, e.time)); } }
     }
-    for (const v of this.videos.values()) if (!used.has(v) && !v.paused) v.pause();
+    for (const v of this.videos.values()) if (v.tagName !== 'IMG' && !used.has(v) && !v.paused) v.pause();
     if (jobs.length) await Promise.all(jobs);
     return changed;
   }
-  pauseVideos() { for (const v of this.videos.values()) if (!v.paused) v.pause(); }
+  wmItem() {
+    const img = this.watermark, key = `${this.W}x${this.H}:${this.markPos}:${img.src}:${JSON.stringify(this.safe)}`;
+    if (!this._wm || this._wm.key !== key) {
+      if (this._wm) { this._wm.mesh.geometry.dispose(); this._wm.mesh.material.map.dispose(); this._wm.mesh.material.dispose(); }
+      const visH = 2 * 10 * Math.tan(THREE.MathUtils.degToRad(20)), u = visH / this.H, m = Math.min(this.W, this.H);
+      const ar = (img.naturalWidth || 1) / Math.max(1, img.naturalHeight || 1), h = m * 0.075, w = Math.min(m * 0.3, h * ar), hh = w / ar;
+      const tex = new THREE.Texture(img); tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w * u, hh * u), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.85, depthTest: false, depthWrite: false, toneMapped: false }));
+      const sf = this.safe || { top: 0.06, bottom: 0.08, side: 0.06 }, pad = m * 0.04;
+      const right = /sag/.test(this.markPos), top = /ust/.test(this.markPos);
+      const cx = right ? this.W - this.W * sf.side * 0.6 - pad - w / 2 : this.W * sf.side * 0.6 + pad + w / 2;
+      const cy = top ? this.H * sf.top + pad + hh / 2 : this.H * (1 - sf.bottom) - pad - hh / 2;
+      mesh.position.set((cx - this.W / 2) * u, (this.H / 2 - cy) * u, 0); mesh.renderOrder = 30;
+      const group = new THREE.Group(); group.add(mesh);
+      const cam = new THREE.PerspectiveCamera(40, this.W / this.H, 0.1, 100); cam.position.set(0, 0, 10); cam.lookAt(0, 0, 0);
+      this._wm = { key, mesh, group, cam };
+    }
+    return { group: this._wm.group, camera: this._wm.cam, target: new THREE.Vector3() };
+  }
+  pauseVideos() { for (const v of this.videos.values()) if (v.tagName !== 'IMG' && !v.paused) v.pause(); }
   textFor(shot) {
-    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.safe, logo: this.logo }));
+    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.capOn && this.caps.chunks.length ? { ...(this.safe || { top: 0.08, bottom: 0.08, side: 0.1 }), bottom: (this.safe ? this.safe.bottom : 0.08) + 0.24 } : this.safe, logo: this.logo }));
     return this.texts.get(shot.i);
   }
   pruneTexts(keep) { for (const [k, T] of this.texts) if (!keep.has(k)) { disposeText(T); this.texts.delete(k); } }
@@ -147,6 +166,7 @@ export class Film {
       const sk = `${this.W}x${this.H}:${JSON.stringify(this.safe)}`; if (this._capKey !== sk) { this._capKey = sk; this.caps.setSize(this.W, this.H, this.safe); }
       const c = this.caps.frame(t, this.style, this.style.accent, `${this.style.font || 'Montserrat'}, Inter, sans-serif`, this.capMode); if (c) texts.push(c);
     }
+    if (this.watermark) { const w = this.wmItem(); if (w) texts.push(w); }
     this.post.render(job, t, pulse, Math.min(1, fade), texts);
   }
   dispose() { this.clearTexts(); this.renderer.dispose(); }

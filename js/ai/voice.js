@@ -12,10 +12,22 @@ export async function downloadVoice(voiceId, onProgress = () => { }) {
   const P = await piper(); await P.download(voiceId, p => onProgress(p.total ? p.loaded / p.total : 0));
 }
 
-/** Metni seslendirir (önbellekli), AudioBuffer döner */
-export async function speak(text, voiceId, onStatus = () => { }) {
+/** Metni seslendirir (önbellekli), AudioBuffer döner. o: {speed, pitch, pause} */
+export async function speak(text, voiceId, onStatus = () => { }, o = {}) {
+  const speed = +o.speed || 1, pitch = +o.pitch || 1, pause = +o.pause || 0;
   const clean = (text || '').replace(/\s+/g, ' ').trim(); if (!clean) return null;
-  let h = 0; for (const c of voiceId + clean) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  // cümle arası durak istenirse cümleleri ayrı seslendirip araya sessizlik koy
+  const parts = pause > 0 ? clean.split(/(?<=[.!?…])\s+/).filter(Boolean) : [clean];
+  const bufs = [];
+  for (const p of parts) bufs.push(await speakOne(p, voiceId, onStatus, speed, pitch));
+  if (bufs.length === 1) return bufs[0];
+  const sr = bufs[0].sampleRate, gap = Math.round(pause * sr), len = bufs.reduce((a, b) => a + b.length, 0) + gap * (bufs.length - 1);
+  const out = new AudioBuffer({ numberOfChannels: 1, length: len, sampleRate: sr }); const d = out.getChannelData(0); let at = 0;
+  for (const [k, b] of bufs.entries()) { d.set(b.getChannelData(0), at); at += b.length + (k < bufs.length - 1 ? gap : 0); }
+  return out;
+}
+async function speakOne(clean, voiceId, onStatus, speed, pitch) {
+  let h = 0; for (const c of voiceId + clean + speed + ':' + pitch) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   const key = `tts:${h.toString(36)}:${clean.length}`;
   let rec = await getFile(key);
   if (!rec) {
@@ -23,9 +35,15 @@ export async function speak(text, voiceId, onStatus = () => { }) {
     const P = await piper();
     let ses = sessions.get(voiceId);
     if (!ses) { ses = await P.TtsSession.create({ voiceId, progress: p => onStatus(`Ses modeli indiriliyor %${p.total ? Math.round(p.loaded / p.total * 100) : 0}`) }); sessions.set(voiceId, ses); }
-    const blob = await ses.predict(clean);
+    // ton: daha yavaş üret, sonra hızlı çal (süre korunur, ses incelir/kalınlaşır)
+    globalThis.__piperLS = pitch / speed;
+    let blob; try { blob = await ses.predict(clean); } finally { globalThis.__piperLS = 1; }
     rec = { id: key, kind: 'cache', name: key, type: 'audio/wav', blob, order: Date.now() };
     putFile(rec);
   }
-  return await decodeBlob(rec.blob);
+  const buf = await decodeBlob(rec.blob);
+  if (Math.abs(pitch - 1) < 0.01) return buf;
+  const len = Math.ceil(buf.length / pitch);
+  const oc = new OfflineAudioContext(1, len, buf.sampleRate); const src = oc.createBufferSource(); src.buffer = buf; src.playbackRate.value = pitch; src.connect(oc.destination); src.start();
+  return oc.startRendering();
 }
