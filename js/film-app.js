@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221959';
-import { direct, clipsOf } from './film/director.js?v=202611221959';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221959';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221959';
-import { makeItem, plainItem } from './parser.js?v=202611221959';
-import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221959';
-import { TEMPLATES } from './templates.js?v=202611221959';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221959';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221959';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221959';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221959';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221959';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221959';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221959';
-import { newId } from './parser.js?v=202611221959';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221959';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221959';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221959';
-import { detectScene } from './film/director.js?v=202611221959';
+import { Film } from './film/player.js?v=202611222001';
+import { direct, clipsOf } from './film/director.js?v=202611222001';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611222001';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611222001';
+import { makeItem, plainItem } from './parser.js?v=202611222001';
+import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611222001';
+import { TEMPLATES } from './templates.js?v=202611222001';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611222001';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611222001';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611222001';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611222001';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611222001';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611222001';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611222001';
+import { newId } from './parser.js?v=202611222001';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611222001';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611222001';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611222001';
+import { detectScene } from './film/director.js?v=202611222001';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -1631,7 +1631,7 @@ const step = (name, fn, ms = 15000) => { let tm; return Promise.race([Promise.re
   await step('logo', loadLogo, 8000); await step('sfx', loadSfx, 15000); await step('voices', loadOwnVoices, 15000);
   renderFormats(); renderTemplates(); syncBrief(); syncKit();
   { const sh = store.get('vs-share', ''); if (sh) { $('#shareText').value = sh; $('#shareBox').style.display = ''; } }
-  if (String(F.soundtrack).startsWith('bed:')) await step('bed', () => ensureBed(F.soundtrack.slice(4)), 15000);
+  if (String(F.soundtrack).startsWith('bed:')) { const bp = ensureBed(F.soundtrack.slice(4)).then(() => { renderMusic(); rebuild(); }).catch(() => { }); await step('bed', () => bp, 6000); }
   rebuild(false); syncUI(); renderImgGrid(); renderStockGrid(); renderMusic(); updateAiAudioStatus();
   // motorlar programla birlikte açılıyorsa birkaç dakika boyunca sessizce yeniden dene
   (async () => { let a = false, b = false; for (let i = 0; i < 25 && !(a && b); i++) { if (i) await new Promise(r => setTimeout(r, 5000)); if (!a) a = await olConnect(true); if (!b) b = await cfConnect(true); } })();

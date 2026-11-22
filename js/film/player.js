@@ -1,13 +1,13 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611221959';
-import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221959';
-import { applyCamera } from './camera.js?v=202611221959';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611221959';
-import { Post } from './post.js?v=202611221959';
-import { Captions } from '../captions.js?v=202611221959';
-import { ClipDecoder } from './vdecode.js?v=202611221959';
-import { StockScene } from './stock-scene.js?v=202611221959';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221959';
+import * as THREE from '../../vendor/three-bundle.js?v=202611222001';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611222001';
+import { applyCamera } from './camera.js?v=202611222001';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611222001';
+import { Post } from './post.js?v=202611222001';
+import { Captions } from '../captions.js?v=202611222001';
+import { ClipDecoder } from './vdecode.js?v=202611222001';
+import { StockScene } from './stock-scene.js?v=202611222001';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611222001';
 
 export class Film {
   constructor(canvas, W, H) {
