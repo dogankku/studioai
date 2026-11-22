@@ -1,20 +1,20 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221500';
-import { direct, clipsOf } from './film/director.js?v=202611221500';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221500';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221500';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221500';
-import { surahs, buildItems } from './quran.js?v=202611221500';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221500';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221500';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221500';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221500';
-import { newId } from './parser.js?v=202611221500';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221500';
-import { writeScript } from './ai/senarist.js?v=202611221500';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221500';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221500';
-import { detectScene } from './film/director.js?v=202611221500';
+import { Film } from './film/player.js?v=202611221501';
+import { direct, clipsOf } from './film/director.js?v=202611221501';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221501';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221501';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221501';
+import { surahs, buildItems } from './quran.js?v=202611221501';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221501';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221501';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221501';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221501';
+import { newId } from './parser.js?v=202611221501';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221501';
+import { writeScript } from './ai/senarist.js?v=202611221501';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221501';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221501';
+import { detectScene } from './film/director.js?v=202611221501';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -710,7 +710,8 @@ function pkCard(h) {
   const big = h.local ? { w: h.local.w, h: h.local.h } : (h.v.large || h.v.medium || h.v.small || Object.values(h.v)[0] || {});
   const n = PK.sel.indexOf(h.px);
   const thumb = h.local ? h.local.thumb : thumbOf(h);
-  return `<div class="pk${big.h > big.w ? ' portrait' : ''}${n >= 0 ? ' on' : ''}${pkUsedElsewhere(h.px) ? ' used' : ''}" data-px="${h.px}">${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy">` : ''}<span class="pk-n">${n + 1}</span><div class="pk-info">${Math.round(h.dur)} sn${big.w ? ` · ${big.w}×${big.h}` : ''}${h.local ? ' · seçili' : ''}</div></div>`;
+  const prev = !thumb ? (h.local ? (film.videos.get(h.local.id) || {}).src : (h.v.tiny || h.v.small || {}).url) : '';
+  return `<div class="pk${big.h > big.w ? ' portrait' : ''}${n >= 0 ? ' on' : ''}${pkUsedElsewhere(h.px) ? ' used' : ''}" data-px="${h.px}">${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy">` : prev ? `<img alt="" style="display:none"><video class="poster" muted playsinline preload="metadata" src="${esc(prev)}#t=1"></video>` : ''}<span class="pk-n">${n + 1}</span><div class="pk-info">${Math.round(h.dur)} sn${big.w ? ` · ${big.w}×${big.h}` : ''}${h.local ? ' · seçili' : ''}</div></div>`;
 }
 function pkRender() {
   const all = [...PK.local, ...PK.hits.filter(h => !PK.local.some(l => l.px === h.px))];
@@ -724,7 +725,7 @@ $('#pickGrid').addEventListener('click', e => {
   pkRender();
 });
 $('#pickGrid').addEventListener('mouseover', e => {
-  const c = e.target.closest('.pk'); if (!c || c.querySelector('video')) return;
+  const c = e.target.closest('.pk'); if (!c || c.querySelector('video:not(.poster)')) return;
   const h = pkFind(+c.dataset.px); if (!h) return;
   const src = h.local ? (film.videos.get(h.local.id) || {}).src : ((h.v.tiny || h.v.small || {}).url);
   if (!src) return;
