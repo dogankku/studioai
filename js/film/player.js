@@ -1,11 +1,11 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611221506';
-import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221506';
-import { applyCamera } from './camera.js?v=202611221506';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611221506';
-import { Post } from './post.js?v=202611221506';
-import { StockScene } from './stock-scene.js?v=202611221506';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221506';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221556';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221556';
+import { applyCamera } from './camera.js?v=202611221556';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611221556';
+import { Post } from './post.js?v=202611221556';
+import { StockScene } from './stock-scene.js?v=202611221556';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221556';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -16,7 +16,7 @@ export class Film {
     this.renderer.toneMappingExposure = 1.0;
     this.camA = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
     this.camB = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
-    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.stock = [null, null]; this.vSeg = 5.5; this.flow = null;
+    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null;
     this.post = null;
     this.resize(W, H);
     this.timeline = { shots: [], dur: 0 };
@@ -99,7 +99,7 @@ export class Film {
   }
   pauseVideos() { for (const v of this.videos.values()) if (!v.paused) v.pause(); }
   textFor(shot) {
-    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.safe }));
+    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.safe, logo: this.logo }));
     return this.texts.get(shot.i);
   }
   pruneTexts(keep) { for (const [k, T] of this.texts) if (!keep.has(k)) { disposeText(T); this.texts.delete(k); } }

@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Film Stüdyosu</title>
-<meta name="description" content="Ayet, hadis ve sözlerden 3D sahneli, kurgulu, efektli film üreten stüdyo. Tamamen tarayıcıda, kayıtsız.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221506">
-<link rel="stylesheet" href="css/style.css?v=202611221506">
-<link rel="stylesheet" href="css/film.css?v=202611221506">
+<title>Video Stüdyosu</title>
+<meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
+<link rel="stylesheet" href="css/fonts.css?v=202611221556">
+<link rel="stylesheet" href="css/style.css?v=202611221556">
+<link rel="stylesheet" href="css/film.css?v=202611221556">
 </head>
 <body>
 <div class="app film">
   <aside>
     <header>
       <div>
-        <h1>Film <span>Stüdyosu</span></h1>
-        <div class="subtitle">Metinden 3D sahneli, kurgulu film. Her şey tarayıcınızda. <a class="link" href="basit.html">Basit araç →</a></div>
+        <h1>Video <span>Stüdyosu</span></h1>
+        <div class="subtitle">Yazın, formatı seçin; sahneler, çekimler, ses ve kurgu hazır. Her şey bilgisayarınızda.</div>
       </div>
       <div class="hdr-btns">
         <button class="btn sm" id="saveProj">Projeyi kaydet</button>
@@ -23,7 +23,7 @@
       </div>
     </header>
     <nav class="tabs" id="tabs">
-      <button data-tab="metin" class="on">Metinler</button>
+      <button data-tab="metin" class="on">Senaryo</button>
       <button data-tab="yonetmen">Yönetmen</button>
       <button data-tab="ai">Yapay zekâ</button>
       <button data-tab="referans">Referans</button>
@@ -32,42 +32,46 @@
       <button data-tab="uretim">Üretim <b id="doneBadge"></b></button>
     </nav>
 
-    <!-- METİNLER -->
+    <!-- SENARYO -->
     <section class="pane on" data-pane="metin">
-      <div class="list-head">
-        <div class="ttl">Liste <span id="count" class="muted"></span></div>
-        <div class="row-btns"><button class="btn sm" id="addItem">+ Yeni</button><button class="btn sm ghost" id="clearList">Temizle</button></div>
+      <div class="ttl">1 · Format</div>
+      <div class="fmts" id="fmts"></div>
+      <div class="ttl mt">2 · Bilgiler</div>
+      <label for="bTitle" id="bTitleLbl">Başlık</label><input type="text" id="bTitle">
+      <label for="bText">Metin / bilgiler</label><textarea id="bText" rows="9"></textarea>
+      <div class="row" id="bRowA">
+        <div id="bBrandBox"><label for="bBrand">Marka adı</label><input type="text" id="bBrand"></div>
+        <div id="bAuthorBox"><label for="bAuthor">Söyleyen</label><input type="text" id="bAuthor"></div>
+        <div id="bCtaBox"><label for="bCta">Kapanış çağrısı</label><input type="text" id="bCta"></div>
+      </div>
+      <div class="row" id="bRowB">
+        <div id="bLogoBox"><label>Logo</label><div class="row-btns"><label class="btn sm">Logo yükle<input type="file" id="bLogo" accept="image/*" hidden></label><img id="bLogoPrev" class="logo-prev" alt=""><button class="btn sm ghost" id="bLogoDel" style="display:none">✕</button></div></div>
+        <div id="bCountBox"><label class="check" style="margin-top:22px"><input type="checkbox" id="bCountdown"> Geri sayım (5 → 1)</label></div>
+      </div>
+      <div class="row-btns mt8"><button class="btn primary" id="bMake">🎬 Sahnelere dönüştür</button><button class="btn" id="bAI">✨ Yapay zekâ ile yaz</button><button class="btn ghost" id="bAIStop" disabled>Durdur</button></div>
+      <div class="hint" id="bStatus">"Sahnelere dönüştür" metninizi anında formata göre böler. "Yapay zekâ ile yaz" bilgilerinizi kısa, vurucu bir senaryoya çevirir (Ollama gerekir, birkaç dakika sürebilir).</div>
+      <details class="card" id="shareBox" style="display:none"><summary class="ttl">Paylaşım metni (YouTube / Instagram)</summary><textarea id="shareText" rows="6"></textarea><div class="row-btns mt8"><button class="btn sm" id="shareCopy">Kopyala</button></div></details>
+
+      <div class="list-head mt">
+        <div class="ttl">3 · Sahneler <span id="count" class="muted"></span></div>
+        <div class="row-btns"><button class="btn sm" id="addItem">+ Sahne</button><button class="btn sm ghost" id="clearList">Temizle</button></div>
       </div>
       <div id="itemList" class="items"></div>
       <div class="card" id="editor">
-        <div class="ttl">Seçili öğe <span class="muted" id="editNo"></span></div>
-        <label for="eMain">Ana metin</label><textarea id="eMain" rows="3"></textarea>
-        <label for="eSub">Alt metin / meal</label><textarea id="eSub" rows="2"></textarea>
+        <div class="ttl">Seçili sahne <span class="muted" id="editNo"></span></div>
         <div class="row">
-          <div><label for="eSrc">Kaynak</label><input type="text" id="eSrc"></div>
-          <div><label for="eTag">Etiket</label><input type="text" id="eTag"></div>
+          <div><label for="eKind">Sahne türü</label><select id="eKind"><option value="hook">Giriş (dikkat çekici)</option><option value="point">Bilgi</option><option value="item">Liste maddesi</option><option value="quote">Söz</option><option value="problem">Sorun</option><option value="solution">Çözüm / ürün</option><option value="feature">Özellik</option><option value="price">Fiyat / kampanya</option><option value="cta">Kapanış çağrısı</option></select></div>
+          <div><label for="eTag">Üst etiket</label><input type="text" id="eTag"></div>
         </div>
-      </div>
-      <div class="card">
-        <div class="ttl">Kur'an'dan ekle</div>
-        <select id="qSurah"><option>Yükleniyor…</option></select>
+        <label for="eMain">Başlık (ekranda büyük)</label><textarea id="eMain" rows="2"></textarea>
+        <label for="eSub">Açıklama (ekranda küçük)</label><textarea id="eSub" rows="2"></textarea>
         <div class="row3">
-          <div><label for="qFrom">İlk ayet</label><input type="number" id="qFrom" min="1" value="1"></div>
-          <div><label for="qTo">Son ayet</label><input type="number" id="qTo" min="1" value="1"></div>
-          <div><label for="qMode">Bölme</label><select id="qMode"><option value="each">Her ayet ayrı</option><option value="one">Hepsi tek öğe</option></select></div>
+          <div><label for="eNum">Numara / simge</label><input type="text" id="eNum" placeholder="1, ✓, ★"></div>
+          <div><label for="eCta">Düğme yazısı</label><input type="text" id="eCta"></div>
+          <div><label for="eSrc">Alt imza</label><input type="text" id="eSrc"></div>
         </div>
-        <label class="check"><input type="checkbox" id="qMeal" checked> Meali ekle</label>
-        <div class="row-btns"><button class="btn sm primary" id="qAdd">Listeye ekle</button><span class="muted" id="qInfo"></span></div>
-        <div class="hint">Metin: King Fahd Uthmani (quranenc.com). Meal: Diyanet (tanzil.net). quran-json, CC BY-SA 4.0.</div>
-      </div>
-      <div class="card">
-        <div class="ttl">Toplu ekle</div>
-        <textarea id="bulkText" rows="5" placeholder="Ana metin
-meal: alt metin
-kaynak: …
----
-Sonraki…"></textarea>
-        <div class="row-btns" style="margin-top:8px"><button class="btn sm" id="bulkAppend">Ekle</button><button class="btn sm" id="bulkReplace">Listeyi değiştir</button><label class="btn sm">CSV<input type="file" id="csvFile" accept=".csv,.tsv,.txt" hidden></label></div>
+        <label for="eVo">Seslendirme metni <span class="muted">(boşsa başlık ve açıklama okunur)</span></label><textarea id="eVo" rows="2"></textarea>
+        <label for="eQ">Çekim arama ipucu <span class="muted">(metne göre çekim düzeninde)</span></label><input type="text" id="eQ" placeholder="ör. ocean sunset">
       </div>
     </section>
 
@@ -83,10 +87,9 @@ Sonraki…"></textarea>
       <label for="pace">Tempo</label>
       <div class="rng"><input type="range" id="pace" min="0.6" max="1.6" step="0.05"><output data-for="pace" data-pct></output></div>
       <div class="row">
-        <div><label for="mealMode">Meal</label><select id="mealMode"><option value="after">Arapçadan sonra</option><option value="none">Gösterme</option></select></div>
         <div><label for="mode">Çıktı</label><select id="mode"><option value="film">Hepsi tek film</option><option value="each">Her öğe ayrı video</option></select></div>
       </div>
-      <label class="check"><input type="checkbox" id="respectKeywords"> Sahneyi anahtar kelimelere göre seç (gece → yıldızlar, deniz → dalgalar…)</label>
+      <label class="check"><input type="checkbox" id="respectKeywords"> 3D sahneyi anahtar kelimelere göre seç (gece → yıldızlar, deniz → dalgalar…)</label>
       <label class="check"><input type="checkbox" id="beatSync"> Kesmeleri müziğin ritmine oturt</label>
       <div class="ttl mt">Film süresi</div>
       <div class="row">
@@ -94,7 +97,7 @@ Sonraki…"></textarea>
         <div class="dur-in" id="durBox"><input type="number" id="targetDur" min="5" max="1200" step="1"><span class="muted">sn</span><b id="durFmt"></b></div>
       </div>
       <div class="chips mt8" id="durChips"><button class="chip" data-d="15">15 sn</button><button class="chip" data-d="30">30 sn</button><button class="chip" data-d="60">1 dk</button><button class="chip" data-d="90">1,5 dk</button><button class="chip" data-d="180">3 dk</button><button class="chip" data-d="300">5 dk</button><button class="chip" data-d="600">10 dk</button></div>
-      <div class="hint" id="durHint">Süre uzunsa yönetmen aynı metni farklı sahne ve kamera açılarından çeker, başa başlık ve sona kaynak kartı ekler; kısaysa çekimleri sıkıştırır.</div>
+      <div class="hint" id="durHint">Süre uzunsa yönetmen sahneleri uzatır ve ek açılar ekler; kısaysa çekimleri sıkıştırır. Seslendirmeli sahneler sesin süresinden kısa olmaz.</div>
       <div class="ttl mt">Platformlar <span class="muted" style="text-transform:none;letter-spacing:0">(birden fazla seçin; her biri ayrı dosya)</span></div>
       <div id="platforms" class="plats"></div>
       <div class="row">
@@ -107,30 +110,8 @@ Sonraki…"></textarea>
     <!-- YAPAY ZEKÂ -->
     <section class="pane" data-pane="ai">
       <div class="card">
-        <div class="ttl">Senarist <span class="muted" style="text-transform:none;letter-spacing:0">(Ollama)</span></div>
-        <label for="aiTopic">Konu</label>
-        <input type="text" id="aiTopic" placeholder="Örn. sabır ve zorluktan sonra gelen kolaylık">
-        <div class="row3">
-          <div><label for="aiCount">Ayet sayısı</label><select id="aiCount"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option></select></div>
-          <div><label for="aiTone">Üslup</label><select id="aiTone"><option value="huzur">Huzurlu</option><option value="umut">Umut veren</option><option value="dusunce">Düşündüren</option><option value="coskun">Coşkulu</option></select></div>
-          <div><label>&nbsp;</label><label class="check" style="margin:6px 0"><input type="checkbox" id="aiNarr"> Giriş/kapanış</label></div>
-        </div>
-        <div class="row-btns mt8"><button class="btn primary" id="aiWrite">✨ Senaryo yaz</button><button class="btn ghost" id="aiStop" disabled>Durdur</button></div>
-        <div class="hint" id="aiStatus">Ayet metinleri her zaman uygulamadaki doğrulanmış veriden alınır; model yalnızca seçer, sıralar ve kendi giriş/kapanış cümlelerini yazar.</div>
-        <div id="aiPlan" style="display:none">
-          <div class="plan-box" id="aiPlanBox"></div>
-          <div class="row-btns mt8"><button class="btn sm primary" id="aiApply">Listeyi bununla değiştir</button><button class="btn sm" id="aiAppend">Listeye ekle</button></div>
-          <label for="aiYt">Paylaşım metni (YouTube / Instagram)</label>
-          <textarea id="aiYt" rows="6"></textarea>
-          <div class="row-btns mt8"><button class="btn sm" id="aiCopy">Kopyala</button></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="ttl">Ses</div>
-        <label class="check"><input type="checkbox" id="recOn"> Ayetlerde kâri tilaveti (kelimeler tilavetle eşlenir)</label>
-        <select id="reciter"></select>
-        <label class="check"><input type="checkbox" id="ttsOn"> Meali ve Türkçe metinleri seslendir</label>
+        <div class="ttl">Türkçe seslendirme</div>
+        <label class="check"><input type="checkbox" id="ttsOn"> Sahneleri seslendir (yazılar sese göre zamanlanır)</label>
         <div class="row"><div><select id="voice"></select></div><div><button class="btn sm" id="voiceDl">Ses modelini indir</button></div></div>
         <div class="row-btns mt8"><button class="btn sm primary" id="prepAudio">Sesleri hazırla</button><span class="muted" id="audioStatus"></span></div>
         <div class="hint">Tilavet Quran.com ya da EveryAyah'tan gelir (her ayet ayrı öğe olmalı). Seslendirme tarayıcıda çalışır; ses modeli bir kez iner (~63 MB). Film müziği konuşma sırasında kendiliğinden kısılır.</div>
@@ -207,8 +188,8 @@ Sonraki…"></textarea>
       <div id="gradeList"></div>
       <div class="ttl mt">Yazı</div>
       <div class="row">
-        <div><label for="latinFont">Latin yazı tipi</label><select id="latinFont">
-          <option value='"Playfair Display", serif'>Playfair</option><option value='"Cormorant Garamond", serif'>Cormorant</option><option value='Lora, serif'>Lora</option><option value='Inter, sans-serif'>Inter</option><option value='Montserrat, sans-serif'>Montserrat</option><option value='"Bebas Neue", sans-serif'>Bebas</option></select></div>
+        <div><label for="latinFont">Yazı tipi</label><select id="latinFont">
+          <option value=''>Stile göre</option><option value='"Playfair Display", serif'>Playfair</option><option value='"Cormorant Garamond", serif'>Cormorant</option><option value='Lora, serif'>Lora</option><option value='Inter, sans-serif'>Inter</option><option value='Montserrat, sans-serif'>Montserrat</option><option value='"Bebas Neue", sans-serif'>Bebas</option></select></div>
         <div><label for="arabicFont">Arapça yazı tipi</label><select id="arabicFont">
           <option value="Amiri">Amiri</option><option value='"Amiri Quran"'>Amiri Quran</option><option value='"Scheherazade New"'>Scheherazade</option><option value='"Noto Naskh Arabic"'>Noto Naskh</option><option value='"Reem Kufi"'>Reem Kufi</option></select></div>
       </div>
@@ -223,21 +204,44 @@ Sonraki…"></textarea>
 
     <!-- SES -->
     <section class="pane" data-pane="ses">
-      <label class="btn drop">Müzik ya da tilavet ekle<input type="file" id="musicFiles" accept="audio/*" multiple hidden></label>
-      <div id="musicList" class="audio-list"></div>
-      <div class="warn" id="noMusicWarn">Ses eklenmedi; film sessiz üretilir.</div>
-      <label for="soundtrack">Film müziği</label><select id="soundtrack"></select>
-      <div class="hint" id="beatInfo"></div>
-      <label for="musicVol">Ses seviyesi</label>
-      <div class="rng"><input type="range" id="musicVol" min="0" max="1" step="0.05"><output data-for="musicVol" data-pct></output></div>
-      <label class="check"><input type="checkbox" id="fadeIn"> Yavaşça başlasın</label>
-      <label class="check"><input type="checkbox" id="fadeOut"> Yavaşça bitsin</label>
+      <div class="card">
+        <div class="ttl">Müzik</div>
+        <label for="soundtrack">Film müziği</label><select id="soundtrack"></select>
+        <div class="hint" id="beatInfo"></div>
+        <div class="row-btns mt8" id="bedBtns"></div>
+        <div class="hint">Hazır müzikler programın içinde üretilir, telif sorunu yoktur. Freesound'dan arayabilir ya da kendi müziğinizi ekleyebilirsiniz.</div>
+        <label class="btn drop mt8">Kendi müziğini ekle<input type="file" id="musicFiles" accept="audio/*" multiple hidden></label>
+        <div id="musicList" class="audio-list"></div>
+        <div class="warn" id="noMusicWarn">Müzik seçilmedi.</div>
+        <label for="musicVol">Müzik seviyesi</label>
+        <div class="rng"><input type="range" id="musicVol" min="0" max="1" step="0.05"><output data-for="musicVol" data-pct></output></div>
+        <label class="check"><input type="checkbox" id="fadeIn"> Yavaşça başlasın</label>
+        <label class="check"><input type="checkbox" id="fadeOut"> Yavaşça bitsin</label>
+      </div>
+      <div class="card">
+        <div class="ttl">Ses efektleri</div>
+        <label class="check"><input type="checkbox" id="sfxOn"> Efektleri sahnelere otomatik yerleştir</label>
+        <div class="hint">Geçişlerde hışırtı, girişte vurgu, maddelerde "pop", kapanıştan önce yükselen ses, düğmede zil.</div>
+        <div class="sfx-row" id="sfxList"></div>
+        <label for="sfxVol">Efekt seviyesi</label>
+        <div class="rng"><input type="range" id="sfxVol" min="0" max="1" step="0.05"><output data-for="sfxVol" data-pct></output></div>
+      </div>
+      <div class="card">
+        <div class="ttl">Freesound kütüphanesi <span class="muted" style="text-transform:none;letter-spacing:0">(ücretsiz)</span></div>
+        <label for="fsKey">Freesound API anahtarı</label>
+        <div class="row" style="grid-template-columns:1fr auto"><div><input type="password" id="fsKey" autocomplete="off" spellcheck="false" placeholder="anahtarınızı buraya yapıştırın"></div><div><button class="btn sm" id="fsTest">Dene</button></div></div>
+        <div class="hint"><span id="fsStatus"></span> Anahtar yalnızca bu tarayıcıda saklanır. Almak için <a href="https://freesound.org/apiv2/apply/" target="_blank" rel="noopener">freesound.org/apiv2/apply</a> sayfasında giriş yapıp formu doldurun; "Client secret/Api key" satırındaki değeri kopyalayın.</div>
+        <div class="row" style="grid-template-columns:1fr auto auto"><div><input type="text" id="fsQ" placeholder="ör. calm piano, upbeat corporate, whoosh"></div><div><select id="fsType"><option value="music">Müzik</option><option value="sfx">Efekt</option></select></div><div><button class="btn sm primary" id="fsGo">Ara</button></div></div>
+        <label class="check"><input type="checkbox" id="fsCC0"> Yalnızca serbest lisans (CC0, kaynak belirtmek gerekmez)</label>
+        <div class="fs-list" id="fsList"></div>
+        <div class="hint" style="opacity:.7">Sesler: <a href="https://freesound.org/" target="_blank" rel="noopener">Freesound</a>. CC BY lisanslı seslerin sahibi paylaşım metnine otomatik eklenir.</div>
+      </div>
     </section>
 
     <!-- ÜRETİM -->
     <section class="pane" data-pane="uretim">
       <div class="card info" id="outInfo"></div>
-      <div class="row-btns"><button class="btn primary" id="render">● Filmi üret</button><button class="btn ghost" id="cancel" disabled>Durdur</button></div>
+      <div class="row-btns"><button class="btn primary" id="render">● Videoyu üret</button><button class="btn ghost" id="cancel" disabled>Durdur</button></div>
       <div class="overall"><div class="prog"><i id="bar"></i></div><span id="barTxt" class="muted"></span></div>
       <div class="file-row"><button class="btn sm" id="pickDir">📁 Kayıt klasörü</button><span id="dirName" class="muted">Bellekte tutulur</span></div>
       <div id="results" class="queue"></div>
@@ -264,7 +268,7 @@ Sonraki…"></textarea>
       <input type="range" id="seek" min="0" max="1000" value="0">
       <span id="time">0.0 / 0.0 sn</span>
       <button class="audio-pill" id="audioPill"></button>
-      <button class="btn primary" id="renderBtn">● Filmi üret</button>
+      <button class="btn primary" id="renderBtn">● Videoyu üret</button>
     </div>
   </main>
 </div>
@@ -276,7 +280,7 @@ Sonraki…"></textarea>
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221506"></script>
-<script type="module" src="js/film-app.js?v=202611221506"></script>
+<script src="vendor/jszip.min.js?v=202611221556"></script>
+<script type="module" src="js/film-app.js?v=202611221556"></script>
 </body>
 </html>

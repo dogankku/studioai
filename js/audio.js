@@ -79,7 +79,7 @@ function schedule(ctx, dest, t0, from, total, { clips = [], music = null, musicV
     const fi = fadeIn ? Math.min(1.5, total / 4) : 0, fo = fadeOut ? Math.min(2, total / 4) : 0;
     // zarf noktalarını sırayla hesapla
     const pts = [[0, fi ? 0 : musicVol], [fi, musicVol]];
-    for (const c of clips) { const s = c.start, e = c.start + c.buffer.duration; pts.push([s - 0.35, musicVol], [s, musicVol * duck], [e, musicVol * duck], [e + 0.5, musicVol]); }
+    for (const c of clips) { if (c.noDuck) continue; const s = c.start, e = c.start + c.buffer.duration; pts.push([s - 0.35, musicVol], [s, musicVol * duck], [e, musicVol * duck], [e + 0.5, musicVol]); }
     pts.push([total - fo, musicVol], [total, 0]);
     pts.sort((a, b) => a[0] - b[0]);
     const val = x => { let v = pts[0][1]; for (let i = 0; i < pts.length - 1; i++) { const [a, va] = pts[i], [b, vb] = pts[i + 1]; if (x >= a && x <= b) return b > a ? va + (vb - va) * (x - a) / (b - a) : vb; if (x > b) v = vb; } return v; };

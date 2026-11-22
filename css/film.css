@@ -97,3 +97,21 @@
 .flow-strip .fl .fl-b { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; opacity: 0; transition: opacity .15s; }
 .flow-strip .fl:hover .fl-b { opacity: 1; }
 .flow-strip .fl .fl-b button { width: 18px; height: 18px; border: 0; border-radius: 4px; background: rgba(0,0,0,.75); color: #fff; font-size: 10px; cursor: pointer; padding: 0; }
+
+/* senaryo formatları */
+.fmts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fmt { text-align: left; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 10px; cursor: pointer; color: inherit; font: inherit; }
+.fmt b { display: block; font-size: 13px; margin-bottom: 3px; }
+.fmt span { font-size: 11px; opacity: .65; line-height: 1.35; display: block; }
+.fmt.on { border-color: #f2b84b; background: rgba(242,184,75,.08); }
+.fmt i { font-style: normal; font-size: 18px; float: right; }
+.logo-prev { height: 28px; max-width: 90px; object-fit: contain; display: none; border-radius: 4px; background: rgba(255,255,255,.08); }
+.items .it .kind { font-size: 10px; opacity: .6; text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; }
+/* ses kütüphanesi */
+.sfx-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.sfx-row button { font-size: 11px; }
+.fs-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
+.fs-it { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,.03); font-size: 12px; }
+.fs-it .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-it .meta { font-size: 10px; opacity: .6; }
+.fs-it button { padding: 3px 8px; }

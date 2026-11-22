@@ -7,11 +7,11 @@ export function makeItem(o = {}) {
   const it = { id: newId(), main: o.main || '', sub: o.sub || '', src: o.src || '', tag: o.tag || '' };
   if (Array.isArray(o.timing)) it.timing = o.timing.slice();
   if (o.ov && typeof o.ov === 'object') it.ov = { ...o.ov };
-  for (const k of ['ref', 'imgPrompt', 'imgId', 'sceneHint', 'aiText', 'stockQ']) if (o[k] != null) it[k] = typeof o[k] === 'object' ? { ...o[k] } : o[k];
+  for (const k of ['ref', 'imgPrompt', 'imgId', 'sceneHint', 'aiText', 'stockQ', 'kind', 'num', 'cta', 'vo', 'logo']) if (o[k] != null) it[k] = typeof o[k] === 'object' ? { ...o[k] } : o[k];
   if (Array.isArray(o.vids)) it.vids = o.vids.map(v => ({ ...v }));
   return it;
 }
-export const plainItem = ({ main, sub, src, tag, timing, ov, ref, imgPrompt, imgId, sceneHint, aiText, stockQ, vids }) => ({ main, sub, src, tag, ...(timing ? { timing } : {}), ...(ov && Object.values(ov).some(Boolean) ? { ov } : {}), ...(ref ? { ref } : {}), ...(imgPrompt ? { imgPrompt } : {}), ...(imgId ? { imgId } : {}), ...(sceneHint ? { sceneHint } : {}), ...(aiText ? { aiText } : {}), ...(stockQ ? { stockQ } : {}), ...(vids && vids.length ? { vids } : {}) });
+export const plainItem = ({ main, sub, src, tag, timing, ov, ref, imgPrompt, imgId, sceneHint, aiText, stockQ, vids, kind, num, cta, vo, logo }) => ({ main, sub, src, tag, ...(kind ? { kind } : {}), ...(num ? { num } : {}), ...(cta ? { cta } : {}), ...(vo ? { vo } : {}), ...(logo ? { logo } : {}), ...(timing ? { timing } : {}), ...(ov && Object.values(ov).some(Boolean) ? { ov } : {}), ...(ref ? { ref } : {}), ...(imgPrompt ? { imgPrompt } : {}), ...(imgId ? { imgId } : {}), ...(sceneHint ? { sceneHint } : {}), ...(aiText ? { aiText } : {}), ...(stockQ ? { stockQ } : {}), ...(vids && vids.length ? { vids } : {}) });
 
 const KEY_RE = /^(meal|alt|açıklama|aciklama|çeviri|ceviri|kaynak|etiket)\s*:\s*(.*)$/i;
 

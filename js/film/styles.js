@@ -48,14 +48,14 @@ export const STYLES = {
     name: 'Nur', desc: 'Altın ışık, güçlü ışıma, ışık sızıntıları',
     grade: { exposure: 0.08, contrast: 1.05, saturation: 1.1, temperature: 0.35, highlightTint: [1, 0.8, 0.45], splitAmount: 0.18 },
     fx: { bloom: 1.1, bloomThreshold: 0.6, grain: 0.03, vignette: 0.4, lightLeak: 0.55, halation: 0.2 },
-    scenes: ['nur', 'cami', 'bulut', 'col'], cameras: ['nefes', 'yaklas', 'vinc', 'yorunge'], anims: ['isik', 'yuksel'],
+    scenes: ['nur', 'bulut', 'col'], cameras: ['nefes', 'yaklas', 'vinc', 'yorunge'], anims: ['isik', 'yuksel'],
     transitions: ['flash', 'fade', 'luma'], text: '#fff8e8', accent: '#ffd27a', sub: '#f3e3c3', pace: 1.15
   }),
   gece: S({
     name: 'Gece', desc: 'Soğuk mavi, yıldızlar, derinlik',
     grade: { contrast: 1.1, saturation: 0.95, temperature: -0.35, shadowTint: [0.1, 0.2, 0.55], splitAmount: 0.2 },
     fx: { bloom: 0.8, grain: 0.04, vignette: 0.55, ca: 0.1 },
-    scenes: ['yildiz', 'deniz', 'cami', 'desen'], cameras: ['yorunge', 'uzaklas', 'nefes', 'vinc'], anims: ['derinlik', 'isik'],
+    scenes: ['yildiz', 'deniz', 'desen'], cameras: ['yorunge', 'uzaklas', 'nefes', 'vinc'], anims: ['derinlik', 'isik'],
     transitions: ['dip', 'luma', 'fade'], text: '#eef4ff', accent: '#9fd0ff', sub: '#c4d2ea', pace: 1.1
   }),
   retro: S({
@@ -69,15 +69,40 @@ export const STYLES = {
     name: 'Noir', desc: 'Siyah-beyaz, sert kontrast, yoğun gren',
     grade: { contrast: 1.35, saturation: 0, bw: 1, exposure: -0.03 },
     fx: { bloom: 0.45, grain: 0.14, vignette: 0.7, dust: 0.4, gateWeave: 0.15 },
-    scenes: ['yildiz', 'cami', 'nur', 'deniz'], cameras: ['yaklas', 'egim', 'uzaklas', 'nefes'], anims: ['yuksel', 'tek'],
+    scenes: ['yildiz', 'nur', 'deniz'], cameras: ['yaklas', 'egim', 'uzaklas', 'nefes'], anims: ['yuksel', 'tek'],
     transitions: ['dip', 'cut', 'fade'], text: '#ffffff', accent: '#ffffff', sub: '#cfcfcf', pace: 1
+  }),
+  modern: S({
+    name: 'Modern bilgi', desc: 'Temiz, kalın yazı, sarı vurgu, numaralı maddeler',
+    grade: { contrast: 1.08, saturation: 1.05, temperature: 0.02 },
+    fx: { bloom: 0.2, bloomThreshold: 0.9, grain: 0.02, vignette: 0.4 },
+    scenes: ['video', 'soyut', 'nur'], cameras: ['nefes', 'yaklas', 'kaydir'], anims: ['yuksel', 'tek'],
+    transitions: ['fade', 'whip', 'zoom'], text: '#ffffff', accent: '#ffd84a', sub: '#e9edf3', pace: 1.1,
+    font: 'Montserrat', subFont: 'Inter, sans-serif', bar: true, scrim: 0.5
+  }),
+  neonliste: S({
+    name: 'Neon liste', desc: 'Canlı pembe vurgu, sayaçlı maddeler, enerjik geçişler',
+    grade: { contrast: 1.12, saturation: 1.15, temperature: -0.04 },
+    fx: { bloom: 0.35, bloomThreshold: 0.8, grain: 0.02, vignette: 0.45, ca: 0.15 },
+    scenes: ['video', 'soyut', 'desen'], cameras: ['yaklas', 'el', 'kaydir'], anims: ['tek', 'yuksel'],
+    transitions: ['whip', 'zoom', 'fade'], text: '#ffffff', accent: '#ff3d7f', sub: '#f3e9f7', pace: 1.15,
+    font: 'Montserrat', subFont: 'Inter, sans-serif', bar: true, scrim: 0.5, badgeText: '#ffffff'
+  }),
+  marka: S({
+    name: 'Marka tanıtımı', desc: 'Parlak turuncu vurgu, ürün odaklı, satın alma düğmesi',
+    grade: { contrast: 1.1, saturation: 1.1, temperature: 0.06 },
+    fx: { bloom: 0.25, bloomThreshold: 0.85, grain: 0.015, vignette: 0.35 },
+    scenes: ['video', 'nur', 'soyut'], cameras: ['yaklas', 'nefes', 'vinc'], anims: ['tek', 'yuksel'],
+    transitions: ['zoom', 'whip', 'fade'], text: '#ffffff', accent: '#ffb02e', sub: '#f2efe9', pace: 1.1,
+    font: 'Montserrat', subFont: 'Inter, sans-serif', bar: true, scrim: 0.5
   }),
   gercek: S({
     name: 'Gerçek çekim', desc: 'Gerçek video çekimleri için: doğal renk, sinematik kontrast, sakin yazı',
     grade: { contrast: 1.08, saturation: 1.06, temperature: 0.05, shadowTint: [0.92, 0.98, 1.06], highlightTint: [1.04, 1, 0.94], splitAmount: 0.18 },
     fx: { bloom: 0.25, bloomThreshold: 0.85, grain: 0.035, vignette: 0.4, halation: 0.1 },
     scenes: ['video', 'nur', 'bulut'], cameras: ['nefes', 'yaklas', 'kaydir'], anims: ['yuksel', 'tek'],
-    transitions: ['fade', 'dip', 'cut'], text: '#ffffff', accent: '#ffe2a8', sub: '#f1ece2', pace: 1
+    transitions: ['fade', 'dip', 'cut'], text: '#ffffff', accent: '#ffe2a8', sub: '#f1ece2', pace: 1,
+    font: 'Playfair Display', subFont: 'Lora, serif', bar: false
   }),
   pastel: S({
     name: 'Pastel rüya', desc: 'Yumuşak kontrast, pastel tonlar, hafif ışıma',
@@ -90,7 +115,7 @@ export const STYLES = {
     name: 'Altın geometri', desc: 'Geometrik tünel, altın ışıma, dönen yazı',
     grade: { contrast: 1.15, saturation: 1.1, temperature: 0.25, highlightTint: [1, 0.78, 0.35], splitAmount: 0.25 },
     fx: { bloom: 1.2, bloomThreshold: 0.55, grain: 0.03, vignette: 0.55, ca: 0.12 },
-    scenes: ['desen', 'cami', 'nur'], cameras: ['yaklas', 'yorunge', 'dolly'], anims: ['donus', 'isik'],
+    scenes: ['desen', 'nur'], cameras: ['yaklas', 'yorunge', 'dolly'], anims: ['donus', 'isik'],
     transitions: ['zoom', 'circle', 'flash'], text: '#fff6dc', accent: '#ffcf66', sub: '#efdcae', pace: 1
   }),
   glitch: S({
@@ -104,7 +129,7 @@ export const STYLES = {
     name: '70\'ler vintage', desc: 'Solgun sıcak tonlar, toz, film titremesi',
     grade: { contrast: 0.92, saturation: 0.78, temperature: 0.3, lift: [0.07, 0.05, 0.02], gain: [1, 0.97, 0.88] },
     fx: { bloom: 0.5, grain: 0.12, vignette: 0.55, lightLeak: 0.45, dust: 0.5, gateWeave: 0.4, halation: 0.35 },
-    scenes: ['col', 'bulut', 'deniz', 'cami'], cameras: ['kaydir', 'nefes', 'yaklas'], anims: ['yuksel', 'daktilo'],
+    scenes: ['col', 'bulut', 'deniz'], cameras: ['kaydir', 'nefes', 'yaklas'], anims: ['yuksel', 'daktilo'],
     transitions: ['dip', 'fade', 'flash'], text: '#fff1dc', accent: '#ffbf80', sub: '#efdcc2', pace: 1.05
   }),
   piksel: S({

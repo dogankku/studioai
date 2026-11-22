@@ -1,20 +1,21 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221506';
-import { direct, clipsOf } from './film/director.js?v=202611221506';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221506';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221506';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221506';
-import { surahs, buildItems } from './quran.js?v=202611221506';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221506';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221506';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221506';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221506';
-import { newId } from './parser.js?v=202611221506';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221506';
-import { writeScript } from './ai/senarist.js?v=202611221506';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221506';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221506';
-import { detectScene } from './film/director.js?v=202611221506';
+import { Film } from './film/player.js?v=202611221556';
+import { direct, clipsOf } from './film/director.js?v=202611221556';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221556';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221556';
+import { makeItem, plainItem } from './parser.js?v=202611221556';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221556';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221556';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221556';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221556';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221556';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221556';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221556';
+import { newId } from './parser.js?v=202611221556';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221556';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221556';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221556';
+import { detectScene } from './film/director.js?v=202611221556';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -28,13 +29,13 @@ const toast = t => { const l = $('#toast'); l.textContent = t; l.classList.add('
 
 /* ================= Durum ================= */
 const DEFAULTS = {
-  style: 'nur', seed: 1, pace: 1, mealMode: 'after', mode: 'film', respectKeywords: true, beatSync: true,
+  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
   refUseCuts: true, refUseEnergy: true, refUseColors: false, refUseAudio: false,
   olUrl: 'http://localhost:11434', olModel: '', cfUrl: 'http://127.0.0.1:8188', cfCkpt: '',
-  recOn: false, reciter: '7', ttsOn: false, voice: 'tr_TR-dfki-medium', imgOn: true, stockOn: true, pxKey: '', stockNoPeople: true, stockN: '3', stockMode: 'flow', flowXF: 1.2, flowMax: 6, flowMatch: true, aiCount: '3', aiTone: 'huzur', aiNarr: true, aiTopic: ''
+  ttsOn: true, voice: 'tr_TR-dfki-medium', imgOn: true, stockOn: true, pxKey: '', stockNoPeople: true, stockN: '3', stockMode: 'flow', flowXF: 1.2, flowMax: 6, flowMatch: true
 };
 // Platform ayarları (YouTube ve Instagram önerilerine göre)
 const PLATFORMS = {
@@ -45,15 +46,14 @@ const PLATFORMS = {
   kare: { name: 'Kare', desc: 'Her platformda 1:1', format: '1:1', res: 1080, mbps: 8, max: 0, safe: { top: 0.07, bottom: 0.08, side: 0.08 }, suffix: 'kare' }
 };
 const PV = () => PLATFORMS[F.previewPlatform] || PLATFORMS[F.platforms[0]] || PLATFORMS.reels;
-const SAMPLE = [
-  { main: 'فَإِنَّ مَعَ ٱلۡعُسۡرِ يُسۡرًا', sub: 'Elbette güçlükle beraber şüphesiz bir kolaylık vardır.', src: 'İnşirâh Sûresi, 5', tag: 'Günün Ayeti' },
-  { main: 'إِنَّ مَعَ ٱلۡعُسۡرِ يُسۡرٗا', sub: 'Gerçekten, güçlükle beraber bir kolaylık vardır.', src: 'İnşirâh Sûresi, 6' }
-];
+const SAMPLE_BRIEF = { title: 'Uyku neden bu kadar önemli?', text: 'Uyku, beynin kendini temizlediği zamandır. Gün boyu biriken atıklar uykuda atılır.\n\nYetişkinlerin gecede 7–9 saat uykuya ihtiyacı vardır.\n\nUykusuzluk dikkat, hafıza ve bağışıklığı zayıflatır.', brand: '', author: '', cta: '', countdown: false, logoId: '' };
+let brief = { ...SAMPLE_BRIEF, ...store.get('film-brief', {}) };
+const SAMPLE = toScenes('bilgi', SAMPLE_BRIEF);
 let F = { ...DEFAULTS, ...store.get('film-settings', {}) };
 if (!Array.isArray(F.platforms) || !F.platforms.length) F.platforms = ['reels'];
 F.platforms = F.platforms.filter(k => PLATFORMS[k]); if (!F.platforms.length) F.platforms = ['reels'];
 if (!PLATFORMS[F.previewPlatform]) F.previewPlatform = F.platforms[0];
-let items = (store.get('tvs-items', null) || SAMPLE).map(makeItem);
+let items = (store.get('vs-items', null) || SAMPLE).map(makeItem);
 let flow = (store.get('film-flow', null) || []).filter(v => v && v.id);
 let overrides = store.get('film-overrides', {});
 let ref = store.get('film-ref', null); // {name, analysis(without audio)}
@@ -61,7 +61,7 @@ let refAudio = null; // AudioBuffer (yalnızca bu oturumda)
 let sel = 0, selShot = -1;
 const music = []; // {id, name, buffer, blob, an}
 let saveT = 0;
-const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('tvs-items', items.map(plainItem)); store.set('film-overrides', overrides); store.set('film-flow', flow); }, 300); };
+const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('vs-items', items.map(plainItem)); store.set('film-brief', brief); store.set('film-overrides', overrides); store.set('film-flow', flow); }, 300); };
 
 /* ================= Film motoru ================= */
 const cv = $('#cv');
@@ -73,7 +73,8 @@ let tl = { shots: [], dur: 0 };
 
 function soundtrack() {
   if (F.refUseAudio && refAudio) return { name: 'Referans videonun sesi', buffer: refAudio, an: ref && ref.analysis.audio };
-  return music.find(m => m.id === F.soundtrack) || music[0] || null;
+  if (!F.soundtrack || F.soundtrack === 'none') return null;
+  return music.find(m => m.id === F.soundtrack) || null;
 }
 function directOpts() {
   const st = soundtrack();
@@ -81,17 +82,17 @@ function directOpts() {
   let template = null;
   if (ref && F.refUseCuts) template = { shots: ref.analysis.shots.map(s => ({ dur: s.dur, energy: F.refUseEnergy ? s.energy : null })) };
   if (template && !F.refUseEnergy) template.shots.forEach(s => delete s.energy);
-  return { style: F.style, seed: F.seed, pace: F.pace, mealMode: F.mealMode, respectKeywords: F.respectKeywords, beats, template, targetDur: F.durMode === 'target' ? +F.targetDur : 0 };
+  return { style: F.style, seed: F.seed, pace: F.pace, respectKeywords: F.respectKeywords, beats, template, targetDur: F.durMode === 'target' ? +F.targetDur : 0 };
 }
 /* yapay zekâ sesleri ve görselleri: öğe kimliğine göre önbellek */
-const recCache = new Map(), narrCache = new Map();
+const narrCache = new Map();
+const credits = () => store.get('vs-credits', {});
+const voText = it => (it.vo || [it.main, it.sub].filter(Boolean).join('. ')).trim();
 function augItems() {
   return items.map(it => {
     const a = { ...it };
-    const r = recCache.get(it.id + ':' + F.reciter);
-    if (F.recOn && r && r.n === wordsOf(it.main).length) a._rec = { dur: r.buffer.duration, words: r.words };
     const n = narrCache.get(it.id + ':' + F.voice);
-    if (F.ttsOn && n) { if (n.main && n.mainText === it.main) a._narrMain = { dur: n.main.duration }; if (n.sub && n.subText === it.sub) a._narrSub = { dur: n.sub.duration }; }
+    if (F.ttsOn && n && n.text === voText(it) && n.buf) a._vo = { dur: n.buf.duration };
     if (it.imgId && film.images.has(it.imgId)) a._img = it.imgId;
     if (F.stockOn && Array.isArray(it.vids)) { const v = it.vids.map(x => x.id).filter(id => film.videos.has(id)); if (v.length) a._vids = v; }
     if (it.sceneHint) a._scene = it.sceneHint;
@@ -103,13 +104,18 @@ function clipBuffers(timeline) {
   for (const c of timeline.clips || clipsOf(timeline.shots)) {
     const [kind, idx] = c.key.split(':'); const it = items[+idx]; if (!it) continue;
     let b = null;
-    if (kind === 'rec') { const r = recCache.get(it.id + ':' + F.reciter); b = r && r.buffer; }
-    else { const n = narrCache.get(it.id + ':' + F.voice); b = n && (kind === 'nm' ? n.main : n.sub); }
-    if (b) out.push({ start: c.start, buffer: b, gain: kind === 'rec' ? 1 : 1.6 });
+    if (kind === 'vo') { const n = narrCache.get(it.id + ':' + F.voice); b = n && n.buf; }
+    if (b) out.push({ start: c.start, buffer: b, gain: 1.6 });
   }
   return out;
 }
-function audioOpts(timeline) { const st = soundtrack(); return { clips: clipBuffers(timeline), music: st ? st.buffer : null, musicVol: +F.musicVol, fadeIn: F.fadeIn, fadeOut: F.fadeOut }; }
+const sfxBufs = new Map(); // tür -> AudioBuffer (gömülü ya da Freesound'dan seçilmiş)
+function sfxClips(timeline) {
+  if (!F.sfxOn) return [];
+  return sfxCues(timeline.shots, { enabled: Object.fromEntries(Object.keys(SFX).map(k => [k, !F.sfxOff[k]])) })
+    .map(c => ({ start: c.t, buffer: sfxBufs.get(c.kind), gain: c.gain * +F.sfxVol * 1.4, noDuck: true })).filter(c => c.buffer);
+}
+function audioOpts(timeline) { const st = soundtrack(); return { clips: [...clipBuffers(timeline), ...sfxClips(timeline)], music: st ? st.buffer : null, musicVol: +F.musicVol, fadeIn: F.fadeIn, fadeOut: F.fadeOut, duck: 0.28 }; }
 
 function applyOverrides(t) {
   let start = 0;
@@ -123,7 +129,8 @@ function applyOverrides(t) {
   return t;
 }
 function rebuild(keepTime = true) {
-  film.fonts = { latin: F.latinFont, ar: F.arabicFont, sub: 'Lora, serif' };
+  const stl = STYLES[F.style] || {};
+  film.fonts = { latin: F.latinFont || (stl.font ? `${stl.font}, sans-serif` : '"Playfair Display", serif'), ar: F.arabicFont, sub: stl.subFont || 'Lora, serif' };
   film.size = +F.size;
   film.safe = PV().safe;
   film.setStyle(F.style, { grade: { ...(ref && F.refUseColors ? ref.analysis.grade : {}), ...F.gradeOv }, fx: F.fxOv, colors: F.colors });
@@ -238,14 +245,15 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mealMode', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'recOn', 'reciter', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'aiCount', 'aiTone', 'aiNarr', 'aiTopic'];
+const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
     F[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value;
-    if (['olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'aiCount', 'aiTone', 'aiNarr', 'aiTopic', 'pxKey', 'stockNoPeople', 'stockN'].includes(k)) { save(); return; }
+    if (['olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'pxKey', 'stockNoPeople', 'stockN', 'fsKey', 'fsCC0'].includes(k)) { save(); return; }
+    if (['sfxOn', 'sfxVol'].includes(k)) { save(); return; }
     if (['stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch'].includes(k)) { save(); rebuild(); renderStockGrid(); return; }
-    if (['recOn', 'ttsOn', 'reciter', 'voice'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); return; }
+    if (['ttsOn', 'voice'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); return; }
     if (k === 'targetDur') F.targetDur = Math.max(5, Math.min(1200, Math.round(+el.value || 60)));
     if (['latinFont', 'arabicFont'].includes(k)) ensureFonts().then(changed); else changed();
   });
@@ -298,13 +306,14 @@ $('#fxReset').onclick = () => { F.fxOv = {}; F.gradeOv = {}; F.colors = {}; chan
 [['cText', 'text'], ['cAccent', 'accent'], ['cSub', 'sub']].forEach(([id, k]) => $('#' + id).addEventListener('change', e => { F.colors[k] = e.target.value; changed(); }));
 
 /* ================= Metinler ================= */
+const KIND_NAMES = { hook: 'Giriş', point: 'Bilgi', item: 'Madde', quote: 'Söz', problem: 'Sorun', solution: 'Çözüm', feature: 'Özellik', price: 'Fiyat', cta: 'Kapanış' };
 function renderList() {
   $('#count').textContent = `(${items.length})`;
   $('#itemList').innerHTML = items.length ? items.map((it, i) => {
     const ar = isMostlyRTL(it.main);
-    return `<div class="it${i === sel ? ' on' : ''}" data-i="${i}"><div class="no">${i + 1}</div><div class="tx${ar ? ' ar' : ''}">${esc((it.main || it.sub).split('\n')[0])}${it.src ? `<small>${esc(it.src)}</small>` : ''}</div>
+    return `<div class="it${i === sel ? ' on' : ''}" data-i="${i}"><div class="no">${esc(it.num && it.num.length <= 2 ? it.num : String(i + 1))}</div><div class="tx${ar ? ' ar' : ''}"><span class="kind">${esc(KIND_NAMES[it.kind] || '')}</span>${esc((it.main || it.sub).split('\n')[0])}${it.sub ? `<small>${esc(it.sub.slice(0, 80))}</small>` : ''}</div>
       <div class="acts"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></div></div>`;
-  }).join('') : '<div class="empty">Liste boş.</div>';
+  }).join('') : '<div class="empty">Henüz sahne yok. Yukarıda metninizi yazıp "Sahnelere dönüştür"e basın.</div>';
 }
 $('#itemList').onclick = e => {
   const row = e.target.closest('.it'); if (!row) return;
@@ -320,31 +329,78 @@ function loadEditor() {
   const it = items[sel]; $('#editor').style.display = it ? '' : 'none'; if (!it) return;
   $('#editNo').textContent = '#' + (sel + 1);
   $('#eMain').value = it.main; $('#eSub').value = it.sub; $('#eSrc').value = it.src; $('#eTag').value = it.tag;
+  $('#eKind').value = it.kind || 'point'; $('#eNum').value = it.num || ''; $('#eCta').value = it.cta || ''; $('#eVo').value = it.vo || ''; $('#eQ').value = it.stockQ || '';
+  $('#eVo').placeholder = [it.main, it.sub].filter(Boolean).join('. ');
   ['eMain', 'eSub'].forEach(id => $('#' + id).classList.toggle('rtl', isMostlyRTL($('#' + id).value)));
 }
 let editT = 0;
-[['eMain', 'main'], ['eSub', 'sub'], ['eSrc', 'src'], ['eTag', 'tag']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => {
+[['eMain', 'main'], ['eSub', 'sub'], ['eSrc', 'src'], ['eTag', 'tag'], ['eNum', 'num'], ['eCta', 'cta'], ['eVo', 'vo'], ['eQ', 'stockQ'], ['eKind', 'kind']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => {
   const it = items[sel]; if (!it) return; it[k] = e.target.value;
   ['eMain', 'eSub'].forEach(x => $('#' + x).classList.toggle('rtl', isMostlyRTL($('#' + x).value)));
   save(); clearTimeout(editT); editT = setTimeout(() => { renderList(); rebuild(); }, 350);
 }));
 function listChanged() { save(); renderList(); loadEditor(); rebuild(); renderImgGrid(); updateAiAudioStatus(); }
-$('#addItem').onclick = () => { items.splice(sel + 1, 0, makeItem({ main: 'Yeni metin' })); sel = Math.min(sel + 1, items.length - 1); listChanged(); $('#eMain').focus(); $('#eMain').select(); };
+$('#addItem').onclick = () => { items.splice(sel + 1, 0, makeItem({ kind: 'point', main: 'Yeni sahne' })); sel = Math.min(sel + 1, items.length - 1); listChanged(); $('#eMain').focus(); $('#eMain').select(); };
 $('#clearList').onclick = () => { if (!items.length) return; if (!confirm('Tüm liste silinsin mi?')) return; items = []; sel = 0; listChanged(); };
-const bulk = () => { const t = $('#bulkText').value.trim(); return !t ? [] : t.split('\n')[0].includes('\t') ? parseCSV(t) : parseList(t); };
-$('#bulkAppend').onclick = () => { const n = bulk(); if (!n.length) return; items.push(...n); $('#bulkText').value = ''; listChanged(); };
-$('#bulkReplace').onclick = () => { const n = bulk(); if (!n.length) return; items = n; sel = 0; $('#bulkText').value = ''; listChanged(); };
-$('#csvFile').onchange = async e => { const f = e.target.files[0]; if (!f) return; const n = parseCSV(await f.text()); e.target.value = ''; if (n.length) { items.push(...n); listChanged(); } };
-let SUR = [];
-surahs().then(list => {
-  SUR = list; $('#qSurah').innerHTML = list.map(s => `<option value="${s.id}">${s.id}. ${esc(s.tr)} — ${s.ar} (${s.n})</option>`).join(''); onSurah();
-}).catch(() => { $('#qSurah').innerHTML = '<option>Kur\'an verisi yüklenemedi</option>'; });
-function onSurah() { const s = SUR.find(x => x.id === +$('#qSurah').value); if (!s) return; $('#qFrom').max = $('#qTo').max = s.n; $('#qFrom').value = 1; $('#qTo').value = Math.min(s.n, 3); }
-$('#qSurah').onchange = onSurah;
-$('#qAdd').onclick = async () => {
-  try { const n = (await buildItems(+$('#qSurah').value, +$('#qFrom').value, +$('#qTo').value, { mode: $('#qMode').value, meal: $('#qMeal').checked })).map(makeItem); items.push(...n); sel = items.length - n.length; listChanged(); toast(`${n.length} öğe eklendi`); }
-  catch (e) { toast('Ayetler yüklenemedi'); }
+/* ================= Senaryo: format + bilgiler ================= */
+function renderFormats() {
+  $('#fmts').innerHTML = Object.entries(FORMATS).map(([k, f]) => `<button class="fmt${F.fmt === k ? ' on' : ''}" data-f="${k}"><i>${f.icon}</i><b>${esc(f.name)}</b><span>${esc(f.desc)}</span></button>`).join('');
+  const f = FORMATS[F.fmt] || FORMATS.bilgi;
+  $('#bTitleLbl').textContent = f.titleLabel; $('#bText').placeholder = f.placeholder;
+  $('#bCta').placeholder = f.ctaDefault || 'ör. Takip et';
+  $('#bBrandBox').style.display = F.fmt === 'urun' ? '' : 'none';
+  $('#bAuthorBox').style.display = F.fmt === 'soz' ? '' : 'none';
+  $('#bCtaBox').style.display = F.fmt === 'soz' ? 'none' : '';
+  $('#bLogoBox').style.display = F.fmt === 'urun' ? '' : 'none';
+  $('#bCountBox').style.display = F.fmt === 'liste' ? '' : 'none';
+  $('#bRowB').style.display = F.fmt === 'urun' || F.fmt === 'liste' ? '' : 'none';
+}
+function syncBrief() {
+  $('#bTitle').value = brief.title || ''; $('#bText').value = brief.text || ''; $('#bBrand').value = brief.brand || ''; $('#bAuthor').value = brief.author || ''; $('#bCta').value = brief.cta || ''; $('#bCountdown').checked = !!brief.countdown;
+  const img = film.logo; $('#bLogoPrev').style.display = img ? 'inline-block' : 'none'; $('#bLogoDel').style.display = img ? '' : 'none'; if (img) $('#bLogoPrev').src = img.src;
+}
+$('#fmts').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; F.fmt = b.dataset.f; save(); renderFormats(); };
+[['bTitle', 'title'], ['bText', 'text'], ['bBrand', 'brand'], ['bAuthor', 'author'], ['bCta', 'cta']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => { brief[k] = e.target.value; save(); }));
+$('#bCountdown').onchange = e => { brief.countdown = e.target.checked; save(); };
+async function loadLogo() {
+  film.logo = null; if (!brief.logoId) return;
+  const r = await getFile(brief.logoId); if (!r) return;
+  const img = new Image(); img.src = URL.createObjectURL(r.blob); try { await img.decode(); film.logo = img; } catch (e) { }
+}
+$('#bLogo').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (brief.logoId) delFile(brief.logoId);
+  brief.logoId = 'logo:' + newId(); await putFile({ id: brief.logoId, kind: 'logo', name: f.name, type: f.type, blob: f, order: Date.now() });
+  await loadLogo(); save(); syncBrief(); film.clearTexts(); dirty = true;
 };
+$('#bLogoDel').onclick = () => { if (brief.logoId) delFile(brief.logoId); brief.logoId = ''; film.logo = null; save(); syncBrief(); film.clearTexts(); dirty = true; };
+function applyScenes(scenes, label) {
+  items = scenes.map(sc => makeItem({ ...sc, stockQ: sc.q || '' })); sel = 0;
+  const f = FORMATS[F.fmt]; if (f && f.style && STYLES[f.style]) F.style = f.style;
+  F.seed = (F.seed % 9999) + 1; overrides = {};
+  listChanged(); syncUI(); toast(label);
+}
+$('#bMake').onclick = () => {
+  if (!(brief.text || '').trim() && !(brief.title || '').trim()) { toast('Önce metninizi yazın'); $('#bText').focus(); return; }
+  const sc = toScenes(F.fmt, brief); if (!sc.length) { toast('Metinden sahne çıkarılamadı'); return; }
+  applyScenes(sc, `${sc.length} sahne hazır`);
+  $('#bStatus').textContent = `${sc.length} sahne oluşturuldu. Aşağıdan düzenleyebilir, sırasını değiştirebilirsiniz.${F.ttsOn ? ' Seslendirme video üretilirken hazırlanır.' : ''}`;
+};
+let bAbort = null;
+$('#bAI').onclick = async () => {
+  if (!(brief.text || '').trim() && !(brief.title || '').trim()) { toast('Önce metninizi ya da konuyu yazın'); return; }
+  if (!F.olModel && !(await olConnect(false))) { $('#bStatus').textContent = '✗ Ollama\'ya bağlanılamadı. "Yapay zekâ" sekmesindeki rehbere bakın; ya da "Sahnelere dönüştür"ü kullanın.'; return; }
+  bAbort = new AbortController(); $('#bAI').disabled = true; $('#bAIStop').disabled = false; const t0 = performance.now();
+  try {
+    const r = await aiScenes(F.fmt, brief, { url: F.olUrl, model: F.olModel, signal: bAbort.signal, onStatus: m => ($('#bStatus').textContent = m) });
+    applyScenes(r.scenes, `${r.scenes.length} sahne yazıldı`);
+    if (r.share) { $('#shareText').value = r.share; $('#shareBox').style.display = ''; store.set('vs-share', r.share); }
+    $('#bStatus').textContent = `Senaryo hazır (${((performance.now() - t0) / 1000).toFixed(0)} sn): ${r.scenes.length} sahne. Kontrol edip düzenleyebilirsiniz.`;
+  } catch (e) { $('#bStatus').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
+  $('#bAI').disabled = false; $('#bAIStop').disabled = true; bAbort = null;
+};
+$('#bAIStop').onclick = () => bAbort && bAbort.abort();
+$('#shareCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#shareText').value); toast('Kopyalandı'); } catch (e) { $('#shareText').select(); } };
 
 /* ================= Ses ================= */
 async function addMusic(blob, name, id = newId(), persist = true) {
@@ -357,13 +413,71 @@ async function addMusic(blob, name, id = newId(), persist = true) {
 }
 $('#musicFiles').onchange = async e => { const fs = [...e.target.files]; e.target.value = ''; for (const f of fs) await addMusic(f, f.name); renderMusic(); changed(); };
 function renderMusic() {
-  $('#musicList').innerHTML = music.map((m, i) => `<div class="a"><span>${i + 1}. ${esc(m.name)}</span><span class="muted">${m.an.bpm} BPM · ${m.buffer.duration.toFixed(0)} sn <button data-i="${i}">✕</button></span></div>`).join('');
-  $('#soundtrack').innerHTML = music.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('') || '<option value="">—</option>';
-  $('#soundtrack').value = F.soundtrack;
-  $('#noMusicWarn').classList.toggle('show', !music.length && !(F.refUseAudio && refAudio));
+  const own = music.filter(m => !String(m.id).startsWith('bed:'));
+  $('#musicList').innerHTML = own.map(m => `<div class="a"><span>${esc(m.name)}</span><span class="muted">${m.an ? m.an.bpm + ' BPM · ' : ''}${m.buffer.duration.toFixed(0)} sn <button data-id="${esc(m.id)}">✕</button></span></div>`).join('');
+  $('#soundtrack').innerHTML = `<option value="none">— Müzik yok —</option><optgroup label="Hazır müzikler">${Object.entries(BEDS).map(([k, b]) => `<option value="bed:${k}">${esc(b.name)}</option>`).join('')}</optgroup>` +
+    (own.length ? `<optgroup label="Eklenenler">${own.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('')}</optgroup>` : '');
+  $('#soundtrack').value = F.soundtrack || 'none';
+  $('#bedBtns').innerHTML = Object.entries(BEDS).map(([k, b]) => `<button class="btn sm${F.soundtrack === 'bed:' + k ? ' primary' : ''}" data-bed="${k}">▶ ${esc(b.name)}</button>`).join('');
+  $('#noMusicWarn').classList.toggle('show', !soundtrack() && !(F.refUseAudio && refAudio));
 }
-$('#musicList').onclick = e => { const b = e.target.closest('button[data-i]'); if (!b) return; const [m] = music.splice(+b.dataset.i, 1); delFile(m.id); if (F.soundtrack === m.id) F.soundtrack = music[0] ? music[0].id : ''; renderMusic(); changed(); };
-$('#soundtrack').onchange = e => { F.soundtrack = e.target.value; changed(); };
+$('#musicList').onclick = e => { const b = e.target.closest('button[data-id]'); if (!b) return; const k = music.findIndex(m => m.id === b.dataset.id); if (k < 0) return; const [m] = music.splice(k, 1); delFile(m.id); if (F.soundtrack === m.id) F.soundtrack = 'none'; renderMusic(); changed(); };
+$('#soundtrack').onchange = async e => { F.soundtrack = e.target.value; if (F.soundtrack.startsWith('bed:')) await ensureBed(F.soundtrack.slice(4)); renderMusic(); changed(); };
+async function ensureBed(k) {
+  const id = 'bed:' + k; if (music.some(m => m.id === id) || !BEDS[k]) return;
+  const buffer = await bedBuffer(k); music.push({ id, name: BEDS[k].name, buffer, an: analyzeAudio(buffer) });
+}
+let auditionSrc = null;
+function audition(buffer, max = 8) { try { if (auditionSrc) auditionSrc.stop(); } catch (e) { } const ctx = live(); const src = ctx.createBufferSource(); src.buffer = buffer; const g = ctx.createGain(); g.gain.value = 0.8; src.connect(g).connect(ctx.destination); src.start(); src.stop(ctx.currentTime + Math.min(max, buffer.duration)); auditionSrc = src; }
+$('#bedBtns').onclick = async e => { const b = e.target.closest('[data-bed]'); if (!b) return; const k = b.dataset.bed; await ensureBed(k); F.soundtrack = 'bed:' + k; audition(music.find(m => m.id === 'bed:' + k).buffer, 10); renderMusic(); changed(); };
+/* efektler */
+async function loadSfx() {
+  for (const k of Object.keys(SFX)) sfxBufs.set(k, await sfxBuffer(k));
+  for (const r of await allFiles()) if (r.kind === 'sfx' && r.slot && SFX[r.slot]) { try { sfxBufs.set(r.slot, await decodeBlob(r.blob)); SFX_CUSTOM[r.slot] = r.name; } catch (e) { } }
+  renderSfx();
+}
+const SFX_CUSTOM = {};
+function renderSfx() {
+  $('#sfxList').innerHTML = Object.entries(SFX).map(([k, x]) => `<span class="btn sm${F.sfxOff[k] ? ' ghost' : ''}" style="display:inline-flex;gap:6px;align-items:center"><label style="display:inline-flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" data-sx="${k}" ${F.sfxOff[k] ? '' : 'checked'}>${esc(x.name)}${SFX_CUSTOM[k] ? ' ★' : ''}</label><button class="link" data-sp="${k}" title="Dinle">▶</button>${SFX_CUSTOM[k] ? `<button class="link" data-sr="${k}" title="Gömülü sese dön">↺</button>` : ''}</span>`).join('');
+}
+$('#sfxList').addEventListener('change', e => { const c = e.target.closest('[data-sx]'); if (!c) return; F.sfxOff[c.dataset.sx] = !c.checked; save(); renderSfx(); });
+$('#sfxList').addEventListener('click', async e => {
+  const p = e.target.closest('[data-sp]'); if (p) { const b = sfxBufs.get(p.dataset.sp); if (b) audition(b, 3); return; }
+  const r = e.target.closest('[data-sr]'); if (r) { const k = r.dataset.sr; for (const f of await allFiles()) if (f.kind === 'sfx' && f.slot === k) delFile(f.id); delete SFX_CUSTOM[k]; sfxBufs.set(k, await sfxBuffer(k)); renderSfx(); }
+});
+/* Freesound */
+let fsHits = [], fsAbort = null;
+$('#fsTest').onclick = async () => { if (!F.fsKey.trim()) { $('#fsStatus').textContent = 'Anahtar boş'; return; } $('#fsStatus').textContent = 'Deneniyor…'; try { await freesoundTest(F.fsKey.trim()); $('#fsStatus').textContent = '✓ Anahtar çalışıyor'; } catch (e) { $('#fsStatus').textContent = '✗ ' + e.message; } };
+async function fsSearch() {
+  if (!F.fsKey.trim()) { $('#fsStatus').textContent = 'Önce Freesound anahtarınızı girin.'; $('#fsKey').focus(); return; }
+  const q = $('#fsQ').value.trim() || ($('#fsType').value === 'music' ? 'background music calm' : 'whoosh'); $('#fsList').innerHTML = '<div class="muted">Aranıyor…</div>';
+  try { fsHits = await freesoundSearch(F.fsKey.trim(), q, { type: $('#fsType').value, cc0: F.fsCC0 }); renderFs(); }
+  catch (e) { $('#fsList').innerHTML = `<div class="muted">✗ ${esc(e.message)}</div>`; }
+}
+function renderFs() {
+  const music = $('#fsType').value === 'music';
+  $('#fsList').innerHTML = fsHits.length ? fsHits.map((h, i) => `<div class="fs-it"><button class="btn sm" data-fp="${i}">▶</button><div><div class="nm" title="${esc(h.name)}">${esc(h.name)}</div><div class="meta">${Math.round(h.dur)} sn · ${esc(h.license)} · ${esc(h.user)}</div></div>` +
+    (music ? `<button class="btn sm primary" data-fu="${i}">Kullan</button>` : `<select data-fs="${i}"><option value="">Kullan…</option>${Object.entries(SFX).map(([k, x]) => `<option value="${k}">${esc(x.name)} yerine</option>`).join('')}</select>`) + '</div>').join('') : '<div class="muted">Sonuç yok. İngilizce kelimelerle deneyin.</div>';
+}
+let fsAudio = null;
+$('#fsList').addEventListener('click', async e => {
+  const p = e.target.closest('[data-fp]');
+  if (p) { const h = fsHits[+p.dataset.fp]; if (fsAudio && !fsAudio.paused && fsAudio._i === +p.dataset.fp) { fsAudio.pause(); return; } if (fsAudio) fsAudio.pause(); fsAudio = new Audio(h.url); fsAudio._i = +p.dataset.fp; fsAudio.play().catch(() => { }); return; }
+  const u = e.target.closest('[data-fu]');
+  if (u) {
+    const h = fsHits[+u.dataset.fu]; u.disabled = true; u.textContent = 'İndiriliyor…';
+    try { const blob = await freesoundFetch(h); const id = 'fs:' + h.id; if (!music.some(m => m.id === id)) await addMusic(blob, `${h.name} (Freesound, ${h.user})`, id); F.soundtrack = id; if (h.license !== 'CC0') { const c = credits(); c[id] = `"${h.name}" by ${h.user} (freesound.org/s/${h.id}), CC BY`; store.set('vs-credits', c); } renderMusic(); changed(); u.textContent = '✓ Seçildi'; }
+    catch (err) { u.textContent = '✗'; toast(err.message); }
+  }
+});
+$('#fsList').addEventListener('change', async e => {
+  const sl = e.target.closest('[data-fs]'); if (!sl || !sl.value) return; const h = fsHits[+sl.dataset.fs], slot = sl.value;
+  try { const blob = await freesoundFetch(h); for (const f of await allFiles()) if (f.kind === 'sfx' && f.slot === slot) delFile(f.id); const id = 'sfx:' + slot + ':' + h.id; await putFile({ id, kind: 'sfx', slot, name: h.name, type: blob.type, blob, order: Date.now() }); sfxBufs.set(slot, await decodeBlob(blob)); SFX_CUSTOM[slot] = h.name; if (h.license !== 'CC0') { const c = credits(); c[id] = `"${h.name}" by ${h.user} (freesound.org/s/${h.id}), CC BY`; store.set('vs-credits', c); } renderSfx(); toast(`"${SFX[slot].name}" için Freesound sesi kullanılıyor`); }
+  catch (err) { toast(err.message); }
+  sl.value = '';
+});
+$('#fsGo').onclick = fsSearch;
+$('#fsQ').addEventListener('keydown', e => { if (e.key === 'Enter') fsSearch(); });
 function updateAudioUI() {
   const st = soundtrack();
   const p = $('#audioPill'); p.className = 'audio-pill ' + (st ? 'on' : 'off'); p.textContent = st ? `🔈 ${st.name}` : '🔇 Ses yok';
@@ -405,7 +519,7 @@ function updateOutInfo() {
   const n = (F.mode === 'each' ? items.length : 1) * F.platforms.length;
   const pl = F.platforms.map(k => `${PLATFORMS[k].name} (${dims(PLATFORMS[k].format, PLATFORMS[k].res).join('×')})`).join(', ');
   $('#outInfo').innerHTML = `<b>${n}</b> dosya · ${esc(pl)} · ${F.fps} fps<br>${F.mode === 'film' ? `Süre <b>${fmtDur(tl.dur)}</b> (${tl.dur.toFixed(1)} sn), ${tl.shots.length} çekim` : 'Her öğe ayrı video'}<br>` +
-    (hasFast() ? 'Hızlı mod (WebCodecs) açık.' : 'Gerçek zamanlı kayıt (Chrome/Edge önerilir).');
+    (hasFast() ? 'Hızlı mod (WebCodecs) açık.' : 'Gerçek zamanlı kayıt (Chrome/Edge önerilir).') + (Object.keys(credits()).length ? `<br><span class="muted">Açıklamaya ekleyin (CC BY): ${esc(Object.values(credits()).join('; '))}</span>` : '');
 }
 function setBusy(v) { busy = v; ['#render', '#renderBtn', '#play', '#seek', '#redirect'].forEach(s => ($(s).disabled = v)); $('#cancel').disabled = !v; $('#hiddenWarn').classList.toggle('show', v); }
 async function renderOne(timeline, name, W, H, mbps, onP) {
@@ -436,7 +550,7 @@ async function renderAll() {
   if (busy || !tl.shots.length) return;
   stopPlayback(); cancelFlag = false; setBusy(true); switchTab('uretim');
   await ensureFonts();
-  if (F.recOn || F.ttsOn) { $('#barTxt').textContent = 'Sesler hazırlanıyor…'; await prepareAudio(m => ($('#barTxt').textContent = m)); }
+  if (F.ttsOn) { $('#barTxt').textContent = 'Seslendirme hazırlanıyor…'; await prepareAudio(m => ($('#barTxt').textContent = m)); }
   const plan = [];
   for (const k of F.platforms) plan.push(k);
   const total = plan.length * (F.mode === 'each' ? items.length : 1);
@@ -490,7 +604,6 @@ $('#loadProj').onchange = async e => {
 
 
 /* ================= Yapay zekâ ================= */
-$('#reciter').innerHTML = Object.entries(RECITERS).map(([k, r]) => `<option value="${k}">${esc(r.name)}</option>`).join('');
 $('#voice').innerHTML = Object.entries(VOICES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
 const GUIDE = `<ol>
 <li><b>Tek komutla kurulum (Mac):</b> Terminal'i açın ve şu satırı yapıştırın:
@@ -524,71 +637,30 @@ async function cfConnect(quiet) {
 $('#olTest').onclick = () => olConnect(false);
 $('#cfTest').onclick = () => cfConnect(false);
 
-let aiAbort = null, lastPlan = store.get('film-plan', null);
-$('#aiWrite').onclick = async () => {
-  const topic = $('#aiTopic').value.trim(); if (!topic) { toast('Önce bir konu yazın'); return; }
-  if (!F.olModel && !(await olConnect(false))) return;
-  if (!F.olModel) { toast('Ollama\'da model yok'); return; }
-  aiAbort = new AbortController(); $('#aiWrite').disabled = true; $('#aiStop').disabled = false;
-  const t0 = performance.now();
-  try {
-    lastPlan = await writeScript({ url: F.olUrl, model: F.olModel, topic, ayahCount: +F.aiCount, tone: F.aiTone, seconds: F.durMode === 'target' ? +F.targetDur : 60, narration: F.aiNarr, signal: aiAbort.signal, onStatus: m => ($('#aiStatus').textContent = m) });
-    store.set('film-plan', lastPlan); renderPlan();
-    $('#aiStatus').textContent = `Senaryo hazır (${((performance.now() - t0) / 1000).toFixed(0)} sn). Kontrol edip listeye uygulayın.`;
-  } catch (e) { $('#aiStatus').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
-  $('#aiWrite').disabled = false; $('#aiStop').disabled = true; aiAbort = null;
-};
-$('#aiStop').onclick = () => aiAbort && aiAbort.abort();
-function planItems(p) {
-  const out = [];
-  if (p.hook) out.push(makeItem({ main: p.hook, tag: p.title, aiText: true, imgPrompt: 'serene cinematic landscape at golden hour, soft light, atmospheric, no people' }));
-  p.items.forEach((v, i) => out.push(makeItem({ main: v.ar, sub: v.tr, src: `${v.sname} Sûresi, ${v.a}`, tag: !p.hook && i === 0 ? p.title : '', ref: { s: v.s, from: v.a, to: v.a }, imgPrompt: v.image || '', sceneHint: v.scene || '' })));
-  if (p.closing) out.push(makeItem({ main: p.closing, aiText: true, imgPrompt: 'calm night sky with stars over quiet hills, cinematic, no people' }));
-  return out;
-}
-function renderPlan() {
-  const p = lastPlan; $('#aiPlan').style.display = p ? '' : 'none'; if (!p) return;
-  $('#aiPlanBox').innerHTML = `<b>${esc(p.title)}</b>${p.style ? ` · stil: ${esc((STYLES[p.style] || {}).name || p.style)}` : ''}` +
-    (p.hook ? `<div class="ay"><i>Giriş:</i> ${esc(p.hook)}</div>` : '') +
-    p.items.map(v => `<div class="ay"><div class="ar">${esc(v.ar)}</div>${esc(v.tr)} <span class="muted">(${esc(v.sname)}, ${v.a})</span>${v.image ? `<br><span class="muted">Görsel: ${esc(v.image)}</span>` : ''}</div>`).join('') +
-    (p.closing ? `<div class="ay"><i>Kapanış:</i> ${esc(p.closing)}</div>` : '');
-  $('#aiYt').value = `${p.youtubeTitle}\n\n${p.description}\n\n${p.items.map(v => `${v.sname} Sûresi, ${v.a}`).join(' · ')}\n\n${p.hashtags.map(h => '#' + h).join(' ')}`;
-}
-$('#aiApply').onclick = () => { if (!lastPlan) return; items = planItems(lastPlan); sel = 0; if (lastPlan.style) F.style = lastPlan.style; F.seed = (F.seed % 9999) + 1; listChanged(); syncUI(); toast('Senaryo listeye uygulandı'); };
-$('#aiAppend').onclick = () => { if (!lastPlan) return; const n = planItems(lastPlan); items.push(...n); listChanged(); toast(`${n.length} öğe eklendi`); };
-$('#aiCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#aiYt').value); toast('Kopyalandı'); } catch (e) { $('#aiYt').select(); } };
-
 /* ses hazırlama */
 function updateAiAudioStatus() {
-  const need = items.filter(it => F.recOn && it.ref && it.ref.from === it.ref.to && !recCache.has(it.id + ':' + F.reciter)).length + items.filter(it => F.ttsOn && needsTTS(it) && !narrCache.has(it.id + ':' + F.voice)).length;
-  $('#audioStatus').textContent = (F.recOn || F.ttsOn) ? (need ? `${need} ses hazırlanmayı bekliyor` : '✓ Sesler hazır') : '';
+  const need = items.filter(it => F.ttsOn && voText(it) && !(narrCache.get(it.id + ':' + F.voice) || {}).buf || (F.ttsOn && voText(it) && (narrCache.get(it.id + ':' + F.voice) || {}).text !== voText(it))).length;
+  $('#audioStatus').textContent = F.ttsOn ? (need ? `${need} sahnenin seslendirmesi hazırlanmayı bekliyor` : '✓ Seslendirme hazır') : '';
 }
-const needsTTS = it => (it.main && !isMostlyRTL(it.main)) || (it.sub && !isMostlyRTL(it.sub));
 async function prepareAudio(onStatus = m => ($('#audioStatus').textContent = m)) {
   let n = 0, fails = 0;
-  for (const it of items) {
-    if (F.recOn && it.ref && it.ref.from === it.ref.to && it.main && !recCache.has(it.id + ':' + F.reciter)) {
-      try { const r = await getRecitation(F.reciter, it.ref.s, it.ref.from, wordsOf(it.main).length, m => onStatus(`#${items.indexOf(it) + 1}: ${m}`)); recCache.set(it.id + ':' + F.reciter, { ...r, n: wordsOf(it.main).length }); n++; }
-      catch (e) { fails++; console.warn('tilavet', e); }
-    }
-    if (F.ttsOn && needsTTS(it) && !narrCache.has(it.id + ':' + F.voice)) {
-      try {
-        const o = { mainText: it.main, subText: it.sub };
-        if (it.main && !isMostlyRTL(it.main)) o.main = await speak(it.main, F.voice, m => onStatus(`#${items.indexOf(it) + 1}: ${m}`));
-        if (it.sub && !isMostlyRTL(it.sub)) o.sub = await speak(it.sub, F.voice, m => onStatus(`#${items.indexOf(it) + 1}: ${m}`));
-        narrCache.set(it.id + ':' + F.voice, o); n++;
-      } catch (e) { fails++; console.warn('tts', e); }
-    }
+  if (!F.ttsOn) return 0;
+  for (const [i, it] of items.entries()) {
+    const text = voText(it); if (!text) continue;
+    const key = it.id + ':' + F.voice, c = narrCache.get(key);
+    if (c && c.text === text && c.buf) continue;
+    try { const buf = await speak(text, F.voice, m => onStatus(`Seslendirme ${i + 1}/${items.length}: ${m}`)); narrCache.set(key, { text, buf }); n++; }
+    catch (e) { fails++; console.warn('tts', e); }
   }
   rebuild(); updateAiAudioStatus();
-  if (fails) onStatus(`${fails} ses alınamadı (internet bağlantısı ya da kaynak engeli olabilir; konsola bakın)`);
+  if (fails) onStatus(`${fails} sahne seslendirilemedi (ses modeli indirilemedi olabilir; "Ses modelini indir"e basın)`);
   return n;
 }
 $('#prepAudio').onclick = async () => { $('#prepAudio').disabled = true; try { await prepareAudio(); } finally { $('#prepAudio').disabled = false; } };
 $('#voiceDl').onclick = async () => { try { await downloadVoice(F.voice, p => ($('#audioStatus').textContent = `Ses modeli %${Math.round(p * 100)}`)); $('#audioStatus').textContent = '✓ Ses modeli hazır'; } catch (e) { $('#audioStatus').textContent = '✗ Ses modeli indirilemedi'; } };
 
 /* görseller */
-const SCENE_PROMPTS = { yildiz: 'starry night sky over desert mountains, milky way, deep blue, cinematic', col: 'golden desert dunes at sunset, soft warm light, cinematic', deniz: 'calm sea at night under moonlight, reflections, cinematic', nur: 'divine light rays through dark clouds, volumetric light, cinematic', cami: 'silhouette of mosque domes and minarets at dusk, purple sky, crescent moon, cinematic', desen: 'golden islamic geometric pattern, ornate, dark background, cinematic lighting', bulut: 'sea of clouds at sunrise, golden light, heavenly, cinematic', soyut: 'abstract flowing light ribbons, dark background, ethereal' };
+const SCENE_PROMPTS = { yildiz: 'starry night sky over desert mountains, milky way, deep blue, cinematic', col: 'golden desert dunes at sunset, soft warm light, cinematic', deniz: 'calm sea at night under moonlight, reflections, cinematic', nur: 'light rays through dark clouds, volumetric light, cinematic', cami: 'city skyline at dusk, purple sky, cinematic', desen: 'golden geometric pattern, ornate, dark background, cinematic lighting', bulut: 'sea of clouds at sunrise, golden light, heavenly, cinematic', soyut: 'abstract flowing light ribbons, dark background, ethereal' };
 function promptFor(it) {
   const base = it.imgPrompt || SCENE_PROMPTS[it.sceneHint] || SCENE_PROMPTS[(STYLES[F.style] || STYLES.nur).scenes[0]] || SCENE_PROMPTS.nur;
   return `${base}, highly detailed, beautiful, atmospheric, professional photography, no people, no text`;
@@ -866,7 +938,7 @@ function switchTab(n) { $$('#tabs button').forEach(b => b.classList.toggle('on',
 $('#tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) switchTab(b.dataset.tab); };
 async function ensureFonts() {
   const fam = s => s.split(',')[0].trim();
-  try { await Promise.race([Promise.all([`700 40px ${fam(F.latinFont)}`, `800 40px ${fam(F.latinFont)}`, `700 40px ${F.arabicFont}`, `400 40px ${F.arabicFont}`, '700 40px Amiri', '500 40px Lora', 'italic 500 40px Lora', '600 30px Inter'].map(f => document.fonts.load(f, 'Ağış بسم ٱلۡ'))), new Promise(r => setTimeout(r, 5000))]); } catch (e) { }
+  try { await Promise.race([Promise.all(['800 40px Montserrat', '700 40px Montserrat', '500 40px Inter', '700 40px "Playfair Display"', `700 40px ${fam(F.latinFont || 'Montserrat')}`, `800 40px ${fam(F.latinFont || 'Montserrat')}`, `700 40px ${F.arabicFont}`, `400 40px ${F.arabicFont}`, '700 40px Amiri', '500 40px Lora', 'italic 500 40px Lora', '600 30px Inter'].map(f => document.fonts.load(f, 'Ağış بسم ٱلۡ'))), new Promise(r => setTimeout(r, 5000))]); } catch (e) { }
 }
 window.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 
@@ -879,7 +951,10 @@ window.filmDebug = { tl: () => tl, film, PK, flow: () => flow, setFlow: f => { f
   for (const it of items) if (it.imgId) await loadImage(it.imgId);
   for (const it of items) for (const v of it.vids || []) await loadVideo(v.id);
   for (const v of flow) await loadVideo(v.id);
-  rebuild(false); syncUI(); renderPlan(); renderImgGrid(); renderStockGrid(); updateAiAudioStatus();
+  await loadLogo(); await loadSfx(); renderFormats(); syncBrief();
+  { const sh = store.get('vs-share', ''); if (sh) { $('#shareText').value = sh; $('#shareBox').style.display = ''; } }
+  if (String(F.soundtrack).startsWith('bed:')) await ensureBed(F.soundtrack.slice(4));
+  rebuild(false); syncUI(); renderImgGrid(); renderStockGrid(); renderMusic(); updateAiAudioStatus();
   // motorlar programla birlikte açılıyorsa birkaç dakika boyunca sessizce yeniden dene
   (async () => { let a = false, b = false; for (let i = 0; i < 25 && !(a && b); i++) { if (i) await new Promise(r => setTimeout(r, 5000)); if (!a) a = await olConnect(true); if (!b) b = await cfConnect(true); } })();
   $('#loading').classList.add('hide');

@@ -1,6 +1,6 @@
 // 3D yazı: her kelime ayrı bir düzlem (doku) olarak uzayda canlandırılır. Arapça şekillendirme 2D kanvasla yapılır.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221506';
-import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221506';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221556';
+import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221556';
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeOut = p => 1 - Math.pow(1 - p, 3);
@@ -43,7 +43,8 @@ export function buildText(lines, opts) {
   const maxW = W * Math.min(portrait ? 0.8 : 0.7, 1 - safe.side * 2);
   const areaH = H * (1 - safe.top - safe.bottom), centerY = H * (safe.top + (1 - safe.top - safe.bottom) / 2);
   const get = role => lines.find(l => l.role === role && l.text && l.text.trim());
-  const tag = get('tag'), main = get('main'), sub = get('sub'), src = get('src');
+  const tag = get('tag'), main = get('main'), sub = get('sub'), src = get('src'), num = get('num'), cta = get('cta');
+  const logoImg = lines.some(l => l.role === 'logo') ? opts.logo : null;
 
   const blocks = [];
   const arFam = `${fonts.ar}, Amiri, serif`;
@@ -57,13 +58,20 @@ export function buildText(lines, opts) {
   }
   if (sub) {
     const rtl = isMostlyRTL(sub.text);
-    const L = layoutBlock(sub.text, { latin: fonts.sub, ar: arFam, wLatin: '500', wAr: '400' }, maxW * 0.95, Math.min(H * (main ? 0.22 : 0.45), areaH * (main ? 0.3 : 0.65)),
+    const L = layoutBlock(sub.text, { latin: fonts.sub, ar: arFam, wLatin: /Inter|Montserrat/.test(fonts.sub) ? '500' : '500', wAr: '400' }, maxW * 0.95, Math.min(H * (main ? 0.22 : 0.45), areaH * (main ? 0.3 : 0.65)),
       m * (main ? 0.05 : 0.075) * (rtl ? 1.2 : 1) * (opts.size || 1), 16, rtl ? 1.7 : 1.42);
     blocks.push({ L, role: 'sub', color: style.sub });
   }
   const gap = m * 0.06;
-  const total = blocks.reduce((a, b) => a + b.L.height, 0) + gap * Math.max(0, blocks.length - 1);
-  let y = centerY - total / 2;
+  const badgeS = num ? m * (num.text.length > 2 ? 0.11 : 0.15) : 0;
+  const logoH = logoImg ? m * 0.17 : 0;
+  const ctaH = cta ? m * 0.095 : 0;
+  const pre = (badgeS ? badgeS + gap * 0.7 : 0) + (logoH ? logoH + gap * 0.7 : 0);
+  const post = ctaH ? ctaH + gap * 1.1 : 0;
+  const textTotal = blocks.reduce((a, b) => a + b.L.height, 0) + gap * Math.max(0, blocks.length - 1);
+  const total = textTotal;
+  let y = centerY - (textTotal + pre + post) / 2 + pre;
+  const stackTop = y - pre;
   let gi = 0;
   for (const b of blocks) {
     placeBlock(b.L, W / 2, y);
@@ -89,7 +97,7 @@ export function buildText(lines, opts) {
     const bw = Math.max(...blocks.map(b => Math.max(...b.L.lines.map(l => l.width)))) * u * 1.5 + m * u * 0.2;
     const bh = total * u * 1.8 + m * u * 0.15;
     scrim = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), textMaterial(t, '#ffffff'));
-    scrim.position.set(0, (H / 2 - centerY) * u, -0.01); scrim.renderOrder = 5;
+    scrim.position.set(0, (H / 2 - (stackTop + (textTotal + pre + post) / 2)) * u, -0.01); scrim.renderOrder = 5;
     group.add(scrim);
   }
   const extras = [];
@@ -104,10 +112,52 @@ export function buildText(lines, opts) {
     mesh.position.set(0, (H / 2 - py) * u, 0); mesh.renderOrder = 10; mesh.userData = { y: (H / 2 - py) * u };
     group.add(mesh); extras.push(mesh); return mesh;
   };
-  const topY = centerY - total / 2;
-  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase('tr'), Math.max(H * (safe.top + 0.02), topY - m * 0.09), style.accent, `600 ${Math.round(m * 0.03)}px Inter, sans-serif`, m * 0.03, 1) : null;
-  const srcMesh = src ? smallLine('— ' + src.text + ' —', Math.min(H * (1 - safe.bottom - 0.02), y + m * 0.03), style.accent, `italic 500 ${Math.round(m * 0.032)}px Lora, serif`, m * 0.032) : null;
-  return { group, words, tagMesh, srcMesh, scrim, u, count: gi };
+  const topY = stackTop + pre;
+  // numara rozeti, logo, vurgu çizgisi, çağrı düğmesi
+  const canvasMesh = (c, cx, cy, kind) => {
+    const t = new THREE.CanvasTexture(c); t.anisotropy = 4;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(c.width * u, c.height * u), textMaterial(t, '#ffffff'));
+    mesh.position.set((cx - W / 2) * u, (H / 2 - cy) * u, 0.01); mesh.renderOrder = 11; mesh.userData = { x: (cx - W / 2) * u, y: (H / 2 - cy) * u, kind };
+    group.add(mesh); return mesh;
+  };
+  let badge = null, logo = null, bar = null, ctaMesh = null;
+  if (num) {
+    const S = Math.ceil(badgeS * 1.25), c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+    const r = badgeS / 2, cx = S / 2;
+    g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = badgeS * 0.12; g.shadowOffsetY = badgeS * 0.03;
+    g.fillStyle = style.accent; g.beginPath(); g.arc(cx, cx, r, 0, Math.PI * 2); g.fill(); g.shadowColor = 'transparent';
+    g.fillStyle = style.badgeText || '#111111'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `800 ${Math.round(badgeS * (num.text.length > 1 ? 0.5 : 0.62))}px Montserrat, Inter, sans-serif`; g.fillText(num.text, cx, cx + badgeS * 0.03);
+    badge = canvasMesh(c, W / 2, stackTop + badgeS / 2, 'badge');
+  }
+  if (logoImg) {
+    const ar = (logoImg.naturalWidth || logoImg.width) / Math.max(1, logoImg.naturalHeight || logoImg.height);
+    const lw = Math.min(maxW * 0.6, logoH * ar), lh = lw / ar;
+    const c = document.createElement('canvas'); c.width = Math.ceil(lw); c.height = Math.ceil(lh); c.getContext('2d').drawImage(logoImg, 0, 0, c.width, c.height);
+    logo = canvasMesh(c, W / 2, stackTop + (badgeS ? badgeS + gap * 0.7 : 0) + logoH / 2, 'logo');
+  }
+  if (main && style.bar !== false && blocks.length) {
+    const mb = blocks.find(b => b.role === 'main');
+    if (mb && !isMostlyRTL(main.text)) {
+      const bw = Math.min(m * 0.16, Math.max(...mb.L.lines.map(l => l.width)) * 0.5), bh = Math.max(3, m * 0.007);
+      const c = document.createElement('canvas'); c.width = Math.ceil(bw); c.height = Math.ceil(bh); const g = c.getContext('2d'); g.fillStyle = style.accent; g.fillRect(0, 0, c.width, c.height);
+      const by = topY + mb.L.height + (blocks.length > 1 ? gap * 0.5 : gap * 0.45);
+      bar = canvasMesh(c, W / 2, by, 'bar');
+    }
+  }
+  if (cta) {
+    const fs = Math.round(m * 0.038), c0 = document.createElement('canvas').getContext('2d'); c0.font = `800 ${fs}px Montserrat, Inter, sans-serif`;
+    const txt = cta.text.toLocaleUpperCase('tr'); const tw = c0.measureText(txt).width;
+    const pw = Math.ceil(tw + fs * 2.4), ph = Math.ceil(fs * 2.2), pad = Math.ceil(fs * 0.6);
+    const c = document.createElement('canvas'); c.width = pw + pad * 2; c.height = ph + pad * 2; const g = c.getContext('2d');
+    g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = fs * 0.5; g.shadowOffsetY = fs * 0.12;
+    g.fillStyle = style.accent; const rr = ph / 2; g.beginPath(); g.moveTo(pad + rr, pad); g.arcTo(pad + pw, pad, pad + pw, pad + ph, rr); g.arcTo(pad + pw, pad + ph, pad, pad + ph, rr); g.arcTo(pad, pad + ph, pad, pad, rr); g.arcTo(pad, pad, pad + pw, pad, rr); g.closePath(); g.fill();
+    g.shadowColor = 'transparent'; g.fillStyle = style.badgeText || '#111111'; g.font = `800 ${fs}px Montserrat, Inter, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, c.width / 2, c.height / 2 + fs * 0.05);
+    ctaMesh = canvasMesh(c, W / 2, topY + textTotal + gap * 1.1 + ctaH / 2, 'cta');
+  }
+  const tagMesh = tag ? smallLine(tag.text.toLocaleUpperCase('tr'), Math.max(H * (safe.top + 0.02), (pre ? stackTop : topY) - m * 0.09), style.accent, `600 ${Math.round(m * 0.03)}px Inter, sans-serif`, m * 0.03, 1) : null;
+  const srcMesh = src ? smallLine('— ' + src.text + ' —', Math.min(H * (1 - safe.bottom - 0.02), y + post + m * 0.03), style.accent, `italic 500 ${Math.round(m * 0.032)}px Lora, serif`, m * 0.032) : null;
+  return { group, words, tagMesh, srcMesh, scrim, u, count: gi, badge, logo, bar, ctaMesh };
 }
 
 export function disposeText(T) {
@@ -154,6 +204,10 @@ export function animateText(T, lt, dur, anim, style, seed = 1, timing = null, al
   const extraIn = e => easeOut(clamp(e));
   if (T.tagMesh) { const a = extraIn((lt - 0.05) / 0.6); T.tagMesh.material.uniforms.opacity.value = a * alpha; T.tagMesh.position.y = T.tagMesh.userData.y + 0.08 * (1 - a); }
   if (T.srcMesh) { const a = extraIn((lt - readEnd) / 0.7); T.srcMesh.material.uniforms.opacity.value = a * alpha; T.srcMesh.position.y = T.srcMesh.userData.y - 0.06 * (1 - a); }
+  const pop = (mesh, at, dur2 = 0.55) => { if (!mesh) return 0; const p = clamp((lt - at) / dur2); const s = p <= 0 ? 0.001 : Math.max(0.001, easeOutBack(p)); mesh.scale.set(s, s, 1); mesh.material.uniforms.opacity.value = clamp(p * 2) * alpha; mesh.visible = p > 0 && alpha > 0.001; return p; };
+  pop(T.logo, 0.05, 0.8); pop(T.badge, 0.08, 0.5);
+  if (T.bar) { const p = easeOut(clamp((lt - 0.35) / 0.6)); T.bar.scale.set(Math.max(0.001, p), 1, 1); T.bar.material.uniforms.opacity.value = alpha * (p > 0 ? 1 : 0); }
+  if (T.ctaMesh) { const at = Math.min(readEnd, Math.max(0.6, dur * 0.35)); const p = pop(T.ctaMesh, at, 0.6); if (p >= 1) { const k = 1 + 0.045 * Math.max(0, Math.sin((lt - at) * 4.2)); T.ctaMesh.scale.set(k, k, 1); } }
   if (T.scrim) { const first = T.words.length ? Math.min(...T.words.map(w => (timing && w.userData.role === 'main' && timing[w.userData.i] != null) ? timing[w.userData.i] : 0.25)) : 0; T.scrim.material.uniforms.opacity.value = (style.scrim ?? 0.55) * alpha * easeOut(clamp((lt - first + 0.3) / 0.8)); }
   // tüm grup hafifçe kameraya süzülür
   const s = 1 + 0.025 * clamp(lt / Math.max(1, dur));

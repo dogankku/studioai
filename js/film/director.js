@@ -1,7 +1,7 @@
 // Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
-import { STYLES, SCENES } from './styles.js?v=202611221506';
+import { STYLES, SCENES } from './styles.js?v=202611221556';
 const SCENE_KEYS = Object.keys(SCENES).filter(k => k !== 'gorsel' && k !== 'video');
-import { isMostlyRTL } from '../renderer.js?v=202611221506';
+import { isMostlyRTL } from '../renderer.js?v=202611221556';
 
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -69,6 +69,21 @@ export function direct(items, o = {}) {
     const tag = (it.tag || '').trim(), src = (it.src || '').trim();
     const local = [];
     const LEAD = 0.5;
+    if (it.kind) { // profesyonel format sahnesi: tek çekim, seslendirmeye göre süre
+      const L = [];
+      if (tag) L.push({ role: 'tag', text: tag });
+      if (it.num) L.push({ role: 'num', text: String(it.num) });
+      if (it.logo) L.push({ role: 'logo', text: '' });
+      if (main) L.push({ role: 'main', text: main });
+      if (sub) L.push({ role: 'sub', text: sub });
+      if (it.cta) L.push({ role: 'cta', text: it.cta });
+      if (src) L.push({ role: 'src', text: src });
+      const base = readTime(`${main} ${sub}`, pace) + (it.cta ? 1.2 : 0) + (it.kind === 'hook' ? 0.4 : 0);
+      if (it._vo) local.push({ lines: L, rt: Math.max(2.4, LEAD + it._vo.dur + 0.55), lock: true, clip: { key: `vo:${ii}`, offset: LEAD }, kind: it.kind });
+      else local.push({ lines: L, rt: Math.max(it.kind === 'hook' ? 2.6 : 2.2, base), kind: it.kind });
+      local.forEach((sg, k) => segs.push({ ...sg, item: ii, first: k === 0, last: k === local.length - 1, kInItem: k, nInItem: local.length, keyText: `${main} ${sub}` }));
+      return;
+    }
     const spoken = (phrases, narr, key, extra = {}) => { // seslendirilen ifadeler: toplam süre sese göre, karakter uzunluğuna orantılı
       const tot = LEAD + narr.dur + 0.7, L = phrases.reduce((a, p) => a + p.length, 0) || 1;
       phrases.forEach((ph, k) => local.push({ lines: [{ role: 'main', text: ph }], rt: Math.max(1.4, tot * ph.length / L), lock: true, clip: k === 0 ? { key, offset: LEAD } : null, ...extra }));
@@ -195,7 +210,7 @@ export function direct(items, o = {}) {
       image: (scene === 'gorsel' || scene === 'video') && items[s.item] ? items[s.item]._img || null : null,
       videos: scene === 'video' ? vids : null, flow: scene === 'video' && !!flow,
       i, key: `${s.item}:${s.kInItem}${s.cov ? ':' + s.cov : ''}`, cont: !!s.cont, title: !!s.title, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
-      lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.cont ? null : (s.timing || null), clip: s.clip || null
+      lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.cont ? null : (s.timing || null), clip: s.clip || null, kind: s.kind || null
     });
     prevScene = scene;
   });
