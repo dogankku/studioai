@@ -35,6 +35,14 @@ Yazdığınız metni **profesyonel kısa videoya** dönüştüren web uygulamas�
   - **Hazır müzikler:** sakin ambiyans, lo-fi, kurumsal, sinematik ve enerjik. Program bunları kendisi sentezler, telif sorunu yoktur.
   - **Gömülü efektler:** hışırtı, vurgu, pop, yükselen ses, zil ve tık. Sahne türüne göre otomatik yerleşir. Her biri açılıp kapatılabilir ve dinlenebilir.
   - **Freesound araması (ücretsiz anahtar):** müzik ve efekt aranıp dinlenebilir. Bulunan bir müzik film müziği yapılabilir, bir efekt de herhangi bir gömülü efektin yerine kullanılabilir. CC BY lisanslı seslerin kaynak bilgisi Üretim sekmesinde listelenir.
+- **Kelime kelime altyazı:** TikTok ve Reels tarzında, seslendirmeyle senkron. Konuşulan kelime renkli ya da kutulu gösterilir.
+- **Kendi medyanız:** fotoğraf ve videolarınızı çekim akışına ya da tek bir sahneye ekleyebilirsiniz.
+- **Ses ayarları:** seslendirme hızı, tonu ve cümle arası durak ayarlanır. Sahne başına kendi sesinizi kaydedebilirsiniz.
+- **Marka kiti:** renkler, yazı tipi, logo, logolu giriş ve kapanış kartı ve köşede filigran bir kez kaydedilir, bütün videolara uygulanır.
+- **Sahne düzenleri:** ortada, sola dayalı, alt bant paneli, sayaçlı büyük istatistik ve fotoğraf kartı.
+- **Kapak görseli:** her platform için PNG olarak üretilir.
+- **Otomatik müzik ve çekim:** formata uygun müzik (Freesound ya da hazır müzik) ve her sahneye uygun Pixabay çekimi tek tıkla seçilir.
+- **Toplu üretim:** bir konu listesinden çok sayıda video üretilir.
 - **Sahne görselleri (ComfyUI, yerel):** çekim kullanılmayan sahneler için yapay zekâ görseli üretilebilir.
 - **Yönetmen:**
   - Kamera hareketlerini ve geçişleri dağıtır. Kesmeleri müziğin ritmine oturtabilir.
