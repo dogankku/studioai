@@ -115,3 +115,6 @@
 .fs-it .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fs-it .meta { font-size: 10px; opacity: .6; }
 .fs-it button { padding: 3px 8px; }
+.qc { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,.03); margin-bottom: 4px; }
+.qc.err { background: rgba(255,80,80,.1); } .qc.warn { background: rgba(255,190,60,.08); } .qc.ok { color: #7ddc9a; }
+.qc button { flex: 0 0 auto; }

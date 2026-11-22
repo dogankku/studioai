@@ -1,22 +1,22 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221625';
-import { direct, clipsOf } from './film/director.js?v=202611221625';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221625';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221625';
-import { makeItem, plainItem } from './parser.js?v=202611221625';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221625';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221625';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221625';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221625';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221625';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221625';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221625';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221625';
-import { newId } from './parser.js?v=202611221625';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221625';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221625';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221625';
-import { detectScene } from './film/director.js?v=202611221625';
+import { Film } from './film/player.js?v=202611221639';
+import { direct, clipsOf } from './film/director.js?v=202611221639';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221639';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221639';
+import { makeItem, plainItem } from './parser.js?v=202611221639';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221639';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221639';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221639';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221639';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221639';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221639';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221639';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221639';
+import { newId } from './parser.js?v=202611221639';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221639';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221639';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221639';
+import { detectScene } from './film/director.js?v=202611221639';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -678,6 +678,7 @@ function jobsFor(platKey) {
 }
 async function renderAll() {
   if (busy || !tl.shots.length) return;
+  if (!batchName) { const L = renderQC(); if (L.some(x => x.lv === 'err') && !confirm('Kalite kontrolünde önemli sorunlar var (Üretim sekmesinde listelendi). Yine de üretilsin mi?')) { switchTab('uretim'); return; } }
   stopPlayback(); cancelFlag = false; setBusy(true); switchTab('uretim');
   await ensureFonts();
   if (F.ttsOn) { $('#barTxt').textContent = 'Seslendirme hazırlanıyor…'; await prepareAudio(m => ($('#barTxt').textContent = m)); }
@@ -699,6 +700,74 @@ async function renderAll() {
   [PW, PH] = previewDims(); cv.width = PW; cv.height = PH; film.resize(PW, PH); film.safe = PV().safe; fitCanvas();
   setBusy(false); rebuild();
 }
+/* otomatik kalite kontrolü */
+function qcIssues() {
+  const out = []; const add = (lv, msg, fix, label) => out.push({ lv, msg, fix, label });
+  const short = F.platforms.filter(k => ['shorts', 'reels'].includes(k));
+  if (short.length && tl.dur > 180) add('err', `Video ${fmtDur(tl.dur)}; Shorts/Reels için 3 dakikayı geçmemeli.`, () => { F.durMode = 'target'; F.targetDur = 60; }, 'Süreyi 1 dk yap');
+  else if (short.length && tl.dur > 90) add('warn', `Video ${fmtDur(tl.dur)}; Reels/Shorts'ta 15–60 sn arası daha çok izlenir.`, null);
+  if (tl.dur < 5) add('warn', 'Video 5 saniyeden kısa.', null);
+  if (!items.length) add('err', 'Hiç sahne yok.', null);
+  const hasVoice = tl.clips && tl.clips.some(c => c.key.startsWith('vo:'));
+  if (F.ttsOn && items.some(it => voText(it) && !narrOf(it))) add('info', 'Bazı sahnelerin seslendirmesi henüz hazırlanmadı (üretimde otomatik hazırlanır).', async () => { await prepareAudio(); }, 'Şimdi hazırla');
+  if (!soundtrack() && !hasVoice && !F.ttsOn) add('warn', 'Videoda ne müzik ne seslendirme var; sessiz çıkar.', async () => { await ensureBed('kurumsal'); F.soundtrack = 'bed:kurumsal'; renderMusic(); }, 'Hazır müzik ekle');
+  if (soundtrack() && (hasVoice || F.ttsOn) && +F.musicVol > 0.85) add('warn', 'Müzik seviyesi yüksek; seslendirme zor anlaşılabilir.', () => { F.musicVol = 0.6; }, 'Müziği %60 yap');
+  items.forEach((it, i) => {
+    const w = (it.main || '').split(/\s+/).filter(Boolean).length;
+    if (it.kind && w > 10) add('warn', `Sahne ${i + 1}: başlık ${w} kelime; ekranda en çok 7–8 kelime okunaklıdır.`, () => { const ws = it.main.split(/\s+/); it.sub = (ws.slice(7).join(' ') + (it.sub ? ' ' + it.sub : '')).trim(); it.main = ws.slice(0, 7).join(' '); if (!it.vo) it.vo = [ws.join(' '), it.sub].join(' '); }, 'Başlığı kısalt');
+    if ((it.sub || '').split(/\s+/).length > 28 && !(F.capOn && F.ttsOn && F.capHideSub)) add('warn', `Sahne ${i + 1}: açıklama uzun; ekranda okunmayabilir.`, null);
+  });
+  tl.shots.forEach((s, i) => { if (s.cont || s.clip) return; const n = s.lines.reduce((a, l) => a + (['main', 'sub'].includes(l.role) ? l.text.split(/\s+/).length : 0), 0); if (n && s.dur < 0.9 + n * 0.28) add('warn', `Çekim ${i + 1} çok hızlı (${s.dur.toFixed(1)} sn, ${n} kelime).`, () => { F.pace = Math.max(0.6, +F.pace - 0.15); }, 'Tempoyu yavaşlat'); });
+  if (kit.on && (kit.mark || (kit.intro && !kit.introText) || (kit.outro && !kit.outroText)) && !film.logo) add('warn', 'Marka kitinde logo kullanılıyor ama logo yüklenmedi.', null);
+  if (F.stockOn && F.stockMode === 'flow' && !flowIds().length && F.pxKey) add('info', 'Çekim akışı boş; arka planda 3D sahneler kullanılacak.', null);
+  return out;
+}
+function renderQC() {
+  const L = qcIssues();
+  $('#qcList').innerHTML = L.length ? L.map((x, i) => `<div class="qc ${x.lv}"><span>${x.lv === 'err' ? '⛔' : x.lv === 'warn' ? '⚠️' : 'ℹ️'} ${esc(x.msg)}</span>${x.fix ? `<button class="btn sm" data-qf="${i}">${esc(x.label)}</button>` : ''}</div>`).join('') : '<div class="qc ok">✓ Sorun bulunmadı.</div>';
+  $('#qcList')._L = L; return L;
+}
+$('#qcList').addEventListener('click', async e => { const b = e.target.closest('[data-qf]'); if (!b) return; const x = $('#qcList')._L[+b.dataset.qf]; if (!x || !x.fix) return; b.disabled = true; await x.fix(); save(); syncUI(); renderList(); loadEditor(); rebuild(); renderQC(); });
+$('#qcBtn').onclick = () => renderQC();
+
+/* altyazı dosyası (SRT) ve GIF */
+const srtTime = t => { const ms = Math.max(0, Math.round(t * 1000)); const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, s2 = Math.floor(ms / 1000) % 60, r = ms % 1000; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s2).padStart(2, '0')},${String(r).padStart(3, '0')}`; };
+function buildSRT() {
+  const cues = [];
+  // seslendirme varsa: cümle parçaları (en çok ~7 kelime) seslendirme zamanlarıyla
+  const words = [];
+  for (const c of tl.clips || []) { const [kind, idx] = c.key.split(':'); if (kind !== 'vo') continue; const it = allItems()[+idx]; const n = it && narrOf(it); if (!n) continue; if (!n.words) n.words = wordTimes(n.text || voText(it), n.buf); words.push(n.words.map(w => ({ w: w.w, s: w.s + c.start, e: w.e + c.start }))); }
+  if (words.length) for (const ws of words) for (const ch of chunkWords(ws, 7, 42)) cues.push([ch.s, ch.e + 0.15, ch.words.map(w => w.w).join(' ')]);
+  else for (const s of tl.shots) { if (s.cont) continue; const txt = s.lines.filter(l => ['main', 'sub'].includes(l.role)).map(l => l.text).join('\n'); if (txt.trim()) cues.push([s.start + 0.2, s.start + s.dur - 0.1, txt]); }
+  return cues.map((c, i) => `${i + 1}\n${srtTime(c[0])} --> ${srtTime(c[1])}\n${c[2]}\n`).join('\n');
+}
+$('#srtBtn').onclick = async () => {
+  if (F.ttsOn) await prepareAudio(m => ($('#barTxt').textContent = m));
+  rebuild(); const t = buildSRT(); if (!t) { toast('Altyazı çıkacak metin yok'); return; }
+  const blob = new Blob(['\ufeff' + t], { type: 'text/plain;charset=utf-8' }); const name = `${slug(brief.title || 'video') || 'video'}.srt`;
+  results.push({ name, blob, size: blob.size, plat: 'Altyazı dosyası (YouTube\'a yüklenebilir)', img: true, url: null }); renderResults(); switchTab('uretim'); toast('Altyazı dosyası hazır');
+};
+$('#gifBtn').onclick = async () => {
+  if (busy || !tl.shots.length) return; stopPlayback(); setBusy(true); switchTab('uretim'); await ensureFonts();
+  try {
+    const { GIFEncoder, quantize, applyPalette } = await import('../vendor/gifenc.js?v=202611221556');
+    const p = PV(); const [W0, H0] = dims(p.format, 1080); const k = 360 / Math.min(W0, H0), W = Math.round(W0 * k / 2) * 2, H = Math.round(H0 * k / 2) * 2;
+    cv.width = W; cv.height = H; film.resize(W, H); film.safe = p.safe; rebuild();
+    const fps = 12, dur = Math.min(+($('#gifDur').value) || 6, tl.dur), n = Math.round(dur * fps);
+    const gif = GIFEncoder(); const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H; const g = tmp.getContext('2d', { willReadFrequently: true });
+    for (let f = 0; f < n; f++) {
+      const t = f / fps; await film.prepare(t); film.render(t); g.drawImage(cv, 0, 0);
+      const data = g.getImageData(0, 0, W, H).data; const pal = quantize(data, 128); gif.writeFrame(applyPalette(data, pal), W, H, { palette: pal, delay: Math.round(1000 / fps) });
+      $('#bar').style.width = ((f + 1) / n * 100).toFixed(0) + '%'; $('#barTxt').textContent = `GIF %${Math.round((f + 1) / n * 100)}`;
+      if (f % 4 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+    gif.finish(); const blob = new Blob([gif.bytes()], { type: 'image/gif' });
+    results.push({ name: `${slug(brief.title || 'video') || 'video'}.gif`, blob, size: blob.size, plat: `GIF önizleme · ${dur} sn`, img: true, url: null }); renderResults();
+    $('#barTxt').textContent = 'GIF hazır';
+  } catch (e) { console.error(e); $('#barTxt').textContent = 'Hata: ' + e.message; }
+  [PW, PH] = previewDims(); cv.width = PW; cv.height = PH; film.resize(PW, PH); film.safe = PV().safe; fitCanvas(); setBusy(false); rebuild();
+};
+
 /* toplu üretim */
 let batchName = '', batchStop = false;
 function parseBatch(t) {
@@ -1147,7 +1216,7 @@ $('#stockGrid').addEventListener('click', e => { const p = e.target.closest('[da
 $('#stockGrid').addEventListener('change', e => { const q = e.target.closest('[data-sq]'); if (q) { items[+q.dataset.sq].stockQ = q.value.trim(); save(); } });
 
 /* ================= Genel ================= */
-function switchTab(n) { $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n)); $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === n)); }
+function switchTab(n) { if (n === 'uretim') try { renderQC(); } catch (e) { } $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === n)); $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === n)); }
 $('#tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) switchTab(b.dataset.tab); };
 async function ensureFonts() {
   const fam = s => s.split(',')[0].trim();
