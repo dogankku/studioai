@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221641">
-<link rel="stylesheet" href="css/style.css?v=202611221641">
-<link rel="stylesheet" href="css/film.css?v=202611221641">
+<link rel="stylesheet" href="css/fonts.css?v=202611221642">
+<link rel="stylesheet" href="css/style.css?v=202611221642">
+<link rel="stylesheet" href="css/film.css?v=202611221642">
 </head>
 <body>
 <div class="app film">
@@ -33,6 +33,7 @@
 
     <!-- SENARYO -->
     <section class="pane on" data-pane="metin">
+      <details class="card" id="tplBox"><summary class="ttl">Hazır şablonlar <span class="muted" style="text-transform:none;letter-spacing:0">(sektöre göre örnek video)</span></summary><div class="tpls" id="tplGrid"></div></details>
       <div class="ttl">1 · Format</div>
       <div class="fmts" id="fmts"></div>
       <div class="ttl mt">2 · Bilgiler</div>
@@ -268,7 +269,13 @@
       <div class="card info" id="outInfo"></div>
       <div class="card"><div class="ttl">Kalite kontrolü <button class="link" id="qcBtn">yeniden kontrol et</button></div><div id="qcList"></div></div>
       <div class="row-btns"><button class="btn primary" id="render">● Videoyu üret</button><button class="btn ghost" id="cancel" disabled>Durdur</button></div>
-      <details class="card"><summary class="ttl">Toplu üretim</summary>
+      <details class="card"><summary class="ttl">İçerik takvimi <span class="muted" style="text-transform:none;letter-spacing:0">(yapay zekâ ile video planı)</span></summary>
+        <label for="calTopic">Konu ya da sektör</label><input type="text" id="calTopic" placeholder="ör. sağlıklı beslenme, kafe işletmesi, kişisel finans">
+        <div class="row"><div><label for="calN">Video sayısı</label><select id="calN"><option value="5">5</option><option value="7" selected>7 (1 hafta)</option><option value="14">14 (2 hafta)</option><option value="30">30 (1 ay)</option></select></div><div><label>&nbsp;</label><div class="hint" style="margin:6px 0">Senaryo sekmesinde seçili format kullanılır.</div></div></div>
+        <div class="row-btns mt8"><button class="btn sm primary" id="calGo">✨ Takvim oluştur</button><button class="btn sm ghost" id="calStop" disabled>Durdur</button></div>
+        <div class="hint" id="calInfo">Plan, toplu üretim kutusuna aktarılır; oradan hepsini tek seferde video yaparsınız. 30 günlük plan Intel işlemcide 5-10 dakika sürebilir.</div>
+      </details>
+      <details class="card" id="batchBox"><summary class="ttl">Toplu üretim</summary>
         <div class="hint">Her video için ilk satır başlık, alt satırlar metin. Videoları <b>---</b> satırıyla ayırın. Seçili format, stil, marka kiti, ses ve platformlar kullanılır.</div>
         <textarea id="batchText" rows="7" placeholder="Uyku neden önemli?
 Uyku beyni temizler.
@@ -329,7 +336,7 @@ Odaklanmayı artırır
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221641"></script>
-<script type="module" src="js/film-app.js?v=202611221641"></script>
+<script src="vendor/jszip.min.js?v=202611221642"></script>
+<script type="module" src="js/film-app.js?v=202611221642"></script>
 </body>
 </html>

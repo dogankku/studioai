@@ -2,7 +2,7 @@
 // Sahne: { kind, tag, main, sub, num, cta, src, vo, q }
 //   kind: hook | point | item | quote | problem | solution | feature | price | cta
 //   vo: seslendirilecek metin (yoksa main + sub okunur), q: çekim arama ipucu
-import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221641';
+import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221642';
 
 export const FORMATS = {
   bilgi: {
@@ -131,4 +131,22 @@ Ayrıca YouTube başlığı (youtubeTitle), 2-3 cümlelik açıklama (descriptio
   }).filter(s => s.main);
   const share = [j.youtubeTitle, j.description, (j.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h.replace(/\s+/g, '')).join(' ')].filter(Boolean).join('\n\n');
   return { scenes, share, title: j.title || brief.title || '' };
+}
+
+/** İçerik takvimi: konu/sektör için n günlük video planı (her biri başlık + metin) */
+export async function aiCalendar(topic, n, fmt, { url, model, signal, onStatus = () => { } } = {}) {
+  const F = FORMATS[fmt] || FORMATS.bilgi;
+  const how = { bilgi: 'metin: 3-4 kısa paragraf (her biri 1-2 cümle), birbirinden boş satırla ayrılmış',
+    liste: 'metin: 5 satır, her satır "Başlık: kısa açıklama" biçiminde',
+    soz: 'metin: tek bir anlamlı söz ve son satırda "— Söyleyen" (gerçek ve doğru atfedilmiş sözler kullan; emin değilsen söyleyen satırını yazma)',
+    urun: 'metin: ilk satır müşterinin sorunu (soru), boş satır, ikinci satır çözüm cümlesi, sonra "-" ile başlayan 3 özellik satırı' }[fmt] || '';
+  const schema = { type: 'object', properties: { videos: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, text: { type: 'string' } }, required: ['title', 'text'] } } }, required: ['videos'] };
+  onStatus(`${n} günlük plan yazılıyor… (Intel işlemcide birkaç dakika sürebilir)`);
+  const raw = await ollamaChat(url, model, [
+    { role: 'system', content: 'Sen sosyal medya içerik planlayıcısısın. Türkçe yazarsın. Her video farklı bir alt konuyu işler, tekrar yoktur, başlıklar merak uyandırır. Yalnızca JSON döndür.' },
+    { role: 'user', content: `Konu/sektör: "${topic}". Format: ${F.name}. ${n} adet kısa video için plan yaz. Her video için title (en çok 8 kelime) ve ${how}.` }
+  ], { schema, temperature: 0.7, signal, onToken: k => onStatus(`Plan yazılıyor… ${k} parça`) });
+  const j = parseJSONLoose(raw);
+  if (!j || !Array.isArray(j.videos) || !j.videos.length) throw new Error('Model geçerli bir plan döndürmedi, tekrar deneyin');
+  return j.videos.filter(v => v.title).slice(0, n).map(v => ({ title: String(v.title).trim(), text: String(v.text || '').trim() }));
 }

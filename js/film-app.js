@@ -1,22 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221641';
-import { direct, clipsOf } from './film/director.js?v=202611221641';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221641';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221641';
-import { makeItem, plainItem } from './parser.js?v=202611221641';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221641';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221641';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221641';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221641';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221641';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221641';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221641';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221641';
-import { newId } from './parser.js?v=202611221641';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221641';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221641';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221641';
-import { detectScene } from './film/director.js?v=202611221641';
+import { Film } from './film/player.js?v=202611221642';
+import { direct, clipsOf } from './film/director.js?v=202611221642';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221642';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221642';
+import { makeItem, plainItem } from './parser.js?v=202611221642';
+import { FORMATS, toScenes, aiScenes, aiCalendar } from './formats.js?v=202611221642';
+import { TEMPLATES } from './templates.js?v=202611221642';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221642';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221642';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221642';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221642';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221642';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221642';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221642';
+import { newId } from './parser.js?v=202611221642';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221642';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221642';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221642';
+import { detectScene } from './film/director.js?v=202611221642';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -442,6 +443,15 @@ function syncBrief() {
   $('#bTitle').value = brief.title || ''; $('#bText').value = brief.text || ''; $('#bBrand').value = brief.brand || ''; $('#bAuthor').value = brief.author || ''; $('#bCta').value = brief.cta || ''; $('#bCountdown').checked = !!brief.countdown;
   const img = film.logo; $('#bLogoPrev').style.display = img ? 'inline-block' : 'none'; $('#bLogoDel').style.display = img ? '' : 'none'; if (img) $('#bLogoPrev').src = img.src;
 }
+function renderTemplates() { $('#tplGrid').innerHTML = TEMPLATES.map(t => `<button class="tpl" data-tp="${t.id}"><i>${t.icon}</i><b>${esc(t.name)}</b><span>${esc((FORMATS[t.fmt] || {}).name || '')}</span></button>`).join(''); }
+$('#tplGrid').onclick = e => {
+  const b = e.target.closest('[data-tp]'); if (!b) return; const t = TEMPLATES.find(x => x.id === b.dataset.tp); if (!t) return;
+  if (items.length && (brief.text || '').trim() && !confirm(`"${t.name}" şablonu yüklensin mi? Şu anki metin ve sahneler değişir.`)) return;
+  F.fmt = t.fmt; brief = { ...brief, title: t.title || '', text: t.text, brand: t.brand || '', cta: t.cta || '', author: '' };
+  renderFormats(); syncBrief();
+  const sc = toScenes(F.fmt, brief); applyScenes(sc, `"${t.name}" şablonu yüklendi`); if (t.style && STYLES[t.style]) { F.style = t.style; syncUI(); rebuild(); }
+  $('#tplBox').open = false; $('#bStatus').textContent = 'Şablon yüklendi. Metni kendi bilgilerinizle değiştirip "Sahnelere dönüştür"e basın.';
+};
 $('#fmts').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; F.fmt = b.dataset.f; save(); renderFormats(); };
 [['bTitle', 'title'], ['bText', 'text'], ['bBrand', 'brand'], ['bAuthor', 'author'], ['bCta', 'cta']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => { brief[k] = e.target.value; save(); }));
 $('#bCountdown').onchange = e => { brief.countdown = e.target.checked; save(); };
@@ -767,6 +777,21 @@ $('#gifBtn').onclick = async () => {
   } catch (e) { console.error(e); $('#barTxt').textContent = 'Hata: ' + e.message; }
   [PW, PH] = previewDims(); cv.width = PW; cv.height = PH; film.resize(PW, PH); film.safe = PV().safe; fitCanvas(); setBusy(false); rebuild();
 };
+
+/* içerik takvimi */
+let calAbort = null;
+$('#calGo').onclick = async () => {
+  const topic = $('#calTopic').value.trim(); if (!topic) { toast('Konu ya da sektör yazın'); return; }
+  if (!F.olModel && !(await olConnect(false))) { $('#calInfo').textContent = '✗ Ollama\'ya bağlanılamadı ("Yapay zekâ" sekmesindeki rehbere bakın).'; return; }
+  calAbort = new AbortController(); $('#calGo').disabled = true; $('#calStop').disabled = false; const t0 = performance.now();
+  try {
+    const list = await aiCalendar(topic, +$('#calN').value, F.fmt, { url: F.olUrl, model: F.olModel, signal: calAbort.signal, onStatus: m => ($('#calInfo').textContent = m) });
+    $('#batchText').value = list.map(v => `${v.title}\n${v.text}`).join('\n---\n'); $('#batchText').dispatchEvent(new Event('input'));
+    $('#batchBox').open = true; $('#calInfo').textContent = `${list.length} videoluk plan hazır (${((performance.now() - t0) / 1000).toFixed(0)} sn) ve aşağıdaki toplu üretim kutusuna aktarıldı. Düzenleyip "Toplu üret"e basın.`;
+  } catch (e) { $('#calInfo').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
+  $('#calGo').disabled = false; $('#calStop').disabled = true; calAbort = null;
+};
+$('#calStop').onclick = () => calAbort && calAbort.abort();
 
 /* toplu üretim */
 let batchName = '', batchStop = false;
@@ -1284,7 +1309,7 @@ window.filmDebug = { tl: () => tl, film, PK, results: () => results, flow: () =>
   for (const it of items) if (it.imgId) await loadImage(it.imgId);
   for (const it of items) for (const v of it.vids || []) await loadVideo(v.id);
   for (const v of flow) await loadVideo(v.id);
-  await loadLogo(); await loadSfx(); await loadOwnVoices(); renderFormats(); syncBrief(); syncKit();
+  await loadLogo(); await loadSfx(); await loadOwnVoices(); renderFormats(); renderTemplates(); syncBrief(); syncKit();
   { const sh = store.get('vs-share', ''); if (sh) { $('#shareText').value = sh; $('#shareBox').style.display = ''; } }
   if (String(F.soundtrack).startsWith('bed:')) await ensureBed(F.soundtrack.slice(4));
   rebuild(false); syncUI(); renderImgGrid(); renderStockGrid(); renderMusic(); updateAiAudioStatus();
