@@ -1,12 +1,13 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611221643';
-import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221643';
-import { applyCamera } from './camera.js?v=202611221643';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611221643';
-import { Post } from './post.js?v=202611221643';
-import { Captions } from '../captions.js?v=202611221643';
-import { StockScene } from './stock-scene.js?v=202611221643';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221643';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221645';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221645';
+import { applyCamera } from './camera.js?v=202611221645';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611221645';
+import { Post } from './post.js?v=202611221645';
+import { Captions } from '../captions.js?v=202611221645';
+import { ClipDecoder } from './vdecode.js?v=202611221645';
+import { StockScene } from './stock-scene.js?v=202611221645';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221645';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -17,7 +18,7 @@ export class Film {
     this.renderer.toneMappingExposure = 1.0;
     this.camA = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
     this.camB = new THREE.PerspectiveCamera(40, W / H, 0.1, 1200);
-    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null; this.caps = new Captions(); this.lang = 'tr'; this.watermark = null; this.markPos = 'sag-ust'; this._wm = null; this.capOn = false; this.capMode = 'pop';
+    this.texts = new Map(); this.images = new Map(); this.videos = new Map(); this.logo = null; this.stock = [null, null]; this.vSeg = 5.5; this.flow = null; this.caps = new Captions(); this.lang = 'tr'; this.fast = false; this.decoders = new Map(); this.watermark = null; this.markPos = 'sag-ust'; this._wm = null; this.capOn = false; this.capMode = 'pop';
     this.post = null;
     this.resize(W, H);
     this.timeline = { shots: [], dur: 0 };
@@ -92,7 +93,8 @@ export class Film {
     for (const shot of [L.a, L.b]) if (shot && shot.scene === 'video') for (const e of this.vplan(shot, t)) {
       used.add(e.video); const v = e.video; if (v.tagName === 'IMG') continue;
       if (live) { if (v.paused) v.play().catch(() => { }); if (Math.abs(v.currentTime - e.time) > 0.35) v.currentTime = e.time; }
-      else { if (!v.paused) v.pause(); if (Math.abs(v.currentTime - e.time) > 0.01 || v.readyState < 2) { changed = true; jobs.push(seekTo(v, e.time)); } }
+      else if (this.fast && await this.fastFrame(e.id, v, e.time)) { changed = true; }
+      else { v._useCv = false; if (!v.paused) v.pause(); if (Math.abs(v.currentTime - e.time) > 0.01 || v.readyState < 2) { changed = true; jobs.push(seekTo(v, e.time)); } }
     }
     for (const v of this.videos.values()) if (v.tagName !== 'IMG' && !used.has(v) && !v.paused) v.pause();
     if (jobs.length) await Promise.all(jobs);
@@ -117,6 +119,16 @@ export class Film {
     }
     return { group: this._wm.group, camera: this._wm.cam, target: new THREE.Vector3() };
   }
+  /** hızlı yol: WebCodecs ile çözülen kareyi çekimin kanvasına çiz */
+  async fastFrame(id, v, time) {
+    if (!this.decoders.has(id)) this.decoders.set(id, fetch(v.src).then(r => r.blob()).then(b => ClipDecoder.create(b)).catch(() => null));
+    const dec = await this.decoders.get(id); if (!dec) return false;
+    const fr = await dec.frameAt(time); if (!fr) return false;
+    if (!v._cv) { v._cv = document.createElement('canvas'); v._cv.width = v.videoWidth; v._cv.height = v.videoHeight; v._cvg = v._cv.getContext('2d'); }
+    v._cvg.drawImage(fr, 0, 0, v._cv.width, v._cv.height); v._useCv = true;
+    return true;
+  }
+  endFast() { this.fast = false; for (const p of this.decoders.values()) p.then(d => d && d.close()); this.decoders.clear(); for (const v of this.videos.values()) v._useCv = false; }
   pauseVideos() { for (const v of this.videos.values()) if (v.tagName !== 'IMG' && !v.paused) v.pause(); }
   textFor(shot) {
     if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { lang: this.lang || 'tr', layout: shot.layout, card: shot.card ? this.videos.get(shot.card) || this.images.get(shot.card) : null, W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.capOn && this.caps.chunks.length ? { ...(this.safe || { top: 0.08, bottom: 0.08, side: 0.1 }), bottom: (this.safe ? this.safe.bottom : 0.08) + 0.24 } : this.safe, logo: this.logo }));

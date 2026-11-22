@@ -1,6 +1,6 @@
 // Gerçek video çekimi sahnesi: arka planda çekim (ekranı kaplar), çekimler arasında yumuşak geçiş, önde hafif ışık tozu.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221643';
-import { dust } from './scenes.js?v=202611221643';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221645';
+import { dust } from './scenes.js?v=202611221645';
 
 const texCache = new WeakMap();
 function texOf(video) {
@@ -34,8 +34,9 @@ export class StockScene {
     const dist = 50, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(20)) * 1.5;
     const fit = (mesh, e) => {
       if (!e) { mesh.visible = false; return; }
-      const v = e.video, tex = texOf(v);
-      if (v.tagName !== 'IMG' && v.readyState >= 2) tex.needsUpdate = true;
+      const v = e.video; let tex;
+      if (v._useCv && v._cv) { if (!v._cvTex) { v._cvTex = new THREE.CanvasTexture(v._cv); v._cvTex.colorSpace = THREE.SRGBColorSpace; v._cvTex.minFilter = THREE.LinearFilter; v._cvTex.generateMipmaps = false; } tex = v._cvTex; tex.needsUpdate = true; }
+      else { tex = texOf(v); if (v.tagName !== 'IMG' && v.readyState >= 2) tex.needsUpdate = true; }
       mesh.material.map = tex; mesh.material.needsUpdate = mesh.material._map !== tex; mesh.material._map = tex;
       mesh.material.opacity = e.alpha;
       const g = e.gain || [1, 1, 1]; mesh.material.color.setRGB(g[0], g[1], g[2]);

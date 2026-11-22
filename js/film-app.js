@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221643';
-import { direct, clipsOf } from './film/director.js?v=202611221643';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221643';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221643';
-import { makeItem, plainItem } from './parser.js?v=202611221643';
-import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221643';
-import { TEMPLATES } from './templates.js?v=202611221643';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221643';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221643';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221643';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221643';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221643';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221643';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221643';
-import { newId } from './parser.js?v=202611221643';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221643';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221643';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221643';
-import { detectScene } from './film/director.js?v=202611221643';
+import { Film } from './film/player.js?v=202611221645';
+import { direct, clipsOf } from './film/director.js?v=202611221645';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221645';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221645';
+import { makeItem, plainItem } from './parser.js?v=202611221645';
+import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221645';
+import { TEMPLATES } from './templates.js?v=202611221645';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221645';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221645';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221645';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221645';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221645';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221645';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221645';
+import { newId } from './parser.js?v=202611221645';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221645';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221645';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221645';
+import { detectScene } from './film/director.js?v=202611221645';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -31,7 +31,7 @@ const toast = t => { const l = $('#toast'); l.textContent = t; l.classList.add('
 
 /* ================= Durum ================= */
 const DEFAULTS = {
-  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
+  style: 'modern', seed: 1, pace: 1, mode: 'film', fmt: 'bilgi', soundtrack: 'bed:kurumsal', capOn: true, capMode: 'pop', capHideSub: true, ttsSpeed: 1, ttsPitch: 1, ttsPause: 0.15, fastDecode: true, sfxOn: true, sfxVol: 0.7, sfxOff: {}, fsKey: '', fsCC0: false, respectKeywords: true, beatSync: true,
   platforms: ['reels'], previewPlatform: 'reels', durMode: 'auto', targetDur: 60, showSafe: false, fps: '30', quality: '1',
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
@@ -321,7 +321,7 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause'];
+const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'fastDecode'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
@@ -708,8 +708,12 @@ async function renderOne(timeline, name, W, H, mbps, onP) {
   const fps = +F.fps, bitrate = Math.round(mbps * 1e6 * (fps > 30 ? 1.5 : 1) * +F.quality * (H * W) / (1920 * 1080));
   let file = null; if (dirHandle) file = await dirHandle.getFileHandle(name + '.mp4', { create: true });
   let res = null;
+  film.fast = !!F.fastDecode && 'VideoDecoder' in window;
+  try {
   if (hasFast()) { try { res = await encodeFast({ canvas: cv, W, H, fps, dur: timeline.dur, bitrate, audio, file, onProgress: onP, cancelled: () => cancelFlag, renderAt: async t => { await film.prepare(t); film.render(t); } }); } catch (e) { if (e.message !== 'NO_FAST') throw e; } }
+  film.endFast();
   if (!res) res = await encodeRealtime({ canvas: cv, fps, dur: timeline.dur, bitrate, audio, audioCtx: audio ? live() : null, onProgress: onP, cancelled: () => cancelFlag, renderLive: t => { film.prepare(t, true); film.render(t); } });
+  } finally { film.endFast(); }
   return { ...res, name: `${name}.${res.ext}`, file: res.blob ? null : file };
 }
 function jobsFor(platKey) {
