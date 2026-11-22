@@ -1,20 +1,20 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221449';
-import { direct, clipsOf } from './film/director.js?v=202611221449';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221449';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221449';
-import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221449';
-import { surahs, buildItems } from './quran.js?v=202611221449';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221449';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221449';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221449';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221449';
-import { newId } from './parser.js?v=202611221449';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221449';
-import { writeScript } from './ai/senarist.js?v=202611221449';
-import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221449';
-import { findClips, downloadClip, pixabayTest, queriesFor } from './ai/stock.js?v=202611221449';
-import { detectScene } from './film/director.js?v=202611221449';
+import { Film } from './film/player.js?v=202611221500';
+import { direct, clipsOf } from './film/director.js?v=202611221500';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221500';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221500';
+import { parseList, parseCSV, makeItem, plainItem } from './parser.js?v=202611221500';
+import { surahs, buildItems } from './quran.js?v=202611221500';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221500';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221500';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221500';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221500';
+import { newId } from './parser.js?v=202611221500';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221500';
+import { writeScript } from './ai/senarist.js?v=202611221500';
+import { RECITERS, VOICES, getRecitation, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221500';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221500';
+import { detectScene } from './film/director.js?v=202611221500';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -647,7 +647,7 @@ function renderStockGrid() {
   box.innerHTML = items.map((it, i) => {
     const vs = (it.vids || []).filter(x => film.videos.has(x.id));
     const q = it.stockQ || (queriesFor({ ...it, stockQ: '' }, itemScene(it))[0] || {}).q || '';
-    return `<div class="stk"><div class="stk-h"><b>${i + 1}</b><input type="text" data-sq="${i}" value="${esc(it.stockQ || '')}" placeholder="${esc(q)}" title="Arama kelimeleri (İngilizce ya da Türkçe). Boş bırakırsanız otomatik seçilir."><button class="btn sm ghost" data-si="${i}" title="Bu metin için yeni çekimler bul">↻</button></div>
+    return `<div class="stk"><div class="stk-h"><b>${i + 1}</b><input type="text" data-sq="${i}" value="${esc(it.stockQ || '')}" placeholder="${esc(q)}" title="Arama kelimeleri (İngilizce ya da Türkçe). Boş bırakırsanız otomatik seçilir."><button class="btn sm" data-pk="${i}" title="Arama sonuçlarından kendiniz seçin">Seç</button><button class="btn sm ghost" data-si="${i}" title="Otomatik olarak başka çekimler bul">↻</button></div>
       <div class="stk-row">${vs.length ? vs.map(x => `<a href="${esc(x.page || '#')}" target="_blank" rel="noopener" title="${esc(x.tags || '')} · ${esc(x.user || '')}">${x.thumb ? `<img src="${esc(x.thumb)}" alt="">` : '🎬'}</a>`).join('') : '<span class="muted">çekim yok</span>'}</div></div>`;
   }).join('');
 }
@@ -659,17 +659,103 @@ async function fetchStockFor(i, exclude) {
   const hits = await findClips(F.pxKey.trim(), it, itemScene(it), { n, portrait: H > W, noPeople: F.stockNoPeople, exclude, signal: stockAbort.signal });
   if (!hits.length) { $('#stockStatus').textContent = `#${i + 1}: uygun çekim bulunamadı, arama kelimesini değiştirin`; return 0; }
   const vids = [];
-  for (const [k, h] of hits.entries()) {
-    const { blob, rend, thumb } = await downloadClip(h, W, H, { signal: stockAbort.signal, onProgress: (g, tot) => ($('#stockStatus').textContent = `#${i + 1} · çekim ${k + 1}/${hits.length} indiriliyor… ${(g / 1e6).toFixed(1)}${tot ? ' / ' + (tot / 1e6).toFixed(1) : ''} MB`) });
-    const id = 'stock:' + h.px + ':' + rend.key;
-    await putFile({ id, kind: 'stock', name: id, type: 'video/mp4', blob, order: Date.now() });
-    if (await loadVideo(id)) vids.push({ id, px: h.px, dur: h.dur, w: rend.w, h: rend.h, thumb, page: h.page, user: h.user, tags: h.tags, q: h.q });
-  }
-  const keep = new Set(vids.map(v => v.id));
-  for (const old of it.vids || []) if (!keep.has(old.id) && !items.some((o, j) => j !== i && (o.vids || []).some(x => x.id === old.id))) { delFile(old.id); const v = film.videos.get(old.id); if (v) { URL.revokeObjectURL(v.src); film.videos.delete(old.id); } }
-  it.vids = vids; save();
+  for (const [k, h] of hits.entries()) { const v = await saveHit(h, W, H, stockAbort.signal, (g, tot) => ($('#stockStatus').textContent = `#${i + 1} · çekim ${k + 1}/${hits.length} indiriliyor… ${mb(g, tot)}`)); if (v) vids.push(v); }
+  setVids(i, vids);
   return vids.length;
 }
+const mb = (g, tot) => `${(g / 1e6).toFixed(1)}${tot ? ' / ' + (tot / 1e6).toFixed(1) : ''} MB`;
+function outDims() { const P = PLATFORMS[F.platforms[0]] || PV(); return dims(P.format, P.res || 1080); }
+async function saveHit(h, W, H, signal, onProgress) {
+  const { blob, rend, thumb } = await downloadClip(h, W, H, { signal, onProgress });
+  const id = 'stock:' + h.px + ':' + rend.key;
+  await putFile({ id, kind: 'stock', name: id, type: 'video/mp4', blob, order: Date.now() });
+  return (await loadVideo(id)) ? { id, px: h.px, dur: h.dur, w: rend.w, h: rend.h, thumb: thumb || thumbOf(h), page: h.page, user: h.user, tags: h.tags, q: h.q || '' } : null;
+}
+function setVids(i, vids) {
+  const it = items[i]; const keep = new Set(vids.map(v => v.id));
+  for (const old of it.vids || []) if (!keep.has(old.id) && !items.some((o, j) => j !== i && (o.vids || []).some(x => x.id === old.id))) { delFile(old.id); const v = film.videos.get(old.id); if (v) { URL.revokeObjectURL(v.src); film.videos.delete(old.id); } }
+  it.vids = vids; save();
+}
+
+/* --- çekim seçme penceresi --- */
+const PK = { i: -1, q: '', page: 1, hits: [], sel: [], busy: false, abort: null };
+function pkUsedElsewhere(px) { return items.some((o, j) => j !== PK.i && (o.vids || []).some(x => x.px === px)); }
+async function openPicker(i) {
+  if (!F.pxKey.trim()) { $('#stockStatus').textContent = 'Önce Pixabay anahtarınızı girin.'; $('#pxKey').focus(); return; }
+  const it = items[i];
+  PK.i = i; PK.page = 1; PK.hits = []; PK.sel = (it.vids || []).filter(v => film.videos.has(v.id)).map(v => v.px);
+  // mevcut çekimler en başta
+  PK.local = (it.vids || []).filter(v => film.videos.has(v.id)).map(v => ({ px: v.px, dur: v.dur, tags: v.tags, user: v.user, page: v.page, local: v, v: {} }));
+  PK.q = it.stockQ || (queriesFor({ ...it, stockQ: '' }, itemScene(it))[0] || {}).q || '';
+  $('#pickTitle').textContent = `#${i + 1} için çekim seç · ${(it.sub || it.main || '').slice(0, 70)}`;
+  $('#pickQ').value = PK.q; $('#pick').classList.add('show');
+  await pkSearch(true);
+}
+async function pkSearch(reset) {
+  if (PK.busy) return; PK.busy = true;
+  const q = $('#pickQ').value.trim() || PK.q; PK.q = q;
+  if (reset) { PK.page = 1; PK.hits = []; }
+  $('#pickInfo').textContent = 'Aranıyor…';
+  try {
+    const [W, H] = outDims(); const portrait = H > W;
+    let hits = await pixabaySearch(F.pxKey.trim(), q, { lang: langOf(q), page: PK.page });
+    if (reset && hits.length < 12 && langOf(q) === 'en') { const tr = await pixabaySearch(F.pxKey.trim(), q, { lang: 'tr', page: 1 }); for (const h of tr) if (!hits.some(x => x.px === h.px)) hits.push(h); }
+    const ranked = rankHits(hits, { portrait, noPeople: F.stockNoPeople, minDur: 3 });
+    for (const h of ranked) if (!PK.hits.some(x => x.px === h.px)) PK.hits.push(h);
+    $('#pickInfo').textContent = PK.hits.length ? `${PK.hits.length} çekim · üzerine gelince önizleme oynar, tıklayarak seçin (sıra = seçme sırası)${F.stockNoPeople ? ' · insan görünenler gizli' : ''}` : 'Sonuç yok. Başka kelimelerle deneyin (İngilizce aramalar daha çok sonuç verir).';
+  } catch (e) { $('#pickInfo').textContent = '✗ ' + e.message; }
+  PK.busy = false; pkRender();
+}
+function pkCard(h) {
+  const big = h.local ? { w: h.local.w, h: h.local.h } : (h.v.large || h.v.medium || h.v.small || Object.values(h.v)[0] || {});
+  const n = PK.sel.indexOf(h.px);
+  const thumb = h.local ? h.local.thumb : thumbOf(h);
+  return `<div class="pk${big.h > big.w ? ' portrait' : ''}${n >= 0 ? ' on' : ''}${pkUsedElsewhere(h.px) ? ' used' : ''}" data-px="${h.px}">${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy">` : ''}<span class="pk-n">${n + 1}</span><div class="pk-info">${Math.round(h.dur)} sn${big.w ? ` · ${big.w}×${big.h}` : ''}${h.local ? ' · seçili' : ''}</div></div>`;
+}
+function pkRender() {
+  const all = [...PK.local, ...PK.hits.filter(h => !PK.local.some(l => l.px === h.px))];
+  $('#pickGrid').innerHTML = all.map(pkCard).join('');
+  $('#pickCount').textContent = PK.sel.length ? `${PK.sel.length} çekim seçili` : 'Henüz seçim yok';
+}
+function pkFind(px) { return PK.local.find(h => h.px === px) || PK.hits.find(h => h.px === px); }
+$('#pickGrid').addEventListener('click', e => {
+  const c = e.target.closest('.pk'); if (!c || PK.busy) return; const px = +c.dataset.px;
+  const k = PK.sel.indexOf(px); if (k >= 0) PK.sel.splice(k, 1); else PK.sel.push(px);
+  pkRender();
+});
+$('#pickGrid').addEventListener('mouseover', e => {
+  const c = e.target.closest('.pk'); if (!c || c.querySelector('video')) return;
+  const h = pkFind(+c.dataset.px); if (!h) return;
+  const src = h.local ? (film.videos.get(h.local.id) || {}).src : ((h.v.tiny || h.v.small || {}).url);
+  if (!src) return;
+  const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.src = src; c.appendChild(v);
+  c.addEventListener('mouseleave', () => { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }, { once: true });
+});
+$('#pickGo').onclick = () => pkSearch(true);
+$('#pickQ').addEventListener('keydown', e => { if (e.key === 'Enter') pkSearch(true); });
+$('#pickMore').onclick = () => { PK.page++; pkSearch(false); };
+$('#pickClose').onclick = () => { if (PK.abort) PK.abort.abort(); $('#pick').classList.remove('show'); };
+$('#pickUse').onclick = async () => {
+  if (PK.busy) return; PK.busy = true; $('#pickUse').disabled = true;
+  const i = PK.i, it = items[i]; const [W, H] = outDims(); PK.abort = new AbortController();
+  try {
+    const out = [];
+    for (const [k, px] of PK.sel.entries()) {
+      const have = (it.vids || []).find(v => v.px === px && film.videos.has(v.id)) || items.flatMap(o => o.vids || []).find(v => v.px === px && film.videos.has(v.id));
+      if (have) { out.push(have); continue; }
+      const h = pkFind(px); if (!h) continue;
+      const v = await saveHit({ ...h, q: PK.q }, W, H, PK.abort.signal, (g, tot) => ($('#pickInfo').textContent = `Çekim ${k + 1}/${PK.sel.length} indiriliyor… ${mb(g, tot)}`));
+      if (v) out.push(v);
+    }
+    setVids(i, out); it.stockQ = PK.q === (queriesFor({ ...it, stockQ: '' }, itemScene(it))[0] || {}).q ? (it.stockQ || '') : PK.q;
+    if (out.length && !F.stockOn) { F.stockOn = true; syncUI(); }
+    if (out.length && !['gercek', 'sinematik', 'noir', 'gece'].includes(F.style)) { F.style = 'gercek'; syncUI(); }
+    save(); rebuild(); renderStockGrid();
+    $('#pick').classList.remove('show');
+    $('#stockStatus').textContent = `#${i + 1}: ${out.length} çekim kullanılıyor`;
+  } catch (e) { $('#pickInfo').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
+  PK.busy = false; PK.abort = null; $('#pickUse').disabled = false;
+};
 async function findStock(only = null) {
   if (!F.pxKey.trim()) { $('#stockStatus').textContent = 'Önce Pixabay anahtarınızı girin.'; $('#pxKey').focus(); return; }
   stockAbort = new AbortController(); $('#findStock').disabled = true; $('#stockStop').disabled = false;
@@ -693,7 +779,7 @@ $('#pxTest').onclick = async () => {
   $('#pxStatus').textContent = 'Deneniyor…';
   try { await pixabayTest(F.pxKey.trim()); $('#pxStatus').textContent = '✓ Anahtar çalışıyor'; } catch (e) { $('#pxStatus').textContent = '✗ ' + e.message; }
 };
-$('#stockGrid').addEventListener('click', e => { const b = e.target.closest('[data-si]'); if (b && !stockAbort) findStock(+b.dataset.si); });
+$('#stockGrid').addEventListener('click', e => { const p = e.target.closest('[data-pk]'); if (p && !stockAbort) { openPicker(+p.dataset.pk); return; } const b = e.target.closest('[data-si]'); if (b && !stockAbort) findStock(+b.dataset.si); });
 $('#stockGrid').addEventListener('change', e => { const q = e.target.closest('[data-sq]'); if (q) { items[+q.dataset.sq].stockQ = q.value.trim(); save(); } });
 
 /* ================= Genel ================= */
@@ -705,7 +791,7 @@ async function ensureFonts() {
 }
 window.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 
-window.filmDebug = { tl: () => tl, film, items: () => items, rebuild: () => rebuild(), renderStockGrid: () => renderStockGrid(), loadVideo: id => loadVideo(id), audioOpts: () => audioOpts(tl), mix: async () => { const a = await mixTimeline(tl.dur, audioOpts(tl)); const d = a.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 100) pk = Math.max(pk, Math.abs(d[i])); return { dur: a.duration, peak: pk }; } };
+window.filmDebug = { tl: () => tl, film, PK, pkRender: () => pkRender(), items: () => items, rebuild: () => rebuild(), renderStockGrid: () => renderStockGrid(), loadVideo: id => loadVideo(id), audioOpts: () => audioOpts(tl), mix: async () => { const a = await mixTimeline(tl.dur, audioOpts(tl)); const d = a.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 100) pk = Math.max(pk, Math.abs(d[i])); return { dur: a.duration, peak: pk }; } };
 (async function init() {
   resizePreview(); syncUI(); renderList(); loadEditor(); renderRef(); fitCanvas();
   await ensureFonts();

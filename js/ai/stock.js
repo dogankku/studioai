@@ -60,14 +60,14 @@ function cacheSet(k, d) {
 }
 
 /** Pixabay video araması (ham sonuçlar, 24 saat önbellekli) */
-export async function pixabaySearch(key, q, { lang = 'en', perPage = 50, signal } = {}) {
-  const ck = `${lang}|${q}|${perPage}`;
+export async function pixabaySearch(key, q, { lang = 'en', perPage = 50, page = 1, signal } = {}) {
+  const ck = `${lang}|${q}|${perPage}|${page}`;
   const c = cacheGet(ck); if (c) return c;
-  const u = `${API}?key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&lang=${lang}&video_type=film&safesearch=true&per_page=${perPage}`;
+  const u = `${API}?key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&lang=${lang}&video_type=film&safesearch=true&per_page=${perPage}&page=${page}`;
   const r = await fetch(u, { signal });
   if (r.status === 400 || r.status === 401 || r.status === 403) throw new Error('Pixabay anahtarı geçersiz');
   if (r.status === 429) throw new Error('Pixabay istek sınırı doldu, bir dakika sonra deneyin');
-  if (!r.ok) throw new Error('Pixabay yanıt vermedi (' + r.status + ')');
+  if (!r.ok) { if (page > 1) return []; throw new Error('Pixabay yanıt vermedi (' + r.status + ')'); }
   const j = await r.json();
   const hits = (j.hits || []).map(h => ({
     px: h.id, dur: h.duration, tags: h.tags || '', user: h.user, page: h.pageURL, downloads: h.downloads || 0, likes: h.likes || 0,
@@ -131,3 +131,6 @@ export async function downloadClip(hit, W, H, { signal, onProgress } = {}) {
   for (; ;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onProgress(got, total); }
   return { blob: new Blob(parts, { type: 'video/mp4' }), rend: r0, thumb: thumbOf(hit) };
 }
+
+export function langOf(q) { return /[çğıöşüÇĞİÖŞÜ]/.test(q) ? 'tr' : 'en'; }
+export { thumbOf };
