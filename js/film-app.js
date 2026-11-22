@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221654';
-import { direct, clipsOf } from './film/director.js?v=202611221654';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221654';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221654';
-import { makeItem, plainItem } from './parser.js?v=202611221654';
-import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221654';
-import { TEMPLATES } from './templates.js?v=202611221654';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221654';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221654';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221654';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221654';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221654';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221654';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221654';
-import { newId } from './parser.js?v=202611221654';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221654';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221654';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221654';
-import { detectScene } from './film/director.js?v=202611221654';
+import { Film } from './film/player.js?v=202611221656';
+import { direct, clipsOf } from './film/director.js?v=202611221656';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221656';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221656';
+import { makeItem, plainItem } from './parser.js?v=202611221656';
+import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221656';
+import { TEMPLATES } from './templates.js?v=202611221656';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221656';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221656';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221656';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221656';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221656';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221656';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221656';
+import { newId } from './parser.js?v=202611221656';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221656';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221656';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221656';
+import { detectScene } from './film/director.js?v=202611221656';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -452,7 +452,12 @@ function trimSilence(buf) {
 }
 $('#eRecPlay').onclick = () => { const o = ownVoice.get((items[sel] || {}).id); if (o) audition(o.buf, 60); };
 $('#eRecDel').onclick = async () => { const it = items[sel]; if (!it) return; for (const r of await allFiles()) if (r.kind === 'myvoice' && r.item === it.id) delFile(r.id); ownVoice.delete(it.id); rebuild(); updateAiAudioStatus(); renderRecUI(); };
-function listChanged() { save(); renderList(); loadEditor(); rebuild(); renderImgGrid(); updateAiAudioStatus(); }
+function renumber() { // liste maddelerinin numaralarını yeni sıraya göre güncelle
+  const its = items.filter(it => (it.kind === 'item' || it.kind === 'point') && /^\d+$/.test(String(it.num || '')));
+  const down = brief.countdown && F.fmt === 'liste';
+  its.forEach((it, k) => { const n = down ? its.length - k : k + 1; const old = it.num; it.num = String(n); if (it.vo && old) it.vo = it.vo.replace(new RegExp('^' + old + '\\.'), n + '.'); });
+}
+function listChanged() { renumber(); save(); renderList(); loadEditor(); rebuild(); renderImgGrid(); updateAiAudioStatus(); }
 $('#addItem').onclick = () => { items.splice(sel + 1, 0, makeItem({ kind: 'point', main: 'Yeni sahne' })); sel = Math.min(sel + 1, items.length - 1); listChanged(); $('#eMain').focus(); $('#eMain').select(); };
 $('#clearList').onclick = () => { if (!items.length) return; if (!confirm('Tüm liste silinsin mi?')) return; items = []; sel = 0; listChanged(); };
 /* ================= Marka kiti ================= */

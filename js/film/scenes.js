@@ -1,5 +1,5 @@
 // Prosedürel 3D sahneler. Her sahne: { scene, update(t) } ; kamera (0,0,10)'dan merkeze bakar.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221654';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221656';
 
 function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 
