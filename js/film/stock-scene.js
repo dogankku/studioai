@@ -1,6 +1,6 @@
 // Gerçek video çekimi sahnesi: arka planda çekim (ekranı kaplar), çekimler arasında yumuşak geçiş, önde hafif ışık tozu.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221612';
-import { dust } from './scenes.js?v=202611221612';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221616';
+import { dust } from './scenes.js?v=202611221616';
 
 const texCache = new WeakMap();
 function texOf(video) {

@@ -1,12 +1,12 @@
 // Film oynatıcı: çekim listesini t anında 3D sahne + yazı + kamera + geçiş + son işlem olarak çizer
-import * as THREE from '../../vendor/three-bundle.js?v=202611221612';
-import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221612';
-import { applyCamera } from './camera.js?v=202611221612';
-import { buildText, animateText, disposeText } from './text3d.js?v=202611221612';
-import { Post } from './post.js?v=202611221612';
-import { Captions } from '../captions.js?v=202611221612';
-import { StockScene } from './stock-scene.js?v=202611221612';
-import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221612';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221616';
+import { getScene, setPointScale, imageScene } from './scenes.js?v=202611221616';
+import { applyCamera } from './camera.js?v=202611221616';
+import { buildText, animateText, disposeText } from './text3d.js?v=202611221616';
+import { Post } from './post.js?v=202611221616';
+import { Captions } from '../captions.js?v=202611221616';
+import { StockScene } from './stock-scene.js?v=202611221616';
+import { STYLES, GRADE_DEFAULT, FX_DEFAULT } from './styles.js?v=202611221616';
 
 export class Film {
   constructor(canvas, W, H) {
@@ -119,7 +119,7 @@ export class Film {
   }
   pauseVideos() { for (const v of this.videos.values()) if (v.tagName !== 'IMG' && !v.paused) v.pause(); }
   textFor(shot) {
-    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.capOn && this.caps.chunks.length ? { ...(this.safe || { top: 0.08, bottom: 0.08, side: 0.1 }), bottom: (this.safe ? this.safe.bottom : 0.08) + 0.24 } : this.safe, logo: this.logo }));
+    if (!this.texts.has(shot.i)) this.texts.set(shot.i, buildText(shot.lines, { layout: shot.layout, card: shot.card ? this.videos.get(shot.card) || this.images.get(shot.card) : null, W: this.W, H: this.H, style: this.style, fonts: this.fonts, size: this.size * (shot.title ? 1.15 : 1), safe: this.capOn && this.caps.chunks.length ? { ...(this.safe || { top: 0.08, bottom: 0.08, side: 0.1 }), bottom: (this.safe ? this.safe.bottom : 0.08) + 0.24 } : this.safe, logo: this.logo }));
     return this.texts.get(shot.i);
   }
   pruneTexts(keep) { for (const [k, T] of this.texts) if (!keep.has(k)) { disposeText(T); this.texts.delete(k); } }

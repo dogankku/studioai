@@ -1,22 +1,22 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221612';
-import { direct, clipsOf } from './film/director.js?v=202611221612';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221612';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221612';
-import { makeItem, plainItem } from './parser.js?v=202611221612';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221612';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221612';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221612';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221612';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221612';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221612';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221612';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221612';
-import { newId } from './parser.js?v=202611221612';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221612';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221612';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221612';
-import { detectScene } from './film/director.js?v=202611221612';
+import { Film } from './film/player.js?v=202611221616';
+import { direct, clipsOf } from './film/director.js?v=202611221616';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221616';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221616';
+import { makeItem, plainItem } from './parser.js?v=202611221616';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221616';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221616';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221616';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221616';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221616';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221616';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221616';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221616';
+import { newId } from './parser.js?v=202611221616';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221616';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221616';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221616';
+import { detectScene } from './film/director.js?v=202611221616';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -114,7 +114,11 @@ function augItems() {
     const n = narrOf(it);
     if ((F.ttsOn || ownVoice.has(it.id)) && n) a._vo = { dur: n.buf.duration };
     if (it.imgId && film.images.has(it.imgId)) a._img = it.imgId;
-    if (F.stockOn && Array.isArray(it.vids)) { const v = it.vids.map(x => x.id).filter(id => film.videos.has(id)); if (v.length) a._vids = v; }
+    if (Array.isArray(it.vids)) {
+      let v = it.vids.map(x => x.id).filter(id => film.videos.has(id));
+      if (it.layout === 'gorsel') { const ci = v.findIndex(id => film.videos.get(id).tagName === 'IMG'); if (ci >= 0) { a._card = v[ci]; v.splice(ci, 1); } }
+      if (F.stockOn && v.length) a._vids = v;
+    }
     if (it.sceneHint) a._scene = it.sceneHint;
     return a;
   });
@@ -361,13 +365,13 @@ function loadEditor() {
   const it = items[sel]; $('#editor').style.display = it ? '' : 'none'; if (!it) return;
   $('#editNo').textContent = '#' + (sel + 1);
   $('#eMain').value = it.main; $('#eSub').value = it.sub; $('#eSrc').value = it.src; $('#eTag').value = it.tag;
-  $('#eKind').value = it.kind || 'point'; $('#eNum').value = it.num || ''; $('#eCta').value = it.cta || ''; $('#eVo').value = it.vo || ''; $('#eQ').value = it.stockQ || '';
+  $('#eKind').value = it.kind || 'point'; $('#eLayout').value = it.layout || ''; $('#eNum').value = it.num || ''; $('#eCta').value = it.cta || ''; $('#eVo').value = it.vo || ''; $('#eQ').value = it.stockQ || '';
   $('#eVo').placeholder = [it.main, it.sub].filter(Boolean).join('. ');
   renderRecUI();
   ['eMain', 'eSub'].forEach(id => $('#' + id).classList.toggle('rtl', isMostlyRTL($('#' + id).value)));
 }
 let editT = 0;
-[['eMain', 'main'], ['eSub', 'sub'], ['eSrc', 'src'], ['eTag', 'tag'], ['eNum', 'num'], ['eCta', 'cta'], ['eVo', 'vo'], ['eQ', 'stockQ'], ['eKind', 'kind']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => {
+[['eMain', 'main'], ['eSub', 'sub'], ['eSrc', 'src'], ['eTag', 'tag'], ['eNum', 'num'], ['eCta', 'cta'], ['eVo', 'vo'], ['eQ', 'stockQ'], ['eKind', 'kind'], ['eLayout', 'layout']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => {
   const it = items[sel]; if (!it) return; it[k] = e.target.value;
   ['eMain', 'eSub'].forEach(x => $('#' + x).classList.toggle('rtl', isMostlyRTL($('#' + x).value)));
   save(); clearTimeout(editT); editT = setTimeout(() => { renderList(); rebuild(); }, 350);

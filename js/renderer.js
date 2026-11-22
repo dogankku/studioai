@@ -1,5 +1,5 @@
 // Sahne yerleşimi ve kare çizimi
-import { THEMES, clamp, rgba, mix, drawBackground } from './backgrounds.js?v=202611221612';
+import { THEMES, clamp, rgba, mix, drawBackground } from './backgrounds.js?v=202611221616';
 
 const STRONG_RTL = /[֐-ࣿיִ-﷿ﹰ-﻿]/;
 const STRONG_LTR = /[A-Za-zÀ-ɏͰ-ϿЀ-ӿ]/;
@@ -61,7 +61,7 @@ function layoutBlock(text, fam, maxW, maxH, maxSize, minSize, lhMul) {
 }
 
 /** Satırları yerleştirir; yön değişen kelime grupları kendi içinde doğru sırada kalır. */
-function placeBlock(L, cx, top) {
+function placeBlock(L, cx, top, align = 'center') {
   const words = []; let gi = 0, chars = 0;
   const put = (w, x, align, li, y) => {
     words.push({ ...w, x, align, cxw: align === 'left' ? x + w.w / 2 : x - w.w / 2, y, line: li, i: gi++, c0: chars });
@@ -79,7 +79,7 @@ function placeBlock(L, cx, top) {
         else { const s = x - runW(r); let xx = s; for (const w of r.words) { put(w, xx, 'left', li, y); xx += w.w + L.space; } x = s - L.space; }
       }
     } else {
-      let x = cx - ln.width / 2;
+      let x = align === 'left' ? cx : cx - ln.width / 2;
       for (const r of runs) {
         if (r.dir !== 'rtl') for (const w of r.words) { put(w, x, 'left', li, y); x += w.w + L.space; }
         else { const e = x + runW(r); let xx = e; for (const w of r.words) { put(w, xx, 'right', li, y); xx -= w.w + L.space; } x = e + L.space; }

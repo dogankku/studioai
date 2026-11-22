@@ -1,7 +1,7 @@
 // Yönetmen: metin + (isteğe bağlı) ritim ve referans şablonundan çekim listesi kurar. Kural tabanlı, AI yok.
-import { STYLES, SCENES } from './styles.js?v=202611221612';
+import { STYLES, SCENES } from './styles.js?v=202611221616';
 const SCENE_KEYS = Object.keys(SCENES).filter(k => k !== 'gorsel' && k !== 'video');
-import { isMostlyRTL } from '../renderer.js?v=202611221612';
+import { isMostlyRTL } from '../renderer.js?v=202611221616';
 
 function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -79,6 +79,9 @@ export function direct(items, o = {}) {
       if (it.cta) L.push({ role: 'cta', text: it.cta });
       if (src) L.push({ role: 'src', text: src });
       const base = (it.kind === 'intro' || it.kind === 'outro') ? 2.6 : readTime(`${main} ${sub}`, pace) + (it.cta ? 1.2 : 0) + (it.kind === 'hook' ? 0.4 : 0);
+      const mainLetters = (main || '').replace(/[^\p{L}]/gu, '').length;
+      const layout = it.layout || (/\d/.test(main || '') && mainLetters <= 14 && ['point', 'item', 'feature', 'price', 'hook'].includes(it.kind) ? 'istatistik' : it.kind === 'feature' ? 'sol' : 'merkez');
+      L.layout = layout; L.card = it._card || null;
       if (it._vo) local.push({ lines: L, rt: Math.max(2.4, LEAD + it._vo.dur + 0.55), lock: true, clip: { key: `vo:${ii}`, offset: LEAD }, kind: it.kind });
       else local.push({ lines: L, rt: Math.max(it.kind === 'hook' ? 2.6 : 2.2, base), kind: it.kind });
       local.forEach((sg, k) => segs.push({ ...sg, item: ii, first: k === 0, last: k === local.length - 1, kInItem: k, nInItem: local.length, keyText: `${main} ${sub}` }));
@@ -210,7 +213,7 @@ export function direct(items, o = {}) {
       image: (scene === 'gorsel' || scene === 'video') && items[s.item] ? items[s.item]._img || null : null,
       videos: scene === 'video' ? vids : null, flow: scene === 'video' && !!flow,
       i, key: `${s.item}:${s.kInItem}${s.cov ? ':' + s.cov : ''}`, cont: !!s.cont, title: !!s.title, start: starts[i], dur: durs[i], scene, camera, camK: energy != null ? energy : 0.45 + r() * 0.2, anim, transition, transDur,
-      lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.cont ? null : (s.timing || null), clip: s.clip || null, kind: s.kind || null
+      lines: s.lines, item: s.item, seed: Math.floor(r() * 1e6), timing: s.cont ? null : (s.timing || null), clip: s.clip || null, kind: s.kind || null, layout: s.lines.layout || null, card: s.lines.card || null
     });
     prevScene = scene;
   });

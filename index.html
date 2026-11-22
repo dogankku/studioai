@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221612">
-<link rel="stylesheet" href="css/style.css?v=202611221612">
-<link rel="stylesheet" href="css/film.css?v=202611221612">
+<link rel="stylesheet" href="css/fonts.css?v=202611221616">
+<link rel="stylesheet" href="css/style.css?v=202611221616">
+<link rel="stylesheet" href="css/film.css?v=202611221616">
 </head>
 <body>
 <div class="app film">
@@ -79,6 +79,7 @@
           <div><label for="eKind">Sahne türü</label><select id="eKind"><option value="hook">Giriş (dikkat çekici)</option><option value="point">Bilgi</option><option value="item">Liste maddesi</option><option value="quote">Söz</option><option value="problem">Sorun</option><option value="solution">Çözüm / ürün</option><option value="feature">Özellik</option><option value="price">Fiyat / kampanya</option><option value="cta">Kapanış çağrısı</option></select></div>
           <div><label for="eTag">Üst etiket</label><input type="text" id="eTag"></div>
         </div>
+        <label for="eLayout">Düzen</label><select id="eLayout"><option value="">Otomatik</option><option value="merkez">Ortada</option><option value="sol">Sola dayalı</option><option value="alt">Alt bant (panel)</option><option value="istatistik">Büyük sayı / istatistik (sayaç)</option><option value="gorsel">Görsel kart (sahneye eklenen fotoğraf üstte)</option></select>
         <label for="eMain">Başlık (ekranda büyük)</label><textarea id="eMain" rows="2"></textarea>
         <label for="eSub">Açıklama (ekranda küçük)</label><textarea id="eSub" rows="2"></textarea>
         <div class="row3">
@@ -304,7 +305,7 @@
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221612"></script>
-<script type="module" src="js/film-app.js?v=202611221612"></script>
+<script src="vendor/jszip.min.js?v=202611221616"></script>
+<script type="module" src="js/film-app.js?v=202611221616"></script>
 </body>
 </html>
