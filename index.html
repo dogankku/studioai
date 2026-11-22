@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221618">
-<link rel="stylesheet" href="css/style.css?v=202611221618">
-<link rel="stylesheet" href="css/film.css?v=202611221618">
+<link rel="stylesheet" href="css/fonts.css?v=202611221620">
+<link rel="stylesheet" href="css/style.css?v=202611221620">
+<link rel="stylesheet" href="css/film.css?v=202611221620">
 </head>
 <body>
 <div class="app film">
@@ -267,6 +267,7 @@
     <section class="pane" data-pane="uretim">
       <div class="card info" id="outInfo"></div>
       <div class="row-btns"><button class="btn primary" id="render">● Videoyu üret</button><button class="btn ghost" id="cancel" disabled>Durdur</button></div>
+      <div class="card"><div class="ttl">Kapak görseli</div><input type="text" id="thumbText" placeholder="Kapak yazısı (boşsa başlık kullanılır)"><div class="row-btns mt8"><button class="btn sm" id="thumbBtn">🖼 Kapak görseli üret</button></div><div class="hint">Seçili her platform için ayrı kapak (YouTube 1280×720, dikeyler 1080×1920) PNG olarak üretilir; arka plan videonuzdan bir kare, logo ve marka renkleri kullanılır.</div></div>
       <div class="overall"><div class="prog"><i id="bar"></i></div><span id="barTxt" class="muted"></span></div>
       <div class="file-row"><button class="btn sm" id="pickDir">📁 Kayıt klasörü</button><span id="dirName" class="muted">Bellekte tutulur</span></div>
       <div id="results" class="queue"></div>
@@ -305,7 +306,7 @@
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221618"></script>
-<script type="module" src="js/film-app.js?v=202611221618"></script>
+<script src="vendor/jszip.min.js?v=202611221620"></script>
+<script type="module" src="js/film-app.js?v=202611221620"></script>
 </body>
 </html>

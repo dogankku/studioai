@@ -1,22 +1,22 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221618';
-import { direct, clipsOf } from './film/director.js?v=202611221618';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221618';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221618';
-import { makeItem, plainItem } from './parser.js?v=202611221618';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221618';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221618';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221618';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221618';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221618';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221618';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221618';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221618';
-import { newId } from './parser.js?v=202611221618';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221618';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221618';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221618';
-import { detectScene } from './film/director.js?v=202611221618';
+import { Film } from './film/player.js?v=202611221620';
+import { direct, clipsOf } from './film/director.js?v=202611221620';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221620';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221620';
+import { makeItem, plainItem } from './parser.js?v=202611221620';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221620';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221620';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221620';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221620';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221620';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221620';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221620';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221620';
+import { newId } from './parser.js?v=202611221620';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221620';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221620';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221620';
+import { detectScene } from './film/director.js?v=202611221620';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -652,6 +652,34 @@ async function renderAll() {
   [PW, PH] = previewDims(); cv.width = PW; cv.height = PH; film.resize(PW, PH); film.safe = PV().safe; fitCanvas();
   setBusy(false); rebuild();
 }
+/* kapak görseli */
+const THUMB_DIMS = { youtube: [1280, 720], shorts: [1080, 1920], reels: [1080, 1920], igpost: [1080, 1350], kare: [1080, 1080] };
+async function makeThumbs() {
+  if (busy || !tl.shots.length) return;
+  stopPlayback(); setBusy(true); switchTab('uretim'); await ensureFonts();
+  const base = slug(brief.title || (items[0] && items[0].main) || 'video') || 'video';
+  const text = ($('#thumbText').value || brief.title || (items.find(i => i.kind !== 'cta') || items[0] || {}).main || '').trim();
+  const src = tl.shots.find(s => s.kind !== 'intro') || tl.shots[0];
+  const oldSize = film.size, oldCap = film.capOn;
+  try {
+    for (const k of F.platforms) {
+      const p = PLATFORMS[k]; const [W, H] = THUMB_DIMS[k] || dims(p.format, 1080);
+      cv.width = W; cv.height = H; film.resize(W, H); film.safe = { top: 0.08, bottom: 0.1, side: 0.07 }; rebuild();
+      film.capOn = false; film.size = oldSize * (W > H ? 1.25 : 1.15);
+      const at = Math.min(tl.dur * 0.35, (src.start || 0) + 2.5);
+      const shot = { ...src, i: 9999, key: 'thumb', start: 0, dur: 30, transition: 'none', transDur: 0, cont: false, anim: 'tek', camera: 'nefes', camK: 0.2, timing: null, clip: null,
+        lines: Object.assign([...(src.lines.filter(l => l.role === 'tag')), { role: 'main', text }], { layout: W > H ? 'sol' : 'merkez' }), layout: W > H ? 'sol' : 'merkez', vStart: -at };
+      film.setTimeline({ shots: [shot], dur: 30 }); film.fadeIn = 0; await film.prepare(4); film.render(4);
+      const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+      results.push({ name: `${base}-kapak-${p.suffix}.png`, blob, size: blob.size, plat: `${p.name} kapağı`, img: true, url: null }); renderResults();
+    }
+    $('#barTxt').textContent = 'Kapak görselleri hazır';
+  } catch (e) { console.error(e); $('#barTxt').textContent = 'Hata: ' + e.message; }
+  film.size = oldSize; film.capOn = oldCap; film.fadeIn = 0.6;
+  [PW, PH] = previewDims(); cv.width = PW; cv.height = PH; film.resize(PW, PH); film.safe = PV().safe; fitCanvas();
+  setBusy(false); rebuild();
+}
+$('#thumbBtn').onclick = makeThumbs;
 const TRM = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a', 'î': 'i', 'û': 'u' };
 function slug(s) { return (s || '').toLocaleLowerCase('tr').replace(/[çğıöşüâîû]/g, c => TRM[c]).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); }
 function renderResults() {
@@ -661,6 +689,7 @@ function renderResults() {
 $('#results').onclick = async e => {
   const b = e.target.closest('[data-a]'); if (!b) return; const r = results[+b.dataset.i];
   if (b.dataset.a === 'dl') saveFile(r.blob, r.name);
+  else if (r.img) { if (!r.url) r.url = URL.createObjectURL(r.blob); window.open(r.url, '_blank'); }
   else { if (!r.url) r.url = URL.createObjectURL(r.file ? await r.file.getFile() : r.blob); $('#modalVid').src = r.url; $('#modalDl').style.display = r.blob ? '' : 'none'; $('#modal').dataset.i = b.dataset.i; $('#modal').classList.add('show'); $('#modalVid').play().catch(() => { }); }
 };
 $('#modalClose').onclick = () => { $('#modalVid').pause(); $('#modal').classList.remove('show'); };
