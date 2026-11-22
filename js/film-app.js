@@ -1,21 +1,21 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221556';
-import { direct, clipsOf } from './film/director.js?v=202611221556';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221556';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221556';
-import { makeItem, plainItem } from './parser.js?v=202611221556';
-import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221556';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221556';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221556';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221556';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221556';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221556';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221556';
-import { newId } from './parser.js?v=202611221556';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221556';
-import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221556';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221556';
-import { detectScene } from './film/director.js?v=202611221556';
+import { Film } from './film/player.js?v=202611221559';
+import { direct, clipsOf } from './film/director.js?v=202611221559';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221559';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221559';
+import { makeItem, plainItem } from './parser.js?v=202611221559';
+import { FORMATS, toScenes, aiScenes } from './formats.js?v=202611221559';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221559';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221559';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221559';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221559';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221559';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221559';
+import { newId } from './parser.js?v=202611221559';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221559';
+import { VOICES, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221559';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221559';
+import { detectScene } from './film/director.js?v=202611221559';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -50,6 +50,7 @@ const SAMPLE_BRIEF = { title: 'Uyku neden bu kadar önemli?', text: 'Uyku, beyni
 let brief = { ...SAMPLE_BRIEF, ...store.get('film-brief', {}) };
 const SAMPLE = toScenes('bilgi', SAMPLE_BRIEF);
 let F = { ...DEFAULTS, ...store.get('film-settings', {}) };
+if (!F.v2) { F.v2 = true; F.latinFont = ''; if (!F.soundtrack || F.soundtrack === 'none') F.soundtrack = 'bed:kurumsal'; if (!['modern', 'neonliste', 'marka', 'gercek'].includes(F.style)) F.style = 'modern'; F.ttsOn = true; }
 if (!Array.isArray(F.platforms) || !F.platforms.length) F.platforms = ['reels'];
 F.platforms = F.platforms.filter(k => PLATFORMS[k]); if (!F.platforms.length) F.platforms = ['reels'];
 if (!PLATFORMS[F.previewPlatform]) F.previewPlatform = F.platforms[0];

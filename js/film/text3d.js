@@ -1,6 +1,6 @@
 // 3D yazı: her kelime ayrı bir düzlem (doku) olarak uzayda canlandırılır. Arapça şekillendirme 2D kanvasla yapılır.
-import * as THREE from '../../vendor/three-bundle.js?v=202611221556';
-import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221556';
+import * as THREE from '../../vendor/three-bundle.js?v=202611221559';
+import { layoutBlock, placeBlock, isMostlyRTL, isRTL } from '../renderer.js?v=202611221559';
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeOut = p => 1 - Math.pow(1 - p, 3);
@@ -59,13 +59,13 @@ export function buildText(lines, opts) {
   if (sub) {
     const rtl = isMostlyRTL(sub.text);
     const L = layoutBlock(sub.text, { latin: fonts.sub, ar: arFam, wLatin: /Inter|Montserrat/.test(fonts.sub) ? '500' : '500', wAr: '400' }, maxW * 0.95, Math.min(H * (main ? 0.22 : 0.45), areaH * (main ? 0.3 : 0.65)),
-      m * (main ? 0.05 : 0.075) * (rtl ? 1.2 : 1) * (opts.size || 1), 16, rtl ? 1.7 : 1.42);
+      m * (main ? (style.font ? 0.058 : 0.05) : 0.075) * (rtl ? 1.2 : 1) * (opts.size || 1), 16, rtl ? 1.7 : 1.42);
     blocks.push({ L, role: 'sub', color: style.sub });
   }
   const gap = m * 0.06;
   const badgeS = num ? m * (num.text.length > 2 ? 0.11 : 0.15) : 0;
   const logoH = logoImg ? m * 0.17 : 0;
-  const ctaH = cta ? m * 0.095 : 0;
+  const ctaH = cta ? m * 0.11 : 0;
   const pre = (badgeS ? badgeS + gap * 0.7 : 0) + (logoH ? logoH + gap * 0.7 : 0);
   const post = ctaH ? ctaH + gap * 1.1 : 0;
   const textTotal = blocks.reduce((a, b) => a + b.L.height, 0) + gap * Math.max(0, blocks.length - 1);
@@ -146,7 +146,7 @@ export function buildText(lines, opts) {
     }
   }
   if (cta) {
-    const fs = Math.round(m * 0.038), c0 = document.createElement('canvas').getContext('2d'); c0.font = `800 ${fs}px Montserrat, Inter, sans-serif`;
+    const fs = Math.round(m * 0.046), c0 = document.createElement('canvas').getContext('2d'); c0.font = `800 ${fs}px Montserrat, Inter, sans-serif`;
     const txt = cta.text.toLocaleUpperCase('tr'); const tw = c0.measureText(txt).width;
     const pw = Math.ceil(tw + fs * 2.4), ph = Math.ceil(fs * 2.2), pad = Math.ceil(fs * 0.6);
     const c = document.createElement('canvas'); c.width = pw + pad * 2; c.height = ph + pad * 2; const g = c.getContext('2d');
