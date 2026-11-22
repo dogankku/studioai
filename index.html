@@ -5,32 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611221715">
-<link rel="stylesheet" href="css/style.css?v=202611221715">
-<link rel="stylesheet" href="css/film.css?v=202611221715">
+<link rel="stylesheet" href="css/fonts.css?v=202611221951">
+<link rel="stylesheet" href="css/style.css?v=202611221951">
+<link rel="stylesheet" href="css/film.css?v=202611221951">
 </head>
 <body>
 <div class="app film">
+  <header class="topbar">
+    <h1>Video <span>Stüdyosu</span></h1>
+    <div class="seg" id="modeSeg"><button data-m="kolay" class="on">Kolay</button><button data-m="gelismis">Düzenleyici</button></div>
+    <div class="top-r">
+      <button class="btn sm ghost" id="projBtn">📁 Projeler</button>
+      <button class="btn sm primary" id="renderBtn">⬆ Dışa aktar</button>
+    </div>
+  </header>
+  <nav class="rail" id="tabs">
+    <button data-tab="metin" class="on"><i>📝</i>Metin</button>
+    <button data-tab="ai"><i>🎞</i>Medya</button>
+    <button data-tab="ses"><i>🎵</i>Ses</button>
+    <button data-tab="yonetmen"><i>🎬</i>Stil</button>
+    <button data-tab="efekt"><i>✨</i>Efekt</button>
+    <button data-tab="referans"><i>🔁</i>Referans</button>
+    <button data-tab="uretim"><i>⬆</i>Dışa aktar<b id="doneBadge"></b></button>
+  </nav>
   <aside>
-    <header>
-      <div>
-        <h1>Video <span>Stüdyosu</span></h1>
-        <div class="subtitle">Metninizi yazın, video hazır. Her şey bilgisayarınızda.</div>
-      </div>
-      <div class="hdr-btns">
-        <div class="seg" id="modeSeg"><button data-m="kolay" class="on">Kolay</button><button data-m="gelismis">Gelişmiş</button></div>
-        <button class="btn sm" id="projBtn">📁 Projeler</button>
-      </div>
-    </header>
-    <nav class="tabs" id="tabs">
-      <button data-tab="metin" class="on">Senaryo</button>
-      <button data-tab="yonetmen">Yönetmen</button>
-      <button data-tab="ai">Yapay zekâ</button>
-      <button data-tab="referans">Referans</button>
-      <button data-tab="efekt">Efektler</button>
-      <button data-tab="ses">Ses</button>
-      <button data-tab="uretim">Üretim <b id="doneBadge"></b></button>
-    </nav>
 
     <!-- KOLAY MOD -->
     <section class="pane on" data-pane="kolay">
@@ -65,7 +63,7 @@
         <div class="row-btns mt8"><button class="btn primary ez-go" id="ezGo">● Videoyu üret</button><button class="btn" id="ezPlay">▶ Önizle</button></div>
         <div id="ezResults" class="queue mt8"></div>
       </div>
-      <div class="ez-more">Sahneleri tek tek düzenlemek, marka kiti, toplu üretim, kapak ve diğer araçlar için <button class="link" id="ezEdit">Gelişmiş mod</button>.</div>
+      <div class="ez-more">Sahneleri tek tek düzenlemek, marka kiti, toplu üretim, kapak ve diğer araçlar için <button class="link" id="ezEdit">Düzenleyici</button>.</div>
     </section>
 
     <!-- SENARYO -->
@@ -115,24 +113,6 @@
         <div class="row-btns"><button class="btn sm" id="addItem">+ Sahne</button><button class="btn sm ghost" id="clearList">Temizle</button></div>
       </div>
       <div id="itemList" class="items"></div>
-      <div class="card" id="editor">
-        <div class="ttl">Seçili sahne <span class="muted" id="editNo"></span></div>
-        <div class="row">
-          <div><label for="eKind">Sahne türü</label><select id="eKind"><option value="hook">Giriş (dikkat çekici)</option><option value="point">Bilgi</option><option value="item">Liste maddesi</option><option value="quote">Söz</option><option value="problem">Sorun</option><option value="solution">Çözüm / ürün</option><option value="feature">Özellik</option><option value="price">Fiyat / kampanya</option><option value="cta">Kapanış çağrısı</option></select></div>
-          <div><label for="eTag">Üst etiket</label><input type="text" id="eTag"></div>
-        </div>
-        <label for="eLayout">Düzen</label><select id="eLayout"><option value="">Otomatik</option><option value="merkez">Ortada</option><option value="sol">Sola dayalı</option><option value="alt">Alt bant (panel)</option><option value="istatistik">Büyük sayı / istatistik (sayaç)</option><option value="gorsel">Görsel kart (sahneye eklenen fotoğraf üstte)</option></select>
-        <label for="eMain">Başlık (ekranda büyük)</label><textarea id="eMain" rows="2"></textarea>
-        <label for="eSub">Açıklama (ekranda küçük)</label><textarea id="eSub" rows="2"></textarea>
-        <div class="row3">
-          <div><label for="eNum">Numara / simge</label><input type="text" id="eNum" placeholder="1, ✓, ★"></div>
-          <div><label for="eCta">Düğme yazısı</label><input type="text" id="eCta"></div>
-          <div><label for="eSrc">Alt imza</label><input type="text" id="eSrc"></div>
-        </div>
-        <label for="eVo">Seslendirme metni <span class="muted">(boşsa başlık ve açıklama okunur)</span></label><textarea id="eVo" rows="2"></textarea>
-        <div class="row-btns mt8"><button class="btn sm" id="eRec">🎙 Kendi sesimle kaydet</button><button class="btn sm ghost" id="eRecPlay" style="display:none">▶ Dinle</button><button class="btn sm ghost" id="eRecDel" style="display:none">✕ Kaydı sil</button><span class="muted" id="eRecInfo"></span></div>
-        <label for="eQ">Çekim arama ipucu <span class="muted">(metne göre çekim düzeninde)</span></label><input type="text" id="eQ" placeholder="ör. ocean sunset">
-      </div>
     </section>
 
     <!-- YÖNETMEN -->
@@ -342,6 +322,35 @@ Odaklanmayı artırır
 
   <main>
     <div class="stage" id="stage"><canvas id="cv"></canvas><div class="safe-ov" id="safeOv"><i class="st"></i><i class="sb"></i></div><div class="loading" id="loading">Hazırlanıyor…</div><div class="toast" id="toast"></div></div>
+    <div class="bar">
+      <button class="btn" id="play">▶ Oynat</button>
+      <input type="range" id="seek" min="0" max="1000" value="0">
+      <span id="time">0.0 / 0.0 sn</span>
+      <button class="audio-pill" id="audioPill"></button>
+    </div>
+  </main>
+  <section class="props" id="props">
+    <div class="props-h">Özellikler</div>
+    <div data-prop="scene">
+      <div id="editor">
+        <div class="ttl">Sahne <span class="muted" id="editNo"></span></div>
+        <div class="row">
+          <div><label for="eKind">Sahne türü</label><select id="eKind"><option value="hook">Giriş (dikkat çekici)</option><option value="point">Bilgi</option><option value="item">Liste maddesi</option><option value="quote">Söz</option><option value="problem">Sorun</option><option value="solution">Çözüm / ürün</option><option value="feature">Özellik</option><option value="price">Fiyat / kampanya</option><option value="cta">Kapanış çağrısı</option></select></div>
+          <div><label for="eTag">Üst etiket</label><input type="text" id="eTag"></div>
+        </div>
+        <label for="eLayout">Düzen</label><select id="eLayout"><option value="">Otomatik</option><option value="merkez">Ortada</option><option value="sol">Sola dayalı</option><option value="alt">Alt bant (panel)</option><option value="istatistik">Büyük sayı / istatistik (sayaç)</option><option value="gorsel">Görsel kart (sahneye eklenen fotoğraf üstte)</option></select>
+        <label for="eMain">Başlık (ekranda büyük)</label><textarea id="eMain" rows="2"></textarea>
+        <label for="eSub">Açıklama (ekranda küçük)</label><textarea id="eSub" rows="2"></textarea>
+        <div class="row3">
+          <div><label for="eNum">Numara / simge</label><input type="text" id="eNum" placeholder="1, ✓, ★"></div>
+          <div><label for="eCta">Düğme yazısı</label><input type="text" id="eCta"></div>
+          <div><label for="eSrc">Alt imza</label><input type="text" id="eSrc"></div>
+        </div>
+        <label for="eVo">Seslendirme metni <span class="muted">(boşsa başlık ve açıklama okunur)</span></label><textarea id="eVo" rows="2"></textarea>
+        <div class="row-btns mt8"><button class="btn sm" id="eRec">🎙 Kendi sesimle kaydet</button><button class="btn sm ghost" id="eRecPlay" style="display:none">▶ Dinle</button><button class="btn sm ghost" id="eRecDel" style="display:none">✕ Kaydı sil</button><span class="muted" id="eRecInfo"></span></div>
+        <label for="eQ">Çekim arama ipucu <span class="muted">(metne göre çekim düzeninde)</span></label><input type="text" id="eQ" placeholder="ör. ocean sunset">
+      </div>
+      <div class="ttl mt">Çekim ayarları</div>
     <div class="inspector" id="inspector">
       <span class="ins-title" id="insTitle">Çekim</span>
       <select id="iScene" title="Sahne"></select>
@@ -352,16 +361,61 @@ Odaklanmayı artırır
       <span class="dur"><button class="btn icon sm" id="iShorter">−</button><span id="iDur">0.0 sn</span><button class="btn icon sm" id="iLonger">+</button></span>
       <button class="link" id="iReset">sıfırla</button>
     </div>
-    <div class="timeline" id="timeline"><div class="tl-shots" id="tlShots"></div><div class="tl-beats" id="tlBeats"></div><div class="tl-head" id="tlHead"></div></div>
-    <div class="overall"><div class="prog"><i id="bar"></i></div><span id="barTxt" class="muted"></span><div class="warn" id="hiddenWarn">Üretim bitene kadar bu pencereyi önde tutun.</div></div>
-    <div class="bar">
-      <button class="btn" id="play">▶ Oynat</button>
-      <input type="range" id="seek" min="0" max="1000" value="0">
-      <span id="time">0.0 / 0.0 sn</span>
-      <button class="audio-pill" id="audioPill"></button>
-      <button class="btn primary" id="renderBtn">● Videoyu üret</button>
     </div>
-  </main>
+    <div data-prop="video" style="display:none">
+      <div class="ttl" id="pvTitle">Video klibi</div>
+      <div class="pv-thumb" id="pvThumb"></div>
+      <div class="hint" id="pvInfo"></div>
+      <div class="row-btns mt8"><button class="btn sm" id="pvPrev">◀ Öne al</button><button class="btn sm" id="pvNext">Geri al ▶</button></div>
+      <div class="row-btns mt8"><button class="btn sm" id="pvAdd">＋ Klip ekle</button><button class="btn sm ghost" id="pvDel">🗑 Çıkar</button></div>
+      <div class="hint">Klipler sırayla, yumuşak geçişle akar. Geçiş süresi ve renk eşitleme Medya bölümünde.</div>
+    </div>
+    <div data-prop="music" style="display:none">
+      <div class="ttl">Müzik</div>
+      <select id="pmMusic"></select>
+      <label for="pmVol">Ses seviyesi</label><input type="range" id="pmVol" min="0" max="1" step="0.05" style="width:100%">
+      <label class="check"><input type="checkbox" id="pmFadeIn"> Yavaşça başlasın</label>
+      <label class="check"><input type="checkbox" id="pmFadeOut"> Yavaşça bitsin</label>
+      <div class="hint">Konuşma sırasında müzik kendiliğinden kısılır. Kendi müziğinizi ya da Freesound'u Ses bölümünden ekleyin.</div>
+    </div>
+    <div data-prop="sfx" style="display:none">
+      <div class="ttl" id="psTitle">Efekt</div>
+      <label class="check"><input type="checkbox" id="psOn"> Bu efekt videoda çalsın</label>
+      <label for="psVol">Tüm efektlerin seviyesi</label><input type="range" id="psVol" min="0" max="1" step="0.05" style="width:100%">
+    </div>
+  </section>
+  <section class="tlwrap">
+    <div class="tl-tools">
+      <button class="tbtn" id="tlPlay" title="Oynat (boşluk)">▶</button>
+      <span class="tl-sep"></span>
+      <span class="tl-edit">
+        <button class="tbtn" id="tlUndo" title="Geri al (Ctrl+Z)" disabled>↶</button>
+        <button class="tbtn" id="tlRedo" title="Yinele (Ctrl+Shift+Z)" disabled>↷</button>
+        <span class="tl-sep"></span>
+        <button class="tbtn" id="tlSplit" title="Oynatma çizgisindeki sahneyi böl (Ctrl+B)">✂ Böl</button>
+        <button class="tbtn" id="tlDup" title="Çoğalt (Ctrl+D)">⧉ Çoğalt</button>
+        <button class="tbtn" id="tlDel" title="Seçileni sil (Delete)">🗑 Sil</button>
+        <button class="tbtn" id="tlAdd" title="Yeni sahne ekle">＋ Sahne</button>
+      </span>
+      <span class="tl-grow"></span>
+      <label class="tl-zoom">🔍 <input type="range" id="tlZoom" min="0" max="1.6" step="0.05" value="0"></label>
+    </div>
+    <div class="overall"><div class="prog"><i id="bar"></i></div><span id="barTxt" class="muted"></span><div class="warn" id="hiddenWarn">Üretim bitene kadar bu pencereyi önde tutun.</div></div>
+    <div class="tl-body">
+      <div class="tl-labels"><div class="lb-r"></div><div class="lb-s">🔤 Sahne</div><div class="lb-v">🎞 Video</div><div class="lb-a">🎙 Ses</div><div class="lb-m">🎵 Müzik</div><div class="lb-x">✨ Efekt</div></div>
+      <div class="tl-scroll" id="tlScroll">
+        <div class="timeline" id="timeline">
+          <div class="tl-ruler"><div id="tlRuler"></div><div class="tl-beats" id="tlBeats"></div></div>
+          <div class="trk trk-s"><div class="tl-shots" id="tlShots"></div></div>
+          <div class="trk trk-v" id="trkVideo"></div>
+          <div class="trk trk-a" id="trkVoice"></div>
+          <div class="trk trk-m" id="trkMusic"></div>
+          <div class="trk trk-x" id="trkSfx"></div>
+          <div class="tl-head" id="tlHead"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 <div class="modal" id="projModal"><div class="pick-box">
   <div class="pick-head"><b>Projeler</b><button class="btn sm ghost" id="projClose">✕</button></div>
@@ -377,7 +431,7 @@ Odaklanmayı artırır
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611221715"></script>
-<script type="module" src="js/film-app.js?v=202611221715"></script>
+<script src="vendor/jszip.min.js?v=202611221951"></script>
+<script type="module" src="js/film-app.js?v=202611221951"></script>
 </body>
 </html>

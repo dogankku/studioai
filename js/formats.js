@@ -2,7 +2,7 @@
 // Sahne: { kind, tag, main, sub, num, cta, src, vo, q }
 //   kind: hook | point | item | quote | problem | solution | feature | price | cta
 //   vo: seslendirilecek metin (yoksa main + sub okunur), q: çekim arama ipucu
-import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221715';
+import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611221951';
 
 export const FORMATS = {
   bilgi: {
@@ -35,7 +35,7 @@ const BULLET = /^\s*(?:[-–—•*✓✔►▶]|\d{1,2}[.)\-:]|\(\d{1,2}\))\s*/
 const PRICE = /(₺|\bTL\b|\$|€|£|fiyat|indirim|kampanya|sadece|yalnızca|%\s*\d|\d+\s*%)/i;
 
 /** Uzun bir paragraftan kısa başlık + açıklama çıkar */
-function headBody(p) {
+export function headBody(p) {
   const m = p.match(/^([^:\n]{2,60}):\s*(.+)$/s);
   if (m) return { main: m[1].trim(), sub: m[2].trim() };
   const ss = sentences(p);

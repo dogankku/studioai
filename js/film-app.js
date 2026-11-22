@@ -1,23 +1,23 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611221715';
-import { direct, clipsOf } from './film/director.js?v=202611221715';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221715';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221715';
-import { makeItem, plainItem } from './parser.js?v=202611221715';
-import { FORMATS, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221715';
-import { TEMPLATES } from './templates.js?v=202611221715';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221715';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221715';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221715';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221715';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221715';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221715';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221715';
-import { newId } from './parser.js?v=202611221715';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221715';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221715';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221715';
-import { detectScene } from './film/director.js?v=202611221715';
+import { Film } from './film/player.js?v=202611221951';
+import { direct, clipsOf } from './film/director.js?v=202611221951';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611221951';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611221951';
+import { makeItem, plainItem } from './parser.js?v=202611221951';
+import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611221951';
+import { TEMPLATES } from './templates.js?v=202611221951';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611221951';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611221951';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611221951';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611221951';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611221951';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611221951';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611221951';
+import { newId } from './parser.js?v=202611221951';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611221951';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611221951';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611221951';
+import { detectScene } from './film/director.js?v=202611221951';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -69,7 +69,7 @@ let refAudio = null; // AudioBuffer (yalnızca bu oturumda)
 let sel = 0, selShot = -1;
 const music = []; // {id, name, buffer, blob, an}
 let saveT = 0;
-const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('vs-items', items.map(plainItem)); store.set('film-brief', brief); store.set('vs-kit', kit); store.set('film-overrides', overrides); store.set('film-flow', flow); projAuto(); }, 300); };
+const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { store.set('film-settings', F); store.set('vs-items', items.map(plainItem)); store.set('film-brief', brief); store.set('vs-kit', kit); store.set('film-overrides', overrides); store.set('film-flow', flow); projAuto(); try { recordSnap(); } catch (e) { } }, 300); };
 
 /* ================= Film motoru ================= */
 const cv = $('#cv');
@@ -198,6 +198,7 @@ function updateTime() {
   $('#time').textContent = `${curT.toFixed(1)} / ${tl.dur.toFixed(1)} sn`;
   $('#seek').value = tl.dur ? Math.round(curT / tl.dur * 1000) : 0;
   $('#tlHead').style.left = (tl.dur ? curT / tl.dur * 100 : 0) + '%';
+  const sc = $('#tlScroll'); if (sc && playing) { const x = $('#tlHead').offsetLeft; if (x < sc.scrollLeft || x > sc.scrollLeft + sc.clientWidth - 30) sc.scrollLeft = x - 40; }
 }
 function startPlayback(from) {
   if (busy || !tl.dur) return;
@@ -229,6 +230,7 @@ function renderTimeline() {
   }).join('');
   const st = soundtrack(), beats = F.beatSync && st && st.an ? st.an.beats : [];
   $('#tlBeats').innerHTML = beats.filter(b => b < tl.dur).map(b => `<i style="left:${b / tl.dur * 100}%"></i>`).join('');
+  try { renderTracks(); } catch (e) { console.warn(e); }
 }
 function highlightShotAt(t) {
   const s = tl.shots.findLast ? tl.shots.findLast(x => x.start <= t) : [...tl.shots].reverse().find(x => x.start <= t);
@@ -278,6 +280,8 @@ $('#timeline').onclick = e => {
   const s = [...tl.shots].reverse().find(x => x.start <= t); selShot = s ? s.i : -1;
   curT = Math.max(0, Math.min(tl.dur, t)); updateTime(); renderTimeline(); updateInspector(); dirty = true;
   if (was) startPlayback(curT);
+  if (e.target.closest('.tl-ruler')) return;
+  const b = e.target.closest('[data-sel]'); if (b) { const [k, i] = b.dataset.sel.split(':'); setSel(k, i == null ? null : (isNaN(+i) ? i : +i)); } else setSel('scene');
 };
 
 /* ================= Çekim düzenleyici ================= */
@@ -1373,6 +1377,153 @@ $('#stockGrid').addEventListener('click', e => { const p = e.target.closest('[da
 $('#stockGrid').addEventListener('change', e => { const q = e.target.closest('[data-sq]'); if (q) { items[+q.dataset.sq].stockQ = q.value.trim(); save(); } });
 
 
+
+/* ================= Düzenleyici: katmanlı zaman çizelgesi ================= */
+let selKind = 'scene', selIdx = null, tlZoom = 0;
+const TRK_COL = ['#3a6df0', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+const wfCache = new WeakMap();
+function wavePath(buf, w, h, from = 0, len = null) {
+  if (!buf) return ''; w = Math.max(2, Math.min(3000, Math.round(w)));
+  const key = w + ':' + from + ':' + len; let m = wfCache.get(buf); if (!m) wfCache.set(buf, m = new Map()); if (m.has(key)) return m.get(key);
+  const d = buf.getChannelData(0), sr = buf.sampleRate, L = len == null ? buf.duration : len, pts = [];
+  for (let x = 0; x < w; x++) {
+    const t0 = from + x / w * L, t1 = from + (x + 1) / w * L; let pk = 0;
+    const a = Math.floor((t0 % buf.duration) * sr), n = Math.max(1, Math.floor((t1 - t0) * sr)), st = Math.max(1, Math.floor(n / 40));
+    for (let i = 0; i < n; i += st) { const v = Math.abs(d[(a + i) % d.length] || 0); if (v > pk) pk = v; }
+    pts.push(pk);
+  }
+  const mx = Math.max(0.05, ...pts), c = h / 2;
+  const path = 'M0 ' + c + pts.map((v, x) => ` L${x} ${(c - v / mx * c * 0.92).toFixed(1)}`).join('') + pts.map((v, x) => ` L${w - 1 - x} ${(c + pts[w - 1 - x] / mx * c * 0.92).toFixed(1)}`).join('') + ' Z';
+  m.set(key, path); return path;
+}
+const pct = t => (tl.dur ? t / tl.dur * 100 : 0) + '%';
+const wave = (buf, wpx, from, len) => `<svg class="wf" viewBox="0 0 ${Math.max(2, Math.min(3000, Math.round(wpx)))} 24" preserveAspectRatio="none"><path d="${wavePath(buf, wpx, 24, from, len)}"/></svg>`;
+function renderTracks() {
+  const box = $('#timeline'); if (!box || !$('#trkVideo')) return;
+  const sc = $('#tlScroll'); const vw = sc.clientWidth || 600;
+  const pps = vw / Math.max(1, tl.dur) * Math.pow(8, tlZoom);
+  box.style.width = Math.max(vw, Math.round(tl.dur * pps)) + 'px';
+  const W = box.getBoundingClientRect().width || vw, px = t => t / Math.max(0.01, tl.dur) * W;
+  // cetvel
+  const step = [0.5, 1, 2, 5, 10, 15, 30, 60, 120].find(x => px(x) >= 60) || 120;
+  let r = ''; for (let t = 0; t <= tl.dur + 0.01; t += step) r += `<span style="left:${pct(t)}">${t >= 60 ? Math.floor(t / 60) + ':' + String(Math.round(t % 60)).padStart(2, '0') : (+t.toFixed(1)) + 's'}</span>`;
+  $('#tlRuler').innerHTML = r;
+  // video katmanı
+  let v = '';
+  const fs = film.flowSegs && film.flowSegs();
+  const flowShots = tl.shots.filter(s => s.flow && s.scene === 'video');
+  if (fs && flowShots.length) {
+    const a = flowShots[0].start, b = flowShots[flowShots.length - 1].start + flowShots[flowShots.length - 1].dur;
+    for (let k = 0; k * fs.T < b + 0.01 && k < 200; k++) fs.segs.forEach((g, j) => {
+      const st = Math.max(a, g.s + k * fs.T), en = Math.min(b, g.s + k * fs.T + g.L); if (en - st < 0.05 || st >= b) return;
+      const fi = flow.findIndex(x => x.id === g.id), it = flow[fi] || {};
+      v += `<div class="clip vid${selKind === 'video' && selIdx === fi ? ' on' : ''}" data-sel="video:${fi}" style="left:${pct(st)};width:${pct(en - st)};${it.thumb ? `background-image:url('${esc(it.thumb)}')` : ''}"><b>${fi + 1}</b></div>`;
+    });
+  } else tl.shots.forEach(s => {
+    if (s.scene !== 'video' || !(s.videos || []).length) return;
+    v += `<div class="clip vid" data-sel="scene" style="left:${pct(s.start)};width:${pct(s.dur)}"><b>🎞</b></div>`;
+  });
+  $('#trkVideo').innerHTML = v || '<span class="trk-empty">Video yok · soldan Medya ile ekleyin</span>';
+  // seslendirme
+  let a = ''; const off = itemOff();
+  for (const c of tl.clips || []) {
+    const [kind, idx] = c.key.split(':'); if (kind !== 'vo') continue; const it = allItems()[+idx]; if (!it) continue;
+    const n = narrOf(it), ii = +idx - off, d = n ? n.buf.duration : (c.dur || 2);
+    a += `<div class="clip voc${n ? '' : ' wait'}${selKind === 'scene' && sel === ii ? ' on' : ''}" data-sel="voice:${ii}" style="left:${pct(c.start)};width:${pct(d)}" title="${esc(voText(it))}">${n ? wave(n.buf, px(d), 0, null) : ''}<span>${esc(voText(it).slice(0, 40))}</span></div>`;
+  }
+  $('#trkVoice').innerHTML = a || `<span class="trk-empty">${F.ttsOn ? 'Sesler üretimde hazırlanır' : 'Seslendirme kapalı'}</span>`;
+  // müzik
+  const st = soundtrack();
+  $('#trkMusic').innerHTML = st && st.buffer ? `<div class="clip mus${selKind === 'music' ? ' on' : ''}" data-sel="music" style="left:0;width:100%">${wave(st.buffer, W, 0, tl.dur)}<span>♪ ${esc(st.name || 'Müzik')}</span></div>` : '<span class="trk-empty" data-sel="music">Müzik yok · tıklayıp seçin</span>';
+  // efektler
+  let x = '';
+  if (F.sfxOn) for (const c of sfxCues(tl.shots, { enabled: Object.fromEntries(Object.keys(SFX).map(k => [k, !F.sfxOff[k]])) })) {
+    const b = sfxBufs.get(c.kind); const d = b ? b.duration : (SFX[c.kind] || {}).len || 0.5;
+    x += `<div class="clip sfx${selKind === 'sfx' && selIdx === c.kind ? ' on' : ''}" data-sel="sfx:${c.kind}" style="left:${pct(c.t)};width:${pct(d)}" title="${esc((SFX[c.kind] || {}).name || c.kind)}"><span>${esc((SFX[c.kind] || {}).name || c.kind)}</span></div>`;
+  }
+  $('#trkSfx').innerHTML = x || '<span class="trk-empty">Efekt yok</span>';
+  updateTime();
+}
+function setSel(kind, idx = null) {
+  if (kind === 'voice') { kind = 'scene'; if (idx != null && items[idx]) { sel = idx; renderList(); loadEditor(); } }
+  else if (kind === 'scene') { const s = tl.shots[selShot]; const ii = s ? s.item - itemOff() : -1; if (items[ii] && ii !== sel) { sel = ii; renderList(); loadEditor(); } }
+  selKind = kind; selIdx = idx; showProps(); renderTracks();
+}
+function showProps() {
+  if (!$('#props')) return;
+  $$('#props [data-prop]').forEach(el => (el.style.display = el.dataset.prop === selKind ? '' : 'none'));
+  if (selKind === 'video') {
+    const v = flow[selIdx]; if (!v) { selKind = 'scene'; return showProps(); }
+    $('#pvTitle').textContent = `Video klibi ${selIdx + 1} / ${flow.length}`;
+    $('#pvThumb').innerHTML = v.thumb ? `<img src="${esc(v.thumb)}" alt="">` : (film.videos.has(v.id) ? `<video muted playsinline src="${esc(film.videos.get(v.id).src)}#t=1"></video>` : '');
+    $('#pvInfo').textContent = `${Math.round(v.dur || 0)} sn${v.tags ? ' · ' + v.tags : ''}`;
+  }
+  if (selKind === 'music') { $('#pmMusic').innerHTML = $('#soundtrack').innerHTML; $('#pmMusic').value = $('#soundtrack').value; $('#pmVol').value = F.musicVol; $('#pmFadeIn').checked = !!F.fadeIn; $('#pmFadeOut').checked = !!F.fadeOut; }
+  if (selKind === 'sfx') { $('#psTitle').textContent = 'Efekt: ' + ((SFX[selIdx] || {}).name || selIdx); $('#psOn').checked = !F.sfxOff[selIdx]; $('#psVol').value = F.sfxVol; }
+}
+const flowMove = (k, d) => { const j = k + d; if (j < 0 || j >= flow.length) return; [flow[k], flow[j]] = [flow[j], flow[k]]; selIdx = j; save(); rebuild(); renderFlow(); showProps(); };
+$('#pvPrev').onclick = () => flowMove(selIdx, -1);
+$('#pvNext').onclick = () => flowMove(selIdx, 1);
+$('#pvDel').onclick = () => tlDelete();
+$('#pvAdd').onclick = () => { ezStockOn(); openPicker('flow'); };
+$('#pmMusic').onchange = e => { $('#soundtrack').value = e.target.value; $('#soundtrack').dispatchEvent(new Event('change')); };
+$('#pmVol').oninput = e => { $('#musicVol').value = e.target.value; $('#musicVol').dispatchEvent(new Event('input')); };
+$('#pmFadeIn').onchange = e => { $('#fadeIn').checked = e.target.checked; $('#fadeIn').dispatchEvent(new Event('change')); };
+$('#pmFadeOut').onchange = e => { $('#fadeOut').checked = e.target.checked; $('#fadeOut').dispatchEvent(new Event('change')); };
+$('#psOn').onchange = e => { F.sfxOff = { ...F.sfxOff, [selIdx]: !e.target.checked }; save(); renderSfx(); rebuild(); };
+$('#psVol').oninput = e => { $('#sfxVol').value = e.target.value; $('#sfxVol').dispatchEvent(new Event('input')); };
+function curItem() { const s = [...tl.shots].reverse().find(x => x.start <= curT + 0.001); const ii = s ? s.item - itemOff() : -1; return items[ii] ? ii : (items[sel] ? sel : -1); }
+function tlSplit() {
+  const i = curItem(); if (i < 0) return toast('Bölmek için oynatma çizgisini bir sahnenin üstüne getirin');
+  const it = items[i]; const text = (it.vo || [it.main, it.sub].filter(Boolean).join('. ')).trim();
+  const ss = text.replace(/\s+/g, ' ').split(/(?<=[.!?…])\s+/).filter(Boolean);
+  const nw = makeItem(plainItem(it)); delete nw.vids; delete nw.imgId;
+  if (ss.length > 1) {
+    const h = Math.ceil(ss.length / 2), A = ss.slice(0, h).join(' '), B = ss.slice(h).join(' ');
+    const ha = headBody(A), hb = headBody(B);
+    it.main = ha.main; it.sub = ha.sub; it.vo = A; nw.main = hb.main; nw.sub = hb.sub; nw.vo = B; nw.tag = '';
+  }
+  items.splice(i + 1, 0, nw); sel = i + 1; listChanged(); setSel('scene');
+  toast(ss.length > 1 ? 'Sahne ikiye bölündü' : 'Tek cümlelik sahne kopyalandı');
+}
+function tlDup() { const i = selKind === 'scene' && items[sel] ? sel : curItem(); if (i < 0) return; const nw = makeItem(plainItem(items[i])); items.splice(i + 1, 0, nw); sel = i + 1; listChanged(); toast('Sahne çoğaltıldı'); }
+function tlDelete() {
+  if (selKind === 'video' && flow[selIdx]) { const [v] = flow.splice(selIdx, 1); flowRemoveFiles(v); selKind = 'scene'; save(); rebuild(); renderFlow(); showProps(); toast('Klip çıkarıldı'); return; }
+  if (selKind === 'music') { $('#soundtrack').value = 'none'; $('#soundtrack').dispatchEvent(new Event('change')); toast('Müzik kaldırıldı'); return; }
+  if (selKind === 'sfx' && selIdx) { F.sfxOff = { ...F.sfxOff, [selIdx]: true }; save(); renderSfx(); rebuild(); showProps(); toast('Bu efekt kapatıldı'); return; }
+  if (!items[sel]) return; if (items.length <= 1) return toast('Son sahne silinemez');
+  items.splice(sel, 1); sel = Math.min(sel, items.length - 1); listChanged(); toast('Sahne silindi');
+}
+function tlAdd() { items.splice(sel + 1, 0, makeItem({ kind: 'point', main: 'Yeni sahne' })); sel = Math.min(sel + 1, items.length - 1); listChanged(); setSel('scene'); setTimeout(() => { $('#eMain').focus(); $('#eMain').select(); }, 50); }
+/* geri al / yinele */
+const undoS = [], redoS = []; let lastSnap = null;
+const snapNow = () => JSON.stringify({ items: items.map(it => ({ ...plainItem(it), id: it.id })), flow, overrides, brief, st: F.soundtrack, style: F.style, sfxOff: F.sfxOff });
+function recordSnap() { const s = snapNow(); if (lastSnap === null) { lastSnap = s; return updUndo(); } if (s === lastSnap) return; undoS.push(lastSnap); if (undoS.length > 80) undoS.shift(); redoS.length = 0; lastSnap = s; updUndo(); }
+function updUndo() { if ($('#tlUndo')) { $('#tlUndo').disabled = !undoS.length; $('#tlRedo').disabled = !redoS.length; } }
+async function applySnap(s) {
+  const o = JSON.parse(s);
+  items = o.items.map(x => { const it = makeItem(x); it.id = x.id; return it; }); flow = o.flow.filter(v => film.videos.has(v.id)); overrides = o.overrides; brief = o.brief; F.style = o.style; F.sfxOff = o.sfxOff || {};
+  if (F.soundtrack !== o.st) { F.soundtrack = o.st; if (String(o.st).startsWith('bed:')) await ensureBed(o.st.slice(4)); renderMusic(); }
+  sel = Math.max(0, Math.min(sel, items.length - 1)); lastSnap = s;
+  renumber(); renderFormats(); syncBrief(); renderList(); loadEditor(); syncUI(); renderSfx(); rebuild(); renderFlow(); save(); updUndo();
+}
+function undo() { if (!undoS.length) return; clearTimeout(saveT); recordSnap(); if (!undoS.length) return; redoS.push(lastSnap); applySnap(undoS.pop()); toast('Geri alındı'); }
+function redo() { if (!redoS.length) return; undoS.push(lastSnap); applySnap(redoS.pop()); toast('Yinelendi'); }
+$('#tlUndo').onclick = undo; $('#tlRedo').onclick = redo;
+$('#tlSplit').onclick = tlSplit; $('#tlDup').onclick = tlDup; $('#tlDel').onclick = tlDelete; $('#tlAdd').onclick = tlAdd;
+$('#tlZoom').oninput = e => { tlZoom = +e.target.value; renderTracks(); const sc = $('#tlScroll'), head = $('#tlHead'); sc.scrollLeft = Math.max(0, head.offsetLeft - sc.clientWidth / 2); };
+$('#tlPlay').onclick = () => $('#play').click();
+window.addEventListener('keydown', e => {
+  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+  else if (mod && e.key.toLowerCase() === 'b') { e.preventDefault(); tlSplit(); }
+  else if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); tlDup(); }
+  else if ((e.key === 'Delete' || e.key === 'Backspace') && F.ui !== 'kolay') { e.preventDefault(); tlDelete(); }
+});
+new ResizeObserver(() => { try { renderTracks(); } catch (e) { } }).observe(document.getElementById('tlScroll'));
+
 /* ================= Kolay mod ================= */
 let ezDirty = false;
 function ezSync() { try { ezSync0(); } catch (e) { } }
@@ -1481,7 +1632,7 @@ window.filmDebug = { tl: () => tl, film, PK, results: () => results, flow: () =>
   rebuild(false); syncUI(); renderImgGrid(); renderStockGrid(); renderMusic(); updateAiAudioStatus();
   // motorlar programla birlikte açılıyorsa birkaç dakika boyunca sessizce yeniden dene
   (async () => { let a = false, b = false; for (let i = 0; i < 25 && !(a && b); i++) { if (i) await new Promise(r => setTimeout(r, 5000)); if (!a) a = await olConnect(true); if (!b) b = await cfConnect(true); } })();
-  setUI(F.ui === 'gelismis' ? 'gelismis' : 'kolay');
+  setUI(F.ui === 'gelismis' ? 'gelismis' : 'kolay'); showProps(); recordSnap(); new ResizeObserver(() => fitCanvas()).observe($('#stage'));
   $('#loading').classList.add('hide');
   requestAnimationFrame(loop);
 })();
