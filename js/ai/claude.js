@@ -1,5 +1,5 @@
 // Anthropic Claude: senaryo yazarı ve yaratıcı yönetmen (tarayıcıdan doğrudan).
-import { addCost } from './cost.js?v=202611271249';
+import { addCost } from './cost.js?v=202611271251';
 
 export const CLAUDE_MODELS = {
   'claude-sonnet-5-5': 'Sonnet 5.5 · dengeli (önerilen)',

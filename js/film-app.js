@@ -1,26 +1,26 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611271249';
-import { direct, clipsOf } from './film/director.js?v=202611271249';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611271249';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611271249';
-import { makeItem, plainItem } from './parser.js?v=202611271249';
-import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate, aiDirector, aiPolish } from './formats.js?v=202611271249';
-import { TEMPLATES } from './templates.js?v=202611271249';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611271249';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611271249';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611271249';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611271249';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611271249';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611271249';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611271249';
-import { newId } from './parser.js?v=202611271249';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611271249';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady, isGemini, voiceName } from './ai/voice.js?v=202611271249';
-import { GM_VOICES, geminiChat, geminiTest, geminiModels, geminiImage, geminiVideo, geminiPick, aspectOf } from './ai/gemini.js?v=202611271249';
-import { CLAUDE_MODELS, claudeChat, claudeTest } from './ai/claude.js?v=202611271249';
-import { costState, onCost, fmtUsd, GM_PRICE } from './ai/cost.js?v=202611271249';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611271249';
-import { detectScene } from './film/director.js?v=202611271249';
+import { Film } from './film/player.js?v=202611271251';
+import { direct, clipsOf } from './film/director.js?v=202611271251';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611271251';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611271251';
+import { makeItem, plainItem } from './parser.js?v=202611271251';
+import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate, aiDirector, aiPolish } from './formats.js?v=202611271251';
+import { TEMPLATES } from './templates.js?v=202611271251';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611271251';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611271251';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611271251';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611271251';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611271251';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611271251';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611271251';
+import { newId } from './parser.js?v=202611271251';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611271251';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady, isGemini, voiceName } from './ai/voice.js?v=202611271251';
+import { GM_VOICES, geminiChat, geminiTest, geminiModels, geminiImage, geminiVideo, geminiPick, aspectOf } from './ai/gemini.js?v=202611271251';
+import { CLAUDE_MODELS, claudeChat, claudeTest } from './ai/claude.js?v=202611271251';
+import { costState, onCost, fmtUsd, GM_PRICE } from './ai/cost.js?v=202611271251';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611271251';
+import { detectScene } from './film/director.js?v=202611271251';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -1600,6 +1600,7 @@ async function runDirector({ budget = F.dirBudget, media = F.dirMedia } = {}) {
   dirAbort = new AbortController(); $('#dirGo').disabled = true; $('#dirStop').disabled = false; const t0 = performance.now();
   try {
     const r = await aiDirector(F.fmt, brief, aiOpt({ signal: dirAbort.signal, onStatus: dirSt, budget, lang: F.lang && F.lang !== 'tr' && LANGS[F.lang] ? LANGS[F.lang].name : 'Türkçe' }));
+    if (budget === 'ekonomik') r.scenes.forEach(sc => { if (sc.visual === 'video') sc.visual = 'image'; });
     applyScenes(r.scenes, `${r.scenes.length} sahne yazıldı`);
     if (r.share) { $('#shareText').value = r.share; $('#shareBox').style.display = ''; store.set('vs-share', r.share); }
     if (r.voiceStyle) { F.gmStyle = r.voiceStyle; $('#gmStyle').value = r.voiceStyle; }

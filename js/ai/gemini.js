@@ -1,6 +1,6 @@
 // Google Gemini: senaryo / çeviri / takvim (metin) ve doğal seslendirme (TTS).
 // Tarayıcıdan doğrudan çağrılır; anahtar yalnızca bu tarayıcıda saklanır.
-import { addCost, GM_PRICE } from './cost.js?v=202611271249';
+import { addCost, GM_PRICE } from './cost.js?v=202611271251';
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 export const GM_VOICES = {
