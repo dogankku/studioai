@@ -1,23 +1,24 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611222003';
-import { direct, clipsOf } from './film/director.js?v=202611222003';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611222003';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611222003';
-import { makeItem, plainItem } from './parser.js?v=202611222003';
-import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611222003';
-import { TEMPLATES } from './templates.js?v=202611222003';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611222003';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611222003';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611222003';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611222003';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611222003';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611222003';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611222003';
-import { newId } from './parser.js?v=202611222003';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611222003';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady } from './ai/voice.js?v=202611222003';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611222003';
-import { detectScene } from './film/director.js?v=202611222003';
+import { Film } from './film/player.js?v=202611271237';
+import { direct, clipsOf } from './film/director.js?v=202611271237';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611271237';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611271237';
+import { makeItem, plainItem } from './parser.js?v=202611271237';
+import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611271237';
+import { TEMPLATES } from './templates.js?v=202611271237';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611271237';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611271237';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611271237';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611271237';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611271237';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611271237';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611271237';
+import { newId } from './parser.js?v=202611271237';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611271237';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady, isGemini, voiceName } from './ai/voice.js?v=202611271237';
+import { GM_VOICES, geminiChat, geminiTest } from './ai/gemini.js?v=202611271237';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611271237';
+import { detectScene } from './film/director.js?v=202611271237';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -38,7 +39,7 @@ const DEFAULTS = {
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
   refUseCuts: true, refUseEnergy: true, refUseColors: false, refUseAudio: false,
-  olUrl: 'http://localhost:11434', olModel: '', cfUrl: 'http://127.0.0.1:8188', cfCkpt: '',
+  olUrl: 'http://localhost:11434', olModel: '', gmKey: '', gmStyle: 'Samimi, enerjik bir sosyal medya anlatıcısı gibi', cfUrl: 'http://127.0.0.1:8188', cfCkpt: '',
   ttsOn: true, voice: 'tr_TR-dfki-medium', imgOn: true, stockOn: true, pxKey: '', stockNoPeople: true, stockN: '3', stockMode: 'flow', flowXF: 1.2, flowMax: 6, flowMatch: true
 };
 // Platform ayarları (YouTube ve Instagram önerilerine göre)
@@ -96,7 +97,10 @@ function directOpts() {
 }
 /* yapay zekâ sesleri ve görselleri: öğe kimliğine göre önbellek */
 const narrCache = new Map(), ownVoice = new Map();
-const ttsCfg = () => `${F.voice}|${(+F.ttsSpeed).toFixed(2)}|${(+F.ttsPitch).toFixed(2)}|${(+F.ttsPause).toFixed(2)}`;
+const ttsCfg = () => `${F.voice}|${(+F.ttsSpeed).toFixed(2)}|${(+F.ttsPitch).toFixed(2)}|${(+F.ttsPause).toFixed(2)}${isGemini(F.voice) ? '|' + F.gmStyle : ''}`;
+const useGm = () => !!(F.gmKey || '').trim();
+const aiOpt = extra => useGm() ? { llm: (m, o) => geminiChat(F.gmKey.trim(), m, o), ...extra } : { url: F.olUrl, model: F.olModel, ...extra };
+const aiReady = async () => useGm() || !!F.olModel || await olConnect(false);
 /** sahnenin geçerli seslendirmesi: kendi kaydınız > yapay ses (metin ve ayarlar değişmediyse) */
 function narrOf(it) {
   const o = ownVoice.get(it.id); if (o) return o;
@@ -330,12 +334,12 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'fastDecode'];
+const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'fastDecode', 'gmKey', 'gmStyle'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
     F[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value;
-    if (['olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'pxKey', 'stockNoPeople', 'stockN', 'fsKey', 'fsCC0'].includes(k)) { save(); return; }
+    if (['olUrl', 'olModel', 'gmKey', 'cfUrl', 'cfCkpt', 'pxKey', 'stockNoPeople', 'stockN', 'fsKey', 'fsCC0'].includes(k)) { save(); return; }
     if (['sfxOn', 'sfxVol'].includes(k)) { save(); return; }
     if (['stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch'].includes(k)) { save(); rebuild(); renderStockGrid(); return; }
     if (['ttsOn', 'voice', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); $$('output[data-for]').forEach(fmtOut); return; }
@@ -536,10 +540,10 @@ $('#bMake').onclick = () => {
 let bAbort = null;
 $('#bAI').onclick = async () => {
   if (!(brief.text || '').trim() && !(brief.title || '').trim()) { toast('Önce metninizi ya da konuyu yazın'); return; }
-  if (!F.olModel && !(await olConnect(false))) { $('#bStatus').textContent = '✗ Ollama\'ya bağlanılamadı. "Yapay zekâ" sekmesindeki rehbere bakın; ya da "Sahnelere dönüştür"ü kullanın.'; return; }
+  if (!(await aiReady())) { $('#bStatus').textContent = '✗ Yapay zekâ bağlı değil: Medya bölümünden Gemini anahtarı girin (ya da Ollama\'yı açın); veya "Sahnelere dönüştür"ü kullanın.'; return; }
   bAbort = new AbortController(); $('#bAI').disabled = true; $('#bAIStop').disabled = false; const t0 = performance.now();
   try {
-    const r = await aiScenes(F.fmt, brief, { url: F.olUrl, model: F.olModel, signal: bAbort.signal, onStatus: m => ($('#bStatus').textContent = m) });
+    const r = await aiScenes(F.fmt, brief, aiOpt({ signal: bAbort.signal, onStatus: m => ($('#bStatus').textContent = m) }));
     applyScenes(r.scenes, `${r.scenes.length} sahne yazıldı`);
     if (r.share) { $('#shareText').value = r.share; $('#shareBox').style.display = ''; store.set('vs-share', r.share); }
     $('#bStatus').textContent = `Senaryo hazır (${((performance.now() - t0) / 1000).toFixed(0)} sn): ${r.scenes.length} sahne. Kontrol edip düzenleyebilirsiniz.`;
@@ -846,19 +850,19 @@ $('#gifBtn').onclick = async () => {
 $('#trLang').innerHTML = Object.entries(LANGS).filter(([k]) => k !== 'tr').map(([k, l]) => `<option value="${k}">${esc(l.name)}</option>`).join('');
 $('#trGo').onclick = async () => {
   if (!items.length) { toast('Önce sahneleri oluşturun'); return; }
-  if (!F.olModel && !(await olConnect(false))) { $('#trInfo').textContent = '✗ Ollama\'ya bağlanılamadı.'; return; }
+  if (!(await aiReady())) { $('#trInfo').textContent = '✗ Yapay zekâ bağlı değil: Medya bölümünden Gemini anahtarı girin ya da Ollama\'yı açın.'; return; }
   const lang = $('#trLang').value, L = LANGS[lang]; $('#trGo').disabled = true; const t0 = performance.now();
   try {
-    const tr = await aiTranslate(items.map(plainItem), L.name, { url: F.olUrl, model: F.olModel, onStatus: m => ($('#trInfo').textContent = m) });
+    const tr = await aiTranslate(items.map(plainItem), L.name, aiOpt({ onStatus: m => ($('#trInfo').textContent = m) }));
     if (!curProj) projSave(brief.title || 'Proje');
     const baseName = (projList().find(p => p.id === curProj) || {}).name || brief.title || 'Proje';
     projSave(); // orijinali kaydet
     const src = items; curProj = ''; store.set('vs-cur-proj', '');
     items = tr.map((t, i) => ({ ...makeItem({ ...t, vids: src[i] && src[i].vids, stockQ: src[i] && src[i].stockQ }), layout: src[i] && src[i].layout }));
-    F.voice = L.voice; F.lang = lang; brief = { ...brief, title: (tr[0] && tr[0].main) || brief.title };
+    F.voice = isGemini(F.voice) ? F.voice : L.voice; F.lang = lang; brief = { ...brief, title: (tr[0] && tr[0].main) || brief.title };
     projSave(`${baseName} (${L.name})`);
     save(); syncBrief(); renderList(); loadEditor(); syncUI(); rebuild(); updateAiAudioStatus();
-    $('#trInfo').textContent = `${L.name} kopyası oluşturuldu ve açıldı (${((performance.now() - t0) / 1000).toFixed(0)} sn). Seslendirme ${VOICES[L.voice]} sesine geçti. Orijinali "Projeler"den açabilirsiniz.`;
+    $('#trInfo').textContent = `${L.name} kopyası oluşturuldu ve açıldı (${((performance.now() - t0) / 1000).toFixed(0)} sn). Seslendirme ${voiceName(F.voice)} sesine geçti. Orijinali "Projeler"den açabilirsiniz.`;
   } catch (e) { $('#trInfo').textContent = '✗ ' + e.message; }
   $('#trGo').disabled = false;
 };
@@ -867,10 +871,10 @@ $('#trGo').onclick = async () => {
 let calAbort = null;
 $('#calGo').onclick = async () => {
   const topic = $('#calTopic').value.trim(); if (!topic) { toast('Konu ya da sektör yazın'); return; }
-  if (!F.olModel && !(await olConnect(false))) { $('#calInfo').textContent = '✗ Ollama\'ya bağlanılamadı ("Yapay zekâ" sekmesindeki rehbere bakın).'; return; }
+  if (!(await aiReady())) { $('#calInfo').textContent = '✗ Yapay zekâ bağlı değil: Medya bölümünden Gemini anahtarı girin ya da Ollama\'yı açın.'; return; }
   calAbort = new AbortController(); $('#calGo').disabled = true; $('#calStop').disabled = false; const t0 = performance.now();
   try {
-    const list = await aiCalendar(topic, +$('#calN').value, F.fmt, { url: F.olUrl, model: F.olModel, signal: calAbort.signal, onStatus: m => ($('#calInfo').textContent = m) });
+    const list = await aiCalendar(topic, +$('#calN').value, F.fmt, aiOpt({ signal: calAbort.signal, onStatus: m => ($('#calInfo').textContent = m) }));
     $('#batchText').value = list.map(v => `${v.title}\n${v.text}`).join('\n---\n'); $('#batchText').dispatchEvent(new Event('input'));
     $('#batchBox').open = true; $('#calInfo').textContent = `${list.length} videoluk plan hazır (${((performance.now() - t0) / 1000).toFixed(0)} sn) ve aşağıdaki toplu üretim kutusuna aktarıldı. Düzenleyip "Toplu üret"e basın.`;
   } catch (e) { $('#calInfo').textContent = e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message; }
@@ -888,14 +892,14 @@ $('#batchGo').onclick = async () => {
   const list = parseBatch($('#batchText').value); if (!list.length) { toast('Önce konuları yazın'); return; }
   if (busy) return; batchStop = false; $('#batchGo').disabled = true; $('#batchStop').disabled = false;
   const saved = { items, brief: { ...brief }, flow: [...flow], soundtrack: F.soundtrack };
-  const useAI = $('#batchAI').checked && F.olModel, autoMedia = $('#batchAuto').checked;
+  const useAI = $('#batchAI').checked && (useGm() || F.olModel), autoMedia = $('#batchAuto').checked;
   try {
     for (const [k, b] of list.entries()) {
       if (batchStop) break;
       $('#batchInfo').textContent = `${k + 1}/${list.length}: ${b.title}`;
       const br = { ...saved.brief, title: b.title, text: b.text || b.title };
       let scenes;
-      if (useAI) { try { scenes = (await aiScenes(F.fmt, br, { url: F.olUrl, model: F.olModel, onStatus: m => ($('#batchInfo').textContent = `${k + 1}/${list.length}: ${m}`) })).scenes; } catch (e) { scenes = null; } }
+      if (useAI) { try { scenes = (await aiScenes(F.fmt, br, aiOpt({ onStatus: m => ($('#batchInfo').textContent = `${k + 1}/${list.length}: ${m}`) }))).scenes; } catch (e) { scenes = null; } }
       if (!scenes || !scenes.length) scenes = toScenes(F.fmt, br);
       items = scenes.map(sc => makeItem({ ...sc, stockQ: sc.q || '' })); brief = br; batchName = b.title;
       if (autoMedia) { flow = []; rebuild(); await autoMusic(m => ($('#batchInfo').textContent = `${k + 1}/${list.length}: ${m}`)); await autoFootage(m => ($('#batchInfo').textContent = `${k + 1}/${list.length}: ${m}`)); }
@@ -1027,7 +1031,38 @@ $('#loadProj').onchange = async e => {
 
 /* ================= Yapay zekâ ================= */
 $('#capMode').innerHTML = Object.entries(CAP_STYLES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
-$('#voice').innerHTML = Object.entries(VOICES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+function voiceOpts() {
+  const gm = `<optgroup label="✨ Gemini · doğal ses${useGm() ? '' : ' (anahtar gerekir)'}">` + Object.entries(GM_VOICES).map(([k, v]) => `<option value="gm:${k}"${useGm() ? '' : ' disabled'}>${k} · ${esc(v)}</option>`).join('') + '</optgroup>';
+  const pp = '<optgroup label="Piper · ücretsiz, bilgisayarda">' + Object.entries(VOICES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('') + '</optgroup>';
+  return useGm() ? gm + pp : pp + gm;
+}
+function renderVoices() {
+  for (const id of ['#voice', '#ezVoice']) { const el = $(id); if (!el) continue; el.innerHTML = voiceOpts(); el.value = F.voice; }
+  $('#voiceDl').style.display = isGemini(F.voice) ? 'none' : '';
+  $('#gmBadge').textContent = useGm() ? '· bağlı' : '';
+  if ($('#ezGmBox')) { $('#ezGmBox').style.display = useGm() ? 'none' : ''; $('#ezAIRow').style.display = useGm() ? '' : 'none'; }
+}
+renderVoices();
+$('#voice').addEventListener('change', () => setTimeout(renderVoices));
+if (useGm()) $('#ezAI').checked = true;
+$('#ezVoice').onchange = e => { $('#voice').value = e.target.value; $('#voice').dispatchEvent(new Event('change')); };
+async function gmConnect(key, st) {
+  key = (key || '').trim(); if (!key) return false;
+  st('Deneniyor…');
+  try {
+    const m = await geminiTest(key);
+    F.gmKey = key; $('#gmKey').value = key;
+    if (!isGemini(F.voice) && m.tts && (!F.lang || F.lang === 'tr')) { F.voice = 'gm:Kore'; }
+    save(); renderVoices(); syncUI(); rebuild(); updateAiAudioStatus();
+    st(`✓ Bağlandı · yazı: ${m.text}${m.tts ? ' · ses: ' + m.tts : ' · ses modeli yok (Piper kullanılır)'}`);
+    if ($('#ezAI')) { $('#ezAI').checked = true; }
+    return true;
+  } catch (e) { st('✗ ' + e.message); return false; }
+}
+$('#gmTest').onclick = () => gmConnect($('#gmKey').value, m => ($('#gmStatus').textContent = m));
+$('#gmKey').addEventListener('change', e => { if (!e.target.value.trim()) { F.gmKey = ''; save(); renderVoices(); if (isGemini(F.voice)) { F.voice = 'tr_TR-dfki-medium'; save(); renderVoices(); rebuild(); } } else gmConnect(e.target.value, m => ($('#gmStatus').textContent = m)); });
+$('#ezGmKey').addEventListener('change', e => gmConnect(e.target.value, m => ($('#ezGmSt').textContent = m)));
+$('#gmStyle').addEventListener('change', e => { F.gmStyle = e.target.value; save(); rebuild(); updateAiAudioStatus(); });
 const GUIDE = `<ol>
 <li><b>Tek komutla kurulum (Mac):</b> Terminal'i açın ve şu satırı yapıştırın:
 <pre>curl -fsSL https://dogankku.github.io/studioai/kurulum/mac.sh | bash</pre>Ollama + qwen2.5:7b (senarist), ComfyUI + SD-Turbo (görseller) kurulur; yaklaşık 12 GB indirilir, yönetici şifresi gerekmez. Tekrar çalıştırmak güvenlidir, bitenleri atlar.</li>
@@ -1071,7 +1106,7 @@ async function prepareAudio(onStatus = m => ($('#audioStatus').textContent = m))
   for (const [i, it] of items.entries()) {
     const text = voText(it); if (!text) continue;
     if (narrOf(it)) continue;
-    try { const buf = await speak(text, F.voice, m => onStatus(`Seslendirme ${i + 1}/${items.length}: ${m}`), { speed: F.ttsSpeed, pitch: F.ttsPitch, pause: F.ttsPause }); narrCache.set(it.id, { text, buf, cfg: ttsCfg() }); n++; }
+    try { const buf = await speak(text, F.voice, m => onStatus(`Seslendirme ${i + 1}/${items.length}: ${m}`), { speed: F.ttsSpeed, pitch: F.ttsPitch, pause: F.ttsPause, gmKey: (F.gmKey || '').trim(), gmStyle: F.gmStyle }); narrCache.set(it.id, { text, buf, cfg: ttsCfg() }); n++; }
     catch (e) { fails++; console.warn('tts', e); }
   }
   rebuild(); updateAiAudioStatus();
@@ -1600,7 +1635,11 @@ $('#ezGo').onclick = async () => {
   if (!(brief.text || '').trim() && !(brief.title || '').trim()) { toast('Önce ne anlatmak istediğinizi yazın'); $('#ezText').focus(); return; }
   $('#ezGo').disabled = true;
   try {
-    if (!items.length || ezDirty) { $('#bMake').click(); ezDirty = false; }
+    if (!items.length || ezDirty) {
+      if (useGm() && $('#ezAI').checked) { $('#barTxt').textContent = 'Gemini senaryoyu yazıyor…'; await $('#bAI').onclick(); if (/^✗/.test($('#bStatus').textContent)) { toast($('#bStatus').textContent); $('#bMake').click(); } }
+      else $('#bMake').click();
+      ezDirty = false;
+    }
     if (!items.length) return;
     if (!flow.length && (F.pxKey || '').trim()) { ezStockOn(); $('#barTxt').textContent = 'Müzik ve çekimler seçiliyor…'; await $('#bAuto').onclick(); }
     const L = renderQC(); for (const x of L) if (x.lv === 'err' && x.fix) { try { await x.fix(); } catch (er) { } }

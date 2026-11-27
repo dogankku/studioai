@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611222003">
-<link rel="stylesheet" href="css/style.css?v=202611222003">
-<link rel="stylesheet" href="css/film.css?v=202611222003">
+<link rel="stylesheet" href="css/fonts.css?v=202611271237">
+<link rel="stylesheet" href="css/style.css?v=202611271237">
+<link rel="stylesheet" href="css/film.css?v=202611271237">
 </head>
 <body>
 <div class="app film">
@@ -38,6 +38,11 @@
         <label for="ezTitle" id="ezTitleLbl">Başlık</label><input type="text" id="ezTitle">
         <label for="ezText">Metin</label><textarea id="ezText" rows="7"></textarea>
         <label for="ezCta">Kapanış cümlesi <span class="muted">(isteğe bağlı)</span></label><input type="text" id="ezCta">
+        <label class="check" id="ezAIRow"><input type="checkbox" id="ezAI"> ✨ Senaryoyu Gemini yazsın <span class="muted">(metni kısa, vurucu sahnelere çevirir)</span></label>
+        <div class="ez-key" id="ezGmBox">
+          <div class="hint" style="margin-top:0">✨ <b>Gemini ile daha iyi:</b> yapay zekâ senaryo ve doğal ses. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Ücretsiz anahtar alın</a>, buraya yapıştırın.</div>
+          <input type="password" id="ezGmKey" autocomplete="off" spellcheck="false" placeholder="Gemini anahtarı (AIza…)"><span class="muted" id="ezGmSt"></span>
+        </div>
         <select id="ezTpl" class="ez-tpl"></select>
       </div>
       <div class="ez-step">
@@ -55,6 +60,7 @@
           <label class="check"><input type="checkbox" id="ezTts"> Yapay sesle seslendir</label>
           <label class="check"><input type="checkbox" id="ezCap"> Altyazı göster</label>
         </div>
+        <label for="ezVoice">Ses</label><select id="ezVoice"></select>
         <label for="ezMusic">Müzik</label><select id="ezMusic"></select>
       </div>
       <div class="ez-step">
@@ -150,8 +156,18 @@
 
     <!-- YAPAY ZEKÂ -->
     <section class="pane" data-pane="ai">
+      <div class="card gm-card">
+        <div class="ttl">✨ Google Gemini <span class="muted" id="gmBadge"></span></div>
+        <div class="hint" style="margin-top:0">Anahtar girilince senaryo, çeviri ve içerik takvimini Gemini yazar (Ollama gerekmez, saniyeler sürer) ve doğal, duygulu yapay zekâ sesleri açılır. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Ücretsiz anahtarı buradan alın</a> → "Create API key".</div>
+        <label for="gmKey">Gemini API anahtarı</label>
+        <div class="row"><div><input type="password" id="gmKey" autocomplete="off" spellcheck="false" placeholder="AIza…"></div><div><button class="btn sm" id="gmTest">Dene</button></div></div>
+        <div class="hint" id="gmStatus"></div>
+        <label for="gmStyle">Seslendirme üslubu <span class="muted">(Gemini sesleri için)</span></label>
+        <input type="text" id="gmStyle" placeholder="ör. Samimi, enerjik bir sosyal medya anlatıcısı gibi">
+        <div class="hint">Ücretsiz katmanda gönderilen metinler Google tarafından ürün geliştirmede kullanılabilir. Anahtar yalnızca bu tarayıcıda saklanır.</div>
+      </div>
       <div class="card">
-        <div class="ttl">Türkçe seslendirme</div>
+        <div class="ttl">Seslendirme</div>
         <label class="check"><input type="checkbox" id="ttsOn"> Sahneleri seslendir (yazılar sese göre zamanlanır)</label>
         <div class="row3">
           <div><label for="ttsSpeed">Hız <output data-for="ttsSpeed"></output></label><input type="range" id="ttsSpeed" min="0.75" max="1.35" step="0.05"></div>
@@ -431,7 +447,7 @@ Odaklanmayı artırır
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611222003"></script>
-<script type="module" src="js/film-app.js?v=202611222003"></script>
+<script src="vendor/jszip.min.js?v=202611271237"></script>
+<script type="module" src="js/film-app.js?v=202611271237"></script>
 </body>
 </html>

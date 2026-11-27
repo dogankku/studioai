@@ -2,7 +2,7 @@
 // Sahne: { kind, tag, main, sub, num, cta, src, vo, q }
 //   kind: hook | point | item | quote | problem | solution | feature | price | cta
 //   vo: seslendirilecek metin (yoksa main + sub okunur), q: çekim arama ipucu
-import { ollamaChat, parseJSONLoose } from './ai/local.js?v=202611222003';
+import { ollamaChat as _ollamaChat, parseJSONLoose } from './ai/local.js?v=202611271237';
 
 export const FORMATS = {
   bilgi: {
@@ -103,8 +103,12 @@ const GUIDE = {
   urun: 'Yapı: 1) "problem": müşterinin sorununu soran kısa cümle. 2) "solution": main = ürün adı, sub = ürünün sorunu nasıl çözdüğü (tek cümle). 3) 2-5 "feature": main = özellik (en çok 6 kelime), sub boş ya da çok kısa. 4) varsa "price": fiyat/kampanya. 5) "cta": satın alma çağrısı.'
 };
 
+// o.llm verilirse (ör. Gemini) onu, yoksa yerel Ollama'yı kullan
+const chat = (o, msgs, opts) => o.llm ? o.llm(msgs, opts) : _ollamaChat(o.url, o.model, msgs, opts);
+
 /** Yapay zekâ ile senaryo: kullanıcının bilgisini formata uygun, kısa ve etkili sahnelere çevirir */
-export async function aiScenes(fmt, brief, { url, model, signal, onStatus = () => { } } = {}) {
+export async function aiScenes(fmt, brief, o = {}) {
+  const { signal, onStatus = () => { } } = o; const slow = o.llm ? '' : ' (Intel işlemcide birkaç dakika sürebilir)';
   const F = FORMATS[fmt] || FORMATS.bilgi;
   const sys = 'Sen kısa video (Reels, Shorts, TikTok) senaristisin. Türkçe yazarsın. Ekranda okunacak metinler çok kısa ve vurucu olmalı; seslendirme metni (vo) doğal konuşma dilinde, sahnedeki yazıyı açıklayan 1-2 cümle olmalı. Kullanıcının verdiği bilgilerin dışına çıkma, bilgi uydurma. Her sahneye uygun stok video aramak için İngilizce 2-3 kelimelik arama ifadesi (q) yaz (insan içermeyen sahneler tercih et). Yalnızca JSON döndür.';
   const user = `Format: ${F.name}. ${GUIDE[fmt] || GUIDE.bilgi}
@@ -113,8 +117,8 @@ ${brief.title ? `Başlık/konu: ${brief.title}\n` : ''}${brief.brand ? `Marka: $
 ${(brief.text || '').slice(0, 4000)}
 """
 Ayrıca YouTube başlığı (youtubeTitle), 2-3 cümlelik açıklama (description) ve 5-8 hashtag yaz.`;
-  onStatus('Senaryo yazılıyor… (Intel işlemcide birkaç dakika sürebilir)');
-  const raw = await ollamaChat(url, model, [{ role: 'system', content: sys }, { role: 'user', content: user }], { schema: SCHEMA, temperature: 0.5, signal, onToken: n => onStatus(`Senaryo yazılıyor… ${n} parça`) });
+  onStatus('Senaryo yazılıyor…' + slow);
+  const raw = await chat(o, [{ role: 'system', content: sys }, { role: 'user', content: user }], { schema: SCHEMA, temperature: 0.5, signal, onToken: n => onStatus(`Senaryo yazılıyor… ${n} parça`) });
   const j = parseJSONLoose(raw);
   if (!j || !Array.isArray(j.scenes) || !j.scenes.length) throw new Error('Model geçerli bir senaryo döndürmedi, tekrar deneyin');
   let k = 0; const n = j.scenes.filter(s => s.kind === 'item').length;
@@ -134,15 +138,16 @@ Ayrıca YouTube başlığı (youtubeTitle), 2-3 cümlelik açıklama (descriptio
 }
 
 /** İçerik takvimi: konu/sektör için n günlük video planı (her biri başlık + metin) */
-export async function aiCalendar(topic, n, fmt, { url, model, signal, onStatus = () => { } } = {}) {
+export async function aiCalendar(topic, n, fmt, o = {}) {
+  const { signal, onStatus = () => { } } = o; const slow = o.llm ? '' : ' (Intel işlemcide birkaç dakika sürebilir)';
   const F = FORMATS[fmt] || FORMATS.bilgi;
   const how = { bilgi: 'metin: 3-4 kısa paragraf (her biri 1-2 cümle), birbirinden boş satırla ayrılmış',
     liste: 'metin: 5 satır, her satır "Başlık: kısa açıklama" biçiminde',
     soz: 'metin: tek bir anlamlı söz ve son satırda "— Söyleyen" (gerçek ve doğru atfedilmiş sözler kullan; emin değilsen söyleyen satırını yazma)',
     urun: 'metin: ilk satır müşterinin sorunu (soru), boş satır, ikinci satır çözüm cümlesi, sonra "-" ile başlayan 3 özellik satırı' }[fmt] || '';
   const schema = { type: 'object', properties: { videos: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, text: { type: 'string' } }, required: ['title', 'text'] } } }, required: ['videos'] };
-  onStatus(`${n} günlük plan yazılıyor… (Intel işlemcide birkaç dakika sürebilir)`);
-  const raw = await ollamaChat(url, model, [
+  onStatus(`${n} günlük plan yazılıyor…` + slow);
+  const raw = await chat(o, [
     { role: 'system', content: 'Sen sosyal medya içerik planlayıcısısın. Türkçe yazarsın. Her video farklı bir alt konuyu işler, tekrar yoktur, başlıklar merak uyandırır. Yalnızca JSON döndür.' },
     { role: 'user', content: `Konu/sektör: "${topic}". Format: ${F.name}. ${n} adet kısa video için plan yaz. Her video için title (en çok 8 kelime) ve ${how}.` }
   ], { schema, temperature: 0.7, signal, onToken: k => onStatus(`Plan yazılıyor… ${k} parça`) });
@@ -152,11 +157,12 @@ export async function aiCalendar(topic, n, fmt, { url, model, signal, onStatus =
 }
 
 /** Sahneleri başka dile çevir (yapı ve sayılar korunur) */
-export async function aiTranslate(scenes, langName, { url, model, signal, onStatus = () => { } } = {}) {
+export async function aiTranslate(scenes, langName, o = {}) {
+  const { signal, onStatus = () => { } } = o; const slow = o.llm ? '' : ' (Intel işlemcide birkaç dakika sürebilir)';
   const src = scenes.map((s, i) => ({ i, tag: s.tag || '', main: s.main || '', sub: s.sub || '', cta: s.cta || '', vo: s.vo || '', src: s.src || '' }));
   const schema = { type: 'object', properties: { scenes: { type: 'array', items: { type: 'object', properties: { i: { type: 'integer' }, tag: { type: 'string' }, main: { type: 'string' }, sub: { type: 'string' }, cta: { type: 'string' }, vo: { type: 'string' }, src: { type: 'string' } }, required: ['i', 'main'] } } }, required: ['scenes'] };
   onStatus(`${langName} diline çevriliyor…`);
-  const raw = await ollamaChat(url, model, [
+  const raw = await chat(o, [
     { role: 'system', content: `You are a professional translator for short social media videos. Translate every non-empty field into ${langName}. Keep it short and natural for on-screen text, keep numbers, units, brand names and emojis unchanged, keep empty fields empty. Return only JSON.` },
     { role: 'user', content: JSON.stringify({ scenes: src }) }
   ], { schema, temperature: 0.2, signal, onToken: n => onStatus(`${langName} diline çevriliyor… ${n} parça`) });
