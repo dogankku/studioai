@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Video Stüdyosu</title>
 <meta name="description" content="Yazdığınız metni profesyonel kısa videoya dönüştüren stüdyo: bilgi, liste, söz ve ürün tanıtımı formatları, gerçek çekimler, seslendirme, müzik ve efektler. Tamamen tarayıcıda.">
-<link rel="stylesheet" href="css/fonts.css?v=202611271237">
-<link rel="stylesheet" href="css/style.css?v=202611271237">
-<link rel="stylesheet" href="css/film.css?v=202611271237">
+<link rel="stylesheet" href="css/fonts.css?v=202611271249">
+<link rel="stylesheet" href="css/style.css?v=202611271249">
+<link rel="stylesheet" href="css/film.css?v=202611271249">
 </head>
 <body>
 <div class="app film">
@@ -15,6 +15,7 @@
     <h1>Video <span>Stüdyosu</span></h1>
     <div class="seg" id="modeSeg"><button data-m="kolay" class="on">Kolay</button><button data-m="gelismis">Düzenleyici</button></div>
     <div class="top-r">
+      <button class="btn sm ghost cost-chip" id="costChip" title="Bu ayki tahmini yapay zekâ harcaması">💲 $0.00</button>
       <button class="btn sm ghost" id="projBtn">📁 Projeler</button>
       <button class="btn sm primary" id="renderBtn">⬆ Dışa aktar</button>
     </div>
@@ -38,7 +39,9 @@
         <label for="ezTitle" id="ezTitleLbl">Başlık</label><input type="text" id="ezTitle">
         <label for="ezText">Metin</label><textarea id="ezText" rows="7"></textarea>
         <label for="ezCta">Kapanış cümlesi <span class="muted">(isteğe bağlı)</span></label><input type="text" id="ezCta">
-        <label class="check" id="ezAIRow"><input type="checkbox" id="ezAI"> ✨ Senaryoyu Gemini yazsın <span class="muted">(metni kısa, vurucu sahnelere çevirir)</span></label>
+        <label class="check" id="ezAIRow"><input type="checkbox" id="ezAI"> ✨ Senaryoyu <span id="ezWho">yapay zekâ</span> yazsın <span class="muted">(kısa, vurucu sahneler)</span></label>
+        <div id="ezDirRow"><label class="check"><input type="checkbox" id="ezDir"> 🎬 AI Yönetmen görüntüleri de hazırlasın</label>
+        <select id="ezBudget"><option value="ekonomik">Ekonomik · hazır videolar</option><option value="dengeli">Dengeli · açılış yapay zekâ klibi</option><option value="sinematik">Sinematik · çoğu yapay zekâ klibi (pahalı)</option></select></div>
         <div class="ez-key" id="ezGmBox">
           <div class="hint" style="margin-top:0">✨ <b>Gemini ile daha iyi:</b> yapay zekâ senaryo ve doğal ses. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Ücretsiz anahtar alın</a>, buraya yapıştırın.</div>
           <input type="password" id="ezGmKey" autocomplete="off" spellcheck="false" placeholder="Gemini anahtarı (AIza…)"><span class="muted" id="ezGmSt"></span>
@@ -90,8 +93,20 @@
         <div id="bCountBox"><label class="check" style="margin-top:22px"><input type="checkbox" id="bCountdown"> Geri sayım (5 → 1)</label></div>
       </div>
       <div class="row-btns mt8"><button class="btn primary" id="bMake">🎬 Sahnelere dönüştür</button><button class="btn" id="bAI">✨ Yapay zekâ ile yaz</button><button class="btn ghost" id="bAIStop" disabled>Durdur</button></div>
-      <div class="row-btns mt8"><button class="btn sm" id="bAuto">🎵 Müzik ve çekimleri otomatik seç</button></div>
-      <div class="hint" id="bStatus">"Sahnelere dönüştür" metninizi anında formata göre böler. "Yapay zekâ ile yaz" bilgilerinizi kısa, vurucu bir senaryoya çevirir (Ollama gerekir, birkaç dakika sürebilir).</div>
+      <div class="row-btns mt8"><button class="btn sm" id="bAuto">🎵 Müzik ve çekimleri otomatik seç</button><button class="btn sm" id="bPolish">🪄 Senaryoyu güçlendir</button></div>
+      <div class="hint" id="bStatus">"Sahnelere dönüştür" metninizi anında formata göre böler. "Yapay zekâ ile yaz" bilgilerinizi kısa, vurucu bir senaryoya çevirir (Claude, Gemini ya da Ollama).</div>
+      <div class="card dir-card">
+        <div class="ttl">🎬 AI Yönetmen <span class="muted" id="dirWho"></span></div>
+        <div class="hint" style="margin-top:0">Tek tıkla tam yapım: senaryo, 3 alternatif açılış, ses üslubu, müzik ve her sahnenin görüntüsü (hazır video, yapay zekâ görseli ya da yapay zekâ klibi). Ücretli işlemlerden önce tahmini maliyet sorulur.</div>
+        <label for="dirBudget">Görüntü bütçesi</label>
+        <select id="dirBudget"><option value="ekonomik">Ekonomik · hazır videolar (ücretsiz), gerekirse 1-2 görsel</option><option value="dengeli">Dengeli · açılış yapay zekâ klibi, özgün sahneler görsel</option><option value="sinematik">Sinematik · sahnelerin çoğu yapay zekâ klibi (pahalı)</option></select>
+        <label class="check"><input type="checkbox" id="dirMedia" checked> Görüntüleri de hazırla (yazdıktan sonra)</label>
+        <label class="check"><input type="checkbox" id="dirPick" checked> Hazır videolarda en uygununu Gemini seçsin</label>
+        <div class="row-btns mt8"><button class="btn primary" id="dirGo">🎬 Yönet ve hazırla</button><button class="btn sm" id="dirMediaGo">🖼 Yalnızca görüntüleri hazırla</button><button class="btn ghost sm" id="dirStop" disabled>Durdur</button></div>
+        <div class="hint" id="dirStatus"></div>
+        <div id="hookBox" class="hook-box"></div>
+        <ul id="polishNotes" class="polish-notes"></ul>
+      </div>
       <details class="card"><summary class="ttl">Çok dilli <span class="muted" style="text-transform:none;letter-spacing:0">(videonun başka dildeki kopyası)</span></summary>
         <div class="row" style="grid-template-columns:1fr auto"><div><select id="trLang"></select></div><div><button class="btn sm primary" id="trGo">🌍 Çevrilmiş kopyasını oluştur</button></div></div>
         <div class="hint" id="trInfo">Sahneler yapay zekâ ile çevrilir, o dilin sesiyle seslendirilir ve altyazılanır. Orijinal proje korunur, çeviri ayrı proje olarak açılır. Ollama gerekir.</div>
@@ -157,8 +172,16 @@
     <!-- YAPAY ZEKÂ -->
     <section class="pane" data-pane="ai">
       <div class="card gm-card">
+        <div class="ttl">🧠 Claude <span class="muted" id="clBadge"></span></div>
+        <div class="hint" style="margin-top:0">Senaryo, AI Yönetmen, güçlendirme, çeviri ve takvimi Claude yazar (en iyi Türkçe yazım). <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">Anahtarı buradan alın</a>.</div>
+        <label for="clKey">Claude API anahtarı</label>
+        <div class="row"><div><input type="password" id="clKey" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"></div><div><button class="btn sm" id="clTest">Dene</button></div></div>
+        <div class="row"><div><label for="clModel">Model</label><select id="clModel"></select></div><div><label for="writer">Yazar</label><select id="writer"><option value="auto">Otomatik (Claude › Gemini › Ollama)</option><option value="claude">Claude</option><option value="gemini">Gemini</option><option value="ollama">Ollama (bilgisayarda)</option></select></div></div>
+        <div class="hint" id="clStatus"></div>
+      </div>
+      <div class="card gm-card">
         <div class="ttl">✨ Google Gemini <span class="muted" id="gmBadge"></span></div>
-        <div class="hint" style="margin-top:0">Anahtar girilince senaryo, çeviri ve içerik takvimini Gemini yazar (Ollama gerekmez, saniyeler sürer) ve doğal, duygulu yapay zekâ sesleri açılır. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Ücretsiz anahtarı buradan alın</a> → "Create API key".</div>
+        <div class="hint" style="margin-top:0">Doğal yapay zekâ sesleri, sahne görselleri, yapay zekâ video klipleri ve en uygun çekimi seçme. Claude yoksa yazıyı da Gemini yazar. <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Ücretsiz anahtarı buradan alın</a> → "Create API key".</div>
         <label for="gmKey">Gemini API anahtarı</label>
         <div class="row"><div><input type="password" id="gmKey" autocomplete="off" spellcheck="false" placeholder="AIza…"></div><div><button class="btn sm" id="gmTest">Dene</button></div></div>
         <div class="hint" id="gmStatus"></div>
@@ -447,7 +470,7 @@ Odaklanmayı artırır
   <div class="pick-foot"><span class="muted" id="pickCount"></span><button class="btn sm" id="pickMore">Daha fazla</button><button class="btn primary" id="pickUse">Seçilenleri kullan</button></div>
 </div></div>
 <div class="modal" id="modal"><div class="modal-box"><video id="modalVid" controls playsinline></video><div class="row-btns center"><button class="btn primary" id="modalDl">⬇ İndir</button><button class="btn" id="modalClose">Kapat</button></div></div></div>
-<script src="vendor/jszip.min.js?v=202611271237"></script>
-<script type="module" src="js/film-app.js?v=202611271237"></script>
+<script src="vendor/jszip.min.js?v=202611271249"></script>
+<script type="module" src="js/film-app.js?v=202611271249"></script>
 </body>
 </html>

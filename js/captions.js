@@ -1,5 +1,5 @@
 // Kelime kelime altyazı: kelime zamanlarını seslendirme dalgasından tahmin eder, TikTok tarzı altyazıyı çizer.
-import * as THREE from '../vendor/three-bundle.js?v=202611271237';
+import * as THREE from '../vendor/three-bundle.js?v=202611271249';
 
 const VOW = /[aeıioöuüâîûAEIİOÖUÜÂÎÛ]/g;
 const syl = w => Math.max(1, (w.match(VOW) || []).length);

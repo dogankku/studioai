@@ -1,5 +1,6 @@
 // Google Gemini: senaryo / çeviri / takvim (metin) ve doğal seslendirme (TTS).
 // Tarayıcıdan doğrudan çağrılır; anahtar yalnızca bu tarayıcıda saklanır.
+import { addCost, GM_PRICE } from './cost.js?v=202611271249';
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 export const GM_VOICES = {
@@ -42,7 +43,9 @@ export async function geminiModels(key) {
     || names.filter(n => /gemini/.test(n.id) && !/tts|image|embedding/.test(n.id)).sort(byVer)[0];
   const tts = names.filter(n => /tts/.test(n.id) && /flash/.test(n.id) && !/lite/.test(n.id)).sort((a, b) => (/preview/.test(a.id) - /preview/.test(b.id)) || byVer(a, b))[0]
     || names.filter(n => /tts/.test(n.id)).sort(byVer)[0];
-  modelCache = { key, text: text && text.id, tts: tts && tts.id, all: names.map(n => n.id) };
+  const image = names.filter(n => /nano-banana/.test(n.id)).sort(byVer)[0] || names.filter(n => /image/.test(n.id) && !/lite/.test(n.id) && !/imagen/.test(n.id)).sort((a, b) => (/preview/.test(a.id) - /preview/.test(b.id)) || byVer(a, b))[0];
+  const video = names.filter(n => /omni/.test(n.id)).sort(byVer)[0] || names.filter(n => /veo/.test(n.id) && !/preview/.test(n.id)).sort(byVer)[0];
+  modelCache = { key, text: text && text.id, tts: tts && tts.id, image: image && image.id, video: video && video.id, all: names.map(n => n.id) };
   return modelCache;
 }
 
@@ -70,6 +73,7 @@ export async function geminiChat(key, messages, { schema, temperature = 0.6, sig
     if (!out) throw new Error('Gemini boş yanıt döndürdü');
     return out;
   }
+  const um = j.usageMetadata || {}; addCost('gemini', ((um.promptTokenCount || 0) * GM_PRICE.textIn + ((um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0)) * GM_PRICE.textOut) / 1e6, 'yazı');
   const c = (j.candidates || [])[0];
   const out = c && c.content && (c.content.parts || []).map(p => p.text || '').join('');
   if (!out) throw new Error(c && c.finishReason === 'SAFETY' ? 'Gemini bu metni güvenlik nedeniyle yazmadı' : 'Gemini boş yanıt döndürdü');
@@ -84,6 +88,7 @@ function pcmToWav(pcm, rate) {
   return new Blob([h, pcm], { type: 'audio/wav' });
 }
 const toWav = (bytes, mime = '') => {
+  addCost('gemini', Math.max(1, bytes.length / 48000) * GM_PRICE.ttsSec, 'ses');
   if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return new Blob([bytes], { type: 'audio/wav' });
   const r = +((mime.match(/rate=(\d+)/) || [])[1] || 24000);
   return pcmToWav(bytes, r);
@@ -111,4 +116,66 @@ export async function geminiSpeak(key, text, { voice = 'Kore', style = '', signa
     if (!d) throw new Error('Gemini ses döndürmedi');
     return toWav(b64ToBytes(d.inlineData.data), d.inlineData.mimeType || '');
   }
+}
+
+const outParts = j => (j.steps || []).filter(s => s.type === 'model_output').flatMap(s => s.content || []);
+export const aspectOf = (w, h) => { const r = w / h; return r < 0.7 ? '9:16' : r < 0.9 ? '4:5' : r < 1.15 ? '1:1' : '16:9'; };
+
+/** Sahne görseli (Nano Banana) → JPEG Blob */
+export async function geminiImage(key, prompt, { aspect = '9:16', size = '2K', signal } = {}) {
+  const m = (await geminiModels(key)).image; if (!m) throw new Error('Bu anahtarla görsel modeli bulunamadı');
+  const full = prompt + '. Photorealistic, cinematic lighting, high detail. No text, no letters, no watermark, no logos.';
+  let data, mime = 'image/jpeg';
+  try {
+    const j = await call(key, '/interactions', { model: m, input: [{ type: 'text', text: full }], response_format: { type: 'image', mime_type: 'image/jpeg', aspect_ratio: aspect, image_size: size } }, signal);
+    const a = outParts(j).filter(c => c.type === 'image').pop(); if (a) { data = a.data; mime = a.mime_type || mime; }
+  } catch (e) { if (e.status !== 404 && e.status !== 400) throw e; }
+  if (!data) {
+    const j = await call(key, `/models/${m}:generateContent`, { contents: [{ parts: [{ text: full }] }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: aspect } } }, signal);
+    const d = ((((j.candidates || [])[0] || {}).content || {}).parts || []).find(x => x.inlineData);
+    if (!d) throw new Error('Gemini görsel döndürmedi (içerik kuralları nedeniyle olabilir)');
+    data = d.inlineData.data; mime = d.inlineData.mimeType || mime;
+  }
+  addCost('gemini', GM_PRICE.image, 'görsel');
+  return new Blob([b64ToBytes(data)], { type: mime });
+}
+
+/** Yapay zekâ video klibi (Gemini Omni / Veo) → MP4 Blob. image: isteğe bağlı başlangıç görseli (Blob) */
+export async function geminiVideo(key, prompt, { aspect = '9:16', resolution = '720p', image = null, signal, onStatus = () => { } } = {}) {
+  const m = (await geminiModels(key)).video; if (!m) throw new Error('Bu anahtarla video modeli bulunamadı (ücretli hesap gerekebilir)');
+  const va = aspect === '16:9' ? '16:9' : '9:16';
+  const text = prompt + '. Smooth cinematic camera movement, realistic, no text, no subtitles, no logos.';
+  let input = text;
+  if (image) { const b = new Uint8Array(await image.arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); input = [{ type: 'image', data: btoa(s), mime_type: image.type || 'image/jpeg' }, { type: 'text', text }]; }
+  onStatus('video üretiliyor (1-3 dk)…');
+  const j = await call(key, '/interactions', { model: m, input, response_format: { type: 'video', aspect_ratio: va, resolution }, ...(image ? { generation_config: { video_config: { task: 'image_to_video' } } } : {}) }, signal);
+  const v = outParts(j).filter(c => c.type === 'video').pop();
+  if (!v) throw new Error('Gemini video döndürmedi');
+  let blob;
+  if (v.data) blob = new Blob([b64ToBytes(v.data)], { type: 'video/mp4' });
+  else if (v.uri) {
+    const id = (v.uri.match(/files\/([^/?:]+)/) || [])[1]; if (!id) throw new Error('video adresi okunamadı');
+    for (let k = 0; k < 90; k++) { const f = await call(key, `/files/${id}`, null, signal); if (f.state === 'ACTIVE') break; if (f.state === 'FAILED') throw new Error('video üretimi başarısız'); onStatus('video hazırlanıyor…'); await new Promise(r => setTimeout(r, 4000)); }
+    const r = await fetch(`${BASE}/files/${id}:download?alt=media`, { headers: { 'x-goog-api-key': key }, signal });
+    if (!r.ok) throw new Error('video indirilemedi'); blob = await r.blob();
+  } else throw new Error('Gemini video döndürmedi');
+  const dur = await new Promise(res => { const el = document.createElement('video'); el.preload = 'metadata'; el.onloadedmetadata = () => { res(el.duration || 6); URL.revokeObjectURL(el.src); }; el.onerror = () => res(6); el.src = URL.createObjectURL(blob); });
+  addCost('gemini', dur * GM_PRICE.videoSec * (resolution === '1080p' ? 1.5 : 1), 'video');
+  return { blob, dur };
+}
+
+/** Sahneye en uygun çekimi seçtir: küçük resimlere bakar, en iyinin sırasını döndürür */
+export async function geminiPick(key, sceneText, thumbUrls, { signal } = {}) {
+  const imgs = [];
+  for (const u of thumbUrls) {
+    try { const b = new Uint8Array(await (await fetch(u, { signal })).arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); imgs.push(btoa(s)); } catch (e) { imgs.push(null); }
+  }
+  const parts = [{ text: `Kısa bir sosyal medya videosunun bu sahnesine arka plan çekimi seçiyoruz. Sahne: "${sceneText}". Aşağıda numaralı ${imgs.length} aday kare var. Konuya en uygun, en estetik, üzerinde yazı okunabilecek, içinde yazı/logo olmayan adayı seç. Yalnızca {"i": <0'dan başlayan sıra>} JSON döndür.` }];
+  imgs.forEach((d, i) => { if (d) parts.push({ text: `Aday ${i}:` }, { inlineData: { mimeType: 'image/jpeg', data: d } }); });
+  const m = (await geminiModels(key)).text;
+  const j = await call(key, `/models/${m}:generateContent`, { contents: [{ parts }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } }, signal);
+  const um = j.usageMetadata || {}; addCost('gemini', ((um.promptTokenCount || 0) * GM_PRICE.textIn + (um.candidatesTokenCount || 0) * GM_PRICE.textOut) / 1e6, 'çekim seçimi');
+  const t = ((((j.candidates || [])[0] || {}).content || {}).parts || []).map(p => p.text || '').join('');
+  const i = +((t.match(/"i"\s*:\s*(\d+)/) || [])[1]);
+  return Number.isFinite(i) && i < thumbUrls.length ? i : 0;
 }

@@ -1,7 +1,7 @@
 // Türkçe seslendirme (Piper, tarayıcıda, ücretsiz)
-import { getFile, putFile } from '../storage.js?v=202611271237';
-import { decodeBlob } from '../audio.js?v=202611271237';
-import { GM_VOICES, geminiSpeak } from './gemini.js?v=202611271237';
+import { getFile, putFile } from '../storage.js?v=202611271249';
+import { decodeBlob } from '../audio.js?v=202611271249';
+import { GM_VOICES, geminiSpeak } from './gemini.js?v=202611271249';
 
 /* ---------------- Türkçe seslendirme (Piper) ---------------- */
 export const VOICES = {

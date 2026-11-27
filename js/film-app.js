@@ -1,24 +1,26 @@
 // Film Stüdyosu: arayüz
-import { Film } from './film/player.js?v=202611271237';
-import { direct, clipsOf } from './film/director.js?v=202611271237';
-import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611271237';
-import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611271237';
-import { makeItem, plainItem } from './parser.js?v=202611271237';
-import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate } from './formats.js?v=202611271237';
-import { TEMPLATES } from './templates.js?v=202611271237';
-import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611271237';
-import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611271237';
-import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611271237';
-import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611271237';
-import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611271237';
-import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611271237';
-import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611271237';
-import { newId } from './parser.js?v=202611271237';
-import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611271237';
-import { VOICES, LANGS, speak, downloadVoice, voiceReady, isGemini, voiceName } from './ai/voice.js?v=202611271237';
-import { GM_VOICES, geminiChat, geminiTest } from './ai/gemini.js?v=202611271237';
-import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611271237';
-import { detectScene } from './film/director.js?v=202611271237';
+import { Film } from './film/player.js?v=202611271249';
+import { direct, clipsOf } from './film/director.js?v=202611271249';
+import { STYLES, EFFECTS, SCENES, CAMERAS, TEXT_ANIMS, TRANSITIONS, FX_DEFAULT, GRADE_DEFAULT } from './film/styles.js?v=202611271249';
+import { analyzeAudio, analyzeVideo } from './film/analyze.js?v=202611271249';
+import { makeItem, plainItem } from './parser.js?v=202611271249';
+import { FORMATS, headBody, toScenes, aiScenes, aiCalendar, aiTranslate, aiDirector, aiPolish } from './formats.js?v=202611271249';
+import { TEMPLATES } from './templates.js?v=202611271249';
+import { wordTimes, chunkWords, CAP_STYLES } from './captions.js?v=202611271249';
+import { SFX, sfxBuffer, sfxCues, BEDS, bedBuffer } from './sfx.js?v=202611271249';
+import { freesoundSearch, freesoundTest, freesoundFetch } from './ai/freesound.js?v=202611271249';
+import { putFile, delFile, allFiles, getFile } from './storage.js?v=202611271249';
+import { decodeBlob, mixFor, playPreview, stopPreview, live, mixTimeline, playTimeline, stopTimeline } from './audio.js?v=202611271249';
+import { encodeFast, encodeRealtime, hasFast } from './encoder.js?v=202611271249';
+import { dims, isMostlyRTL, wordsOf } from './renderer.js?v=202611271249';
+import { newId } from './parser.js?v=202611271249';
+import { ollamaModels, comfyCheckpoints, comfyGenerate } from './ai/local.js?v=202611271249';
+import { VOICES, LANGS, speak, downloadVoice, voiceReady, isGemini, voiceName } from './ai/voice.js?v=202611271249';
+import { GM_VOICES, geminiChat, geminiTest, geminiModels, geminiImage, geminiVideo, geminiPick, aspectOf } from './ai/gemini.js?v=202611271249';
+import { CLAUDE_MODELS, claudeChat, claudeTest } from './ai/claude.js?v=202611271249';
+import { costState, onCost, fmtUsd, GM_PRICE } from './ai/cost.js?v=202611271249';
+import { findClips, downloadClip, pixabayTest, queriesFor, pixabaySearch, rankHits, langOf, thumbOf } from './ai/stock.js?v=202611271249';
+import { detectScene } from './film/director.js?v=202611271249';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -39,7 +41,7 @@ const DEFAULTS = {
   fxOv: {}, gradeOv: {}, colors: {}, latinFont: '"Playfair Display", serif', arabicFont: 'Amiri', size: 1,
   soundtrack: '', musicVol: 0.8, fadeIn: true, fadeOut: true,
   refUseCuts: true, refUseEnergy: true, refUseColors: false, refUseAudio: false,
-  olUrl: 'http://localhost:11434', olModel: '', gmKey: '', gmStyle: 'Samimi, enerjik bir sosyal medya anlatıcısı gibi', cfUrl: 'http://127.0.0.1:8188', cfCkpt: '',
+  olUrl: 'http://localhost:11434', olModel: '', clKey: '', clModel: 'claude-sonnet-5-5', writer: 'auto', dirBudget: 'dengeli', dirMedia: true, dirPick: true, gmKey: '', gmStyle: 'Samimi, enerjik bir sosyal medya anlatıcısı gibi', cfUrl: 'http://127.0.0.1:8188', cfCkpt: '',
   ttsOn: true, voice: 'tr_TR-dfki-medium', imgOn: true, stockOn: true, pxKey: '', stockNoPeople: true, stockN: '3', stockMode: 'flow', flowXF: 1.2, flowMax: 6, flowMatch: true
 };
 // Platform ayarları (YouTube ve Instagram önerilerine göre)
@@ -99,8 +101,16 @@ function directOpts() {
 const narrCache = new Map(), ownVoice = new Map();
 const ttsCfg = () => `${F.voice}|${(+F.ttsSpeed).toFixed(2)}|${(+F.ttsPitch).toFixed(2)}|${(+F.ttsPause).toFixed(2)}${isGemini(F.voice) ? '|' + F.gmStyle : ''}`;
 const useGm = () => !!(F.gmKey || '').trim();
-const aiOpt = extra => useGm() ? { llm: (m, o) => geminiChat(F.gmKey.trim(), m, o), ...extra } : { url: F.olUrl, model: F.olModel, ...extra };
-const aiReady = async () => useGm() || !!F.olModel || await olConnect(false);
+const useCl = () => !!(F.clKey || '').trim();
+function writerOf() {
+  if (F.writer === 'claude' && useCl()) return 'claude';
+  if (F.writer === 'gemini' && useGm()) return 'gemini';
+  if (F.writer === 'ollama') return 'ollama';
+  return useCl() ? 'claude' : useGm() ? 'gemini' : 'ollama';
+}
+const WRITER_NAME = { claude: 'Claude', gemini: 'Gemini', ollama: 'Ollama' };
+const aiOpt = extra => { const w = writerOf(); return w === 'claude' ? { llm: (m, o) => claudeChat(F.clKey.trim(), F.clModel, m, o), ...extra } : w === 'gemini' ? { llm: (m, o) => geminiChat(F.gmKey.trim(), m, o), ...extra } : { url: F.olUrl, model: F.olModel, ...extra }; };
+const aiReady = async () => writerOf() !== 'ollama' || !!F.olModel || await olConnect(false);
 /** sahnenin geçerli seslendirmesi: kendi kaydınız > yapay ses (metin ve ayarlar değişmediyse) */
 function narrOf(it) {
   const o = ownVoice.get(it.id); if (o) return o;
@@ -334,12 +344,12 @@ $('#platforms').onclick = e => {
   resizePreview(); changed();
 };
 $('#durChips').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; F.durMode = 'target'; F.targetDur = +b.dataset.d; changed(); };
-const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'fastDecode', 'gmKey', 'gmStyle'];
+const FIELDS = ['pace', 'mode', 'respectKeywords', 'beatSync', 'durMode', 'targetDur', 'showSafe', 'fps', 'quality', 'latinFont', 'arabicFont', 'size', 'musicVol', 'fadeIn', 'fadeOut', 'refUseCuts', 'refUseEnergy', 'refUseColors', 'refUseAudio', 'olUrl', 'olModel', 'cfUrl', 'cfCkpt', 'ttsOn', 'voice', 'imgOn', 'stockOn', 'pxKey', 'stockNoPeople', 'stockN', 'stockMode', 'flowXF', 'flowMax', 'flowMatch', 'sfxOn', 'sfxVol', 'fsKey', 'fsCC0', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause', 'fastDecode', 'gmKey', 'gmStyle', 'clKey', 'clModel', 'writer', 'dirBudget', 'dirMedia', 'dirPick'];
 for (const k of FIELDS) {
   const el = document.getElementById(k); if (!el) continue;
   el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
     F[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value;
-    if (['olUrl', 'olModel', 'gmKey', 'cfUrl', 'cfCkpt', 'pxKey', 'stockNoPeople', 'stockN', 'fsKey', 'fsCC0'].includes(k)) { save(); return; }
+    if (['olUrl', 'olModel', 'gmKey', 'clKey', 'clModel', 'writer', 'dirBudget', 'dirMedia', 'dirPick', 'cfUrl', 'cfCkpt', 'pxKey', 'stockNoPeople', 'stockN', 'fsKey', 'fsCC0'].includes(k)) { save(); return; }
     if (['sfxOn', 'sfxVol'].includes(k)) { save(); return; }
     if (['stockOn', 'stockMode', 'flowXF', 'flowMax', 'flowMatch'].includes(k)) { save(); rebuild(); renderStockGrid(); return; }
     if (['ttsOn', 'voice', 'capOn', 'capMode', 'capHideSub', 'ttsSpeed', 'ttsPitch', 'ttsPause'].includes(k)) { save(); rebuild(); updateAiAudioStatus(); $$('output[data-for]').forEach(fmtOut); return; }
@@ -526,7 +536,7 @@ $('#bLogo').onchange = async e => {
 };
 $('#bLogoDel').onclick = () => { if (brief.logoId && !projRefs().has(brief.logoId)) delFile(brief.logoId); brief.logoId = ''; film.logo = null; save(); syncBrief(); film.clearTexts(); dirty = true; };
 function applyScenes(scenes, label) {
-  items = scenes.map(sc => makeItem({ ...sc, stockQ: sc.q || '' })); sel = 0;
+  items = scenes.map(sc => makeItem({ ...sc, stockQ: sc.q || '', ...(sc.prompt ? { imgPrompt: sc.prompt } : {}) })); sel = 0;
   const f = FORMATS[F.fmt]; if (f && f.style && STYLES[f.style]) F.style = f.style;
   F.seed = (F.seed % 9999) + 1; overrides = {};
   listChanged(); syncUI(); toast(label);
@@ -1040,11 +1050,14 @@ function renderVoices() {
   for (const id of ['#voice', '#ezVoice']) { const el = $(id); if (!el) continue; el.innerHTML = voiceOpts(); el.value = F.voice; }
   $('#voiceDl').style.display = isGemini(F.voice) ? 'none' : '';
   $('#gmBadge').textContent = useGm() ? '· bağlı' : '';
-  if ($('#ezGmBox')) { $('#ezGmBox').style.display = useGm() ? 'none' : ''; $('#ezAIRow').style.display = useGm() ? '' : 'none'; }
+  const w = writerOf();
+  if ($('#ezGmBox')) { $('#ezGmBox').style.display = (useGm() || useCl()) ? 'none' : ''; $('#ezAIRow').style.display = w !== 'ollama' ? '' : 'none'; $('#ezDirRow').style.display = w !== 'ollama' ? '' : 'none'; $('#ezWho').textContent = WRITER_NAME[w]; }
+  $('#clBadge').textContent = useCl() ? '· bağlı' : ''; $('#dirWho').textContent = '· yazar: ' + WRITER_NAME[w] + (useGm() ? ' · görüntü: Gemini' : '');
 }
 renderVoices();
 $('#voice').addEventListener('change', () => setTimeout(renderVoices));
-if (useGm()) $('#ezAI').checked = true;
+if (useGm() || useCl()) $('#ezAI').checked = true;
+$('#ezBudget').value = F.dirBudget; $('#ezBudget').onchange = e => { F.dirBudget = e.target.value; save(); syncUI(); };
 $('#ezVoice').onchange = e => { $('#voice').value = e.target.value; $('#voice').dispatchEvent(new Event('change')); };
 async function gmConnect(key, st) {
   key = (key || '').trim(); if (!key) return false;
@@ -1062,6 +1075,15 @@ async function gmConnect(key, st) {
 $('#gmTest').onclick = () => gmConnect($('#gmKey').value, m => ($('#gmStatus').textContent = m));
 $('#gmKey').addEventListener('change', e => { if (!e.target.value.trim()) { F.gmKey = ''; save(); renderVoices(); if (isGemini(F.voice)) { F.voice = 'tr_TR-dfki-medium'; save(); renderVoices(); rebuild(); } } else gmConnect(e.target.value, m => ($('#gmStatus').textContent = m)); });
 $('#ezGmKey').addEventListener('change', e => gmConnect(e.target.value, m => ($('#ezGmSt').textContent = m)));
+$('#clModel').innerHTML = Object.entries(CLAUDE_MODELS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join(''); $('#clModel').value = F.clModel;
+async function clConnect(key, st) {
+  key = (key || '').trim(); if (!key) return false; st('Deneniyor…');
+  try { await claudeTest(key, F.clModel); F.clKey = key; $('#clKey').value = key; save(); renderVoices(); st(`✓ Bağlandı · ${CLAUDE_MODELS[F.clModel]}`); if ($('#ezAI')) $('#ezAI').checked = true; return true; }
+  catch (e) { st('✗ ' + e.message); return false; }
+}
+$('#clTest').onclick = () => clConnect($('#clKey').value, m => ($('#clStatus').textContent = m));
+$('#clKey').addEventListener('change', e => { if (!e.target.value.trim()) { F.clKey = ''; save(); renderVoices(); } else clConnect(e.target.value, m => ($('#clStatus').textContent = m)); });
+$('#clModel').addEventListener('change', () => setTimeout(renderVoices)); $('#writer').addEventListener('change', () => setTimeout(renderVoices));
 $('#gmStyle').addEventListener('change', e => { F.gmStyle = e.target.value; save(); rebuild(); updateAiAudioStatus(); });
 const GUIDE = `<ol>
 <li><b>Tek komutla kurulum (Mac):</b> Terminal'i açın ve şu satırı yapıştırın:
@@ -1457,10 +1479,11 @@ function renderTracks() {
       const fi = flow.findIndex(x => x.id === g.id), it = flow[fi] || {};
       v += `<div class="clip vid${selKind === 'video' && selIdx === fi ? ' on' : ''}" data-sel="video:${fi}" style="left:${pct(st)};width:${pct(en - st)};${it.thumb ? `background-image:url('${esc(it.thumb)}')` : ''}"><b>${fi + 1}</b></div>`;
     });
-  } else tl.shots.forEach(s => {
+  } else { const th = new Map(items.flatMap(it => (it.vids || []).map(x => [x.id, x]))); tl.shots.forEach(s => {
     if (s.scene !== 'video' || !(s.videos || []).length) return;
-    v += `<div class="clip vid" data-sel="scene" style="left:${pct(s.start)};width:${pct(s.dur)}"><b>🎞</b></div>`;
-  });
+    const x = th.get(s.videos[0]) || {};
+    v += `<div class="clip vid" data-sel="scene" style="left:${pct(s.start)};width:${pct(s.dur)};${x.thumb ? `background-image:url('${esc(x.thumb)}')` : ''}"><b>${x.ai === 'video' ? '✨ AI klip' : x.ai === 'image' ? '✨ AI görsel' : '🎞'}</b></div>`;
+  }); }
   $('#trkVideo').innerHTML = v || '<span class="trk-empty">Video yok · Medya bölümünden ekleyin</span>';
   // seslendirme
   let a = ''; const off = itemOff();
@@ -1563,6 +1586,119 @@ window.addEventListener('keydown', e => {
 });
 new ResizeObserver(() => { try { renderTracks(); } catch (e) { } }).observe(document.getElementById('tlScroll'));
 
+
+/* ================= AI Yönetmen ================= */
+let dirAbort = null;
+const dirSt = m => { $('#dirStatus').textContent = m; if (busy || F.ui === 'kolay') $('#barTxt').textContent = m; };
+function renderHooks(hooks) {
+  $('#hookBox').innerHTML = hooks && hooks.length ? '<div class="muted" style="font-size:11px;margin:8px 0 4px">Alternatif açılışlar (tıklayınca ilk sahne değişir):</div>' + hooks.map((h, i) => `<button class="hook" data-h="${i}"><b>${esc(h.main)}</b><span>${esc(h.vo)}</span></button>`).join('') : '';
+  $('#hookBox').onclick = e => { const b = e.target.closest('[data-h]'); if (!b) return; const h = hooks[+b.dataset.h]; const i = Math.max(0, items.findIndex(it => it.kind === 'hook')); if (!items[i]) return; items[i].main = h.main; items[i].vo = h.vo; sel = i; listChanged(); $$('#hookBox .hook').forEach(x => x.classList.toggle('on', x === b)); toast('Açılış değiştirildi'); };
+}
+async function runDirector({ budget = F.dirBudget, media = F.dirMedia } = {}) {
+  if (!(brief.text || '').trim() && !(brief.title || '').trim()) { toast('Önce konuyu ya da metni yazın'); return; }
+  if (writerOf() === 'ollama' && !(await aiReady())) { dirSt('✗ Yazar bağlı değil: Medya bölümünden Claude ya da Gemini anahtarı girin.'); return; }
+  dirAbort = new AbortController(); $('#dirGo').disabled = true; $('#dirStop').disabled = false; const t0 = performance.now();
+  try {
+    const r = await aiDirector(F.fmt, brief, aiOpt({ signal: dirAbort.signal, onStatus: dirSt, budget, lang: F.lang && F.lang !== 'tr' && LANGS[F.lang] ? LANGS[F.lang].name : 'Türkçe' }));
+    applyScenes(r.scenes, `${r.scenes.length} sahne yazıldı`);
+    if (r.share) { $('#shareText').value = r.share; $('#shareBox').style.display = ''; store.set('vs-share', r.share); }
+    if (r.voiceStyle) { F.gmStyle = r.voiceStyle; $('#gmStyle').value = r.voiceStyle; }
+    if (r.music && BEDS[r.music] && !(F.soundtrack && !String(F.soundtrack).startsWith('bed:'))) { await ensureBed(r.music); F.soundtrack = 'bed:' + r.music; renderMusic(); }
+    renderHooks(r.hooks); $('#polishNotes').innerHTML = '';
+    save(); rebuild();
+    dirSt(`Plan hazır (${((performance.now() - t0) / 1000).toFixed(0)} sn): ${r.scenes.length} sahne, ${r.hooks.length} alternatif açılış${r.voiceStyle ? ', ses üslubu: ' + r.voiceStyle : ''}.`);
+    if (media) await produceMedia(dirAbort.signal);
+  } catch (e) { dirSt(e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message); }
+  $('#dirGo').disabled = false; $('#dirStop').disabled = true; dirAbort = null;
+}
+function thumbFrom(id) {
+  try { const el = film.videos.get(id); const w = el.videoWidth || el.naturalWidth, h = el.videoHeight || el.naturalHeight; const c = document.createElement('canvas'); c.width = 160; c.height = Math.round(160 * h / w) || 90; c.getContext('2d').drawImage(el, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.6); } catch (e) { return ''; }
+}
+async function produceMedia(signal, only = null) {
+  const gm = useGm(), px = !!F.pxKey.trim();
+  let models = {}; if (gm) { try { models = await geminiModels(F.gmKey.trim()); } catch (e) { } }
+  const [W, H] = outDims(); const aspect = aspectOf(W, H);
+  const jobs = items.map((it, i) => ({ i, it, kind: it.visual || 'stock' })).filter(j => (only == null ? !(j.it.vids || []).some(v => film.videos.has(v.id)) : j.i === only));
+  const fit = k => { if (k === 'video' && !(gm && models.video)) k = 'image'; if (k === 'image' && !(gm && models.image)) k = 'stock'; if (k === 'stock' && !px) k = gm && models.image ? 'image' : null; return k; };
+  jobs.forEach(j => (j.kind = fit(j.kind)));
+  const todo = jobs.filter(j => j.kind);
+  if (!todo.length) { dirSt(px || gm ? 'Bütün sahnelerin görüntüsü var.' : '✗ Görüntü için Pixabay ya da Gemini anahtarı gerekli.'); return; }
+  const nV = todo.filter(j => j.kind === 'video').length, nI = todo.filter(j => j.kind === 'image').length;
+  const est = nV * 6 * GM_PRICE.videoSec + nI * GM_PRICE.image + (F.dirPick && gm ? todo.filter(j => j.kind === 'stock').length * 0.002 : 0);
+  if (nV + nI > 0) {
+    const ok = confirm(`Tahmini maliyet: yaklaşık ${fmtUsd(est)}\n${nV ? nV + ' yapay zekâ klibi (her biri 1-3 dk sürer)\n' : ''}${nI ? nI + ' yapay zekâ görseli\n' : ''}${todo.length - nV - nI ? (todo.length - nV - nI) + ' hazır video (ücretsiz)\n' : ''}\nDevam edilsin mi? ("İptal" derseniz ücretli sahneler hazır videoyla doldurulur.)`);
+    if (!ok) { if (!px) { dirSt('İptal edildi.'); return; } todo.forEach(j => { if (j.kind !== 'stock') j.kind = 'stock'; }); }
+  }
+  if (!F.stockOn || F.stockMode !== 'item') { F.stockOn = true; F.stockMode = 'item'; syncUI(); }
+  if (!['gercek', 'sinematik', 'noir', 'gece', 'modern'].includes(F.style)) { F.style = 'gercek'; syncUI(); }
+  const exclude = new Set(items.flatMap(it => (it.vids || []).map(x => x.px).filter(Boolean)));
+  let done = 0, fails = 0; const t0 = performance.now();
+  for (const [k, j] of todo.entries()) {
+    if (signal && signal.aborted) throw Object.assign(new Error('Durduruldu'), { name: 'AbortError' });
+    const it = items[j.i]; if (!it) continue;
+    const label = `Görüntü ${k + 1}/${todo.length} · #${j.i + 1}`;
+    const prompt = it.imgPrompt || it.stockQ || it.main;
+    let kind = j.kind, vids = null;
+    while (kind && !vids) {
+      try {
+        if (kind === 'video') {
+          dirSt(`${label}: yapay zekâ klibi üretiliyor (1-3 dk)…`);
+          const { blob, dur } = await geminiVideo(F.gmKey.trim(), prompt, { aspect, signal, onStatus: m => dirSt(`${label}: ${m}`) });
+          const id = 'ai:v:' + newId(); await putFile({ id, kind: 'stock', name: 'Yapay zekâ klibi', type: 'video/mp4', blob, order: Date.now() });
+          if (await loadVideo(id)) vids = [{ id, dur, ai: 'video', thumb: thumbFrom(id) }];
+        } else if (kind === 'image') {
+          dirSt(`${label}: yapay zekâ görseli üretiliyor…`);
+          const blob = await geminiImage(F.gmKey.trim(), prompt, { aspect, signal });
+          const id = 'ai:i:' + newId(); await putFile({ id, kind: 'stock', name: 'Yapay zekâ görseli', type: blob.type || 'image/jpeg', blob, still: 6, order: Date.now() });
+          if (await loadVideo(id)) vids = [{ id, dur: 6, ai: 'image', thumb: thumbFrom(id) }];
+        } else if (kind === 'stock') {
+          dirSt(`${label}: hazır video aranıyor…`);
+          const hits = await findClips(F.pxKey.trim(), it, itemScene(it), { n: F.dirPick && gm ? 6 : 1, portrait: H > W, noPeople: F.stockNoPeople, exclude, signal });
+          if (!hits.length) throw new Error('uygun hazır video yok');
+          let h = hits[0];
+          if (F.dirPick && gm && hits.length > 1) { dirSt(`${label}: Gemini en uygun çekimi seçiyor…`); try { h = hits[await geminiPick(F.gmKey.trim(), [it.main, it.sub, it.vo].filter(Boolean).join(' — '), hits.map(x => thumbOf(x)), { signal })] || h; } catch (e) { } }
+          const v = await saveHit(h, W, H, signal, (g, tot) => dirSt(`${label}: indiriliyor… ${mb(g, tot)}`));
+          if (v) { exclude.add(v.px); vids = [v]; }
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        console.warn('görüntü', kind, e); dirSt(`${label}: ${e.message}`);
+        if (/kota|quota|429/i.test(e.message) && kind !== 'stock') { }
+      }
+      if (!vids) kind = kind === 'video' ? fit('image') : kind === 'image' ? (px ? 'stock' : null) : null;
+    }
+    if (vids) { setVids(j.i, vids); done++; renderStockGrid(); rebuild(); } else fails++;
+  }
+  save(); rebuild(); renderStockGrid(); renderList();
+  dirSt(`Görüntüler hazır: ${done} sahne${fails ? `, ${fails} sahnede görüntü bulunamadı (3D arka plan kullanılır)` : ''} · ${((performance.now() - t0) / 1000).toFixed(0)} sn. Bu ay: ${fmtUsd(costState().claude + costState().gemini)}`);
+}
+$('#dirGo').onclick = () => runDirector();
+$('#dirMediaGo').onclick = async () => { if (!items.length) return toast('Önce sahneleri oluşturun'); dirAbort = new AbortController(); $('#dirStop').disabled = false; try { await produceMedia(dirAbort.signal); } catch (e) { dirSt(e.name === 'AbortError' ? 'Durduruldu' : '✗ ' + e.message); } $('#dirStop').disabled = true; dirAbort = null; };
+$('#dirStop').onclick = () => dirAbort && dirAbort.abort();
+$('#bPolish').onclick = async () => {
+  if (!items.length) return toast('Önce sahneleri oluşturun');
+  if (!(await aiReady())) { $('#bStatus').textContent = '✗ Yapay zekâ bağlı değil: Medya bölümünden Claude ya da Gemini anahtarı girin.'; return; }
+  $('#bPolish').disabled = true;
+  try {
+    const r = await aiPolish(F.fmt, items.map(plainItem), aiOpt({ onStatus: m => ($('#bStatus').textContent = m) }));
+    r.scenes.forEach((sc, i) => { const it = items[i]; if (!it) return; it.tag = sc.tag; it.main = sc.main; it.sub = sc.sub; it.vo = sc.vo; });
+    listChanged();
+    $('#polishNotes').innerHTML = r.notes.map(n => `<li>${esc(n)}</li>`).join('');
+    $('#bStatus').textContent = `Senaryo güçlendirildi (${WRITER_NAME[writerOf()]}). Değişiklikler aşağıda; beğenmezseniz Ctrl+Z ile geri alın.`;
+  } catch (e) { $('#bStatus').textContent = '✗ ' + e.message; }
+  $('#bPolish').disabled = false;
+};
+/* harcama sayacı */
+function renderCost() {
+  const c = costState(); $('#costChip').textContent = '💲 ' + fmtUsd(c.claude + c.gemini);
+  $('#costChip').title = `Bu ay (tahmini): Claude ${fmtUsd(c.claude)} · Gemini ${fmtUsd(c.gemini)}. Gerçek tutar sağlayıcı panelindedir.`;
+}
+onCost(renderCost); renderCost();
+$('#costChip').onclick = () => {
+  const c = costState(); const by = {}; for (const l of c.log) { const k = l.p + ' · ' + l.what; by[k] = (by[k] || 0) + l.usd; }
+  alert(`Bu ayki tahmini yapay zekâ harcaması (${c.month})\n\nClaude: ${fmtUsd(c.claude)}\nGemini: ${fmtUsd(c.gemini)}\n\n` + Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => `${k}: ${fmtUsd(v)}`).join('\n') + '\n\nBu bir tahmindir; kesin tutar Anthropic ve Google panellerindedir.');
+};
+
 /* ================= Kolay mod ================= */
 let ezDirty = false;
 function ezSync() { try { ezSync0(); } catch (e) { } }
@@ -1636,12 +1772,14 @@ $('#ezGo').onclick = async () => {
   $('#ezGo').disabled = true;
   try {
     if (!items.length || ezDirty) {
-      if (useGm() && $('#ezAI').checked) { $('#barTxt').textContent = 'Gemini senaryoyu yazıyor…'; await $('#bAI').onclick(); if (/^✗/.test($('#bStatus').textContent)) { toast($('#bStatus').textContent); $('#bMake').click(); } }
+      if (writerOf() !== 'ollama' && $('#ezDir').checked) { await runDirector({ budget: $('#ezBudget').value, media: true }); if (!items.length) $('#bMake').click(); }
+      else if (writerOf() !== 'ollama' && $('#ezAI').checked) { $('#barTxt').textContent = WRITER_NAME[writerOf()] + ' senaryoyu yazıyor…'; await $('#bAI').onclick(); if (/^✗/.test($('#bStatus').textContent)) { toast($('#bStatus').textContent); $('#bMake').click(); } }
       else $('#bMake').click();
       ezDirty = false;
     }
     if (!items.length) return;
-    if (!flow.length && (F.pxKey || '').trim()) { ezStockOn(); $('#barTxt').textContent = 'Müzik ve çekimler seçiliyor…'; await $('#bAuto').onclick(); }
+    const hasItemMedia = F.stockMode === 'item' && items.some(it => (it.vids || []).length);
+    if (!flow.length && !hasItemMedia && (F.pxKey || '').trim()) { ezStockOn(); $('#barTxt').textContent = 'Müzik ve çekimler seçiliyor…'; await $('#bAuto').onclick(); }
     const L = renderQC(); for (const x of L) if (x.lv === 'err' && x.fix) { try { await x.fix(); } catch (er) { } }
     renderList(); loadEditor(); rebuild();
     if (renderQC().some(x => x.lv === 'err')) { const msg = renderQC().filter(x => x.lv === 'err').map(x => x.msg).join(' · '); if (!confirm('Videoda sorun olabilir: ' + msg + '\nYine de üretilsin mi?')) return; }

@@ -2,7 +2,7 @@
 // Sahne: { kind, tag, main, sub, num, cta, src, vo, q }
 //   kind: hook | point | item | quote | problem | solution | feature | price | cta
 //   vo: seslendirilecek metin (yoksa main + sub okunur), q: çekim arama ipucu
-import { ollamaChat as _ollamaChat, parseJSONLoose } from './ai/local.js?v=202611271237';
+import { ollamaChat as _ollamaChat, parseJSONLoose } from './ai/local.js?v=202611271249';
 
 export const FORMATS = {
   bilgi: {
@@ -121,10 +121,18 @@ Ayrıca YouTube başlığı (youtubeTitle), 2-3 cümlelik açıklama (descriptio
   const raw = await chat(o, [{ role: 'system', content: sys }, { role: 'user', content: user }], { schema: SCHEMA, temperature: 0.5, signal, onToken: n => onStatus(`Senaryo yazılıyor… ${n} parça`) });
   const j = parseJSONLoose(raw);
   if (!j || !Array.isArray(j.scenes) || !j.scenes.length) throw new Error('Model geçerli bir senaryo döndürmedi, tekrar deneyin');
+  const { scenes, share } = mapScenes(fmt, brief, j);
+  return { scenes, share, title: j.title || brief.title || '' };
+}
+
+
+/** Model çıktısındaki sahneleri uygulamanın sahne biçimine çevirir (ek alanlar: visual, prompt) */
+export function mapScenes(fmt, brief, j) {
   let k = 0; const n = j.scenes.filter(s => s.kind === 'item').length;
   const scenes = j.scenes.map(s => {
     const kind = (s.kind || 'point').toLowerCase();
     const sc = { kind, tag: s.tag || '', main: (s.main || '').trim(), sub: (s.sub || '').trim(), vo: (s.vo || '').trim(), q: (s.q || '').trim() };
+    if (s.visual) sc.visual = String(s.visual).toLowerCase(); if (s.prompt) sc.prompt = String(s.prompt).trim();
     if (kind === 'item') { k++; sc.num = String(brief.countdown ? n - k + 1 : k); }
     if (kind === 'feature') sc.num = '✓';
     if (kind === 'hook' && fmt === 'liste' && !sc.tag && n) sc.tag = `TOP ${n}`;
@@ -134,7 +142,7 @@ Ayrıca YouTube başlığı (youtubeTitle), 2-3 cümlelik açıklama (descriptio
     return sc;
   }).filter(s => s.main);
   const share = [j.youtubeTitle, j.description, (j.hashtags || []).map(h => h.startsWith('#') ? h : '#' + h.replace(/\s+/g, '')).join(' ')].filter(Boolean).join('\n\n');
-  return { scenes, share, title: j.title || brief.title || '' };
+  return { scenes, share };
 }
 
 /** İçerik takvimi: konu/sektör için n günlük video planı (her biri başlık + metin) */
@@ -169,4 +177,71 @@ export async function aiTranslate(scenes, langName, o = {}) {
   const j = parseJSONLoose(raw);
   if (!j || !Array.isArray(j.scenes)) throw new Error('Çeviri alınamadı, tekrar deneyin');
   return scenes.map((s, i) => { const t = j.scenes.find(x => x.i === i) || {}; return { ...s, tag: t.tag ?? s.tag, main: t.main || s.main, sub: s.sub ? (t.sub || s.sub) : '', cta: s.cta ? (t.cta || s.cta) : '', vo: s.vo ? (t.vo || '') : '', src: s.src ? (t.src || s.src) : '' }; });
+}
+
+/* ================= AI Yönetmen ================= */
+const DIR_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    hooks: { type: 'array', items: { type: 'object', properties: { main: { type: 'string' }, vo: { type: 'string' } }, required: ['main', 'vo'] } },
+    voiceStyle: { type: 'string' }, music: { type: 'string', enum: ['ambient', 'lofi', 'kurumsal', 'sinematik', 'enerjik'] },
+    scenes: { type: 'array', items: { type: 'object', properties: {
+      kind: { type: 'string', enum: ['hook', 'point', 'item', 'quote', 'problem', 'solution', 'feature', 'price', 'cta'] },
+      tag: { type: 'string' }, main: { type: 'string' }, sub: { type: 'string' }, vo: { type: 'string' },
+      visual: { type: 'string', enum: ['stock', 'image', 'video'] }, q: { type: 'string' }, prompt: { type: 'string' }
+    }, required: ['kind', 'main', 'vo', 'visual', 'q', 'prompt'] } },
+    youtubeTitle: { type: 'string' }, description: { type: 'string' }, hashtags: { type: 'array', items: { type: 'string' } }
+  },
+  required: ['scenes', 'hooks', 'voiceStyle', 'music']
+};
+const BUDGET = {
+  ekonomik: 'Görsel kaynağı: neredeyse her sahne "stock" (ücretsiz hazır video). Hazır videoda bulunması zor, çok özgün bir sahne varsa en çok 2 sahne "image".',
+  dengeli: 'Görsel kaynağı: açılış (hook) sahnesi "video" (yapay zekâ klibi, pahalı), soyut ya da özgün sahneler "image", sıradan sahneler "stock". En çok 1 "video".',
+  sinematik: 'Görsel kaynağı: tutarlı, sinematik bir görünüm için sahnelerin çoğu "video" (yapay zekâ klibi). Kapanış (cta) "image" olabilir.'
+};
+
+/** Konudan tam yapım planı: sahneler, her sahnenin görsel kaynağı ve istemi, ses üslubu, müzik, alternatif açılışlar */
+export async function aiDirector(fmt, brief, o = {}) {
+  const { signal, onStatus = () => { }, budget = 'dengeli', lang = 'Türkçe' } = o;
+  const F = FORMATS[fmt] || FORMATS.bilgi;
+  const sys = `Sen ödüllü bir kısa video (Reels, Shorts, TikTok) yaratıcı yönetmeni ve senaristisin. ${lang} yazarsın.
+Kurallar:
+- İlk 2 saniye her şeydir: açılış merak boşluğu açmalı, iddialı ya da şaşırtıcı olmalı, klişe ("Merhaba arkadaşlar", "Bugün size") kullanma.
+- Ekran yazıları (main) çok kısa ve vurucu; seslendirme (vo) doğal, konuşma dilinde, ekrandakini tekrar etmeyen, onu açan 1-2 cümle.
+- Her sahne bir öncekinden bir adım ileri götürür; tempo hızlı; kapanış net bir eylem çağrısı.
+- Kullanıcının verdiği bilgiler dışında olgu uydurma; emin olmadığın sayı yazma.
+- Her sahne için: "q" = Pixabay'de aranacak İngilizce 2-4 kelime; "prompt" = yapay zekâ görsel/video üreticisi için İngilizce, somut, sinematik tek paragraf (özne, ortam, ışık, kamera hareketi, renk). Görsellerde yazı, logo, tanınan kişi, marka olmasın.
+- "hooks": aynı videonun 3 farklı açılış alternatifi (main + vo).
+- "voiceStyle": seslendirmenin üslubu (ör. "Sıcak, merak uyandıran, hafif hızlı belgesel anlatıcısı").
+- "music": videonun ruhuna uygun müzik türü.
+Yalnızca JSON döndür.`;
+  const user = `Format: ${F.name}. ${GUIDE[fmt] || GUIDE.bilgi}
+${BUDGET[budget] || BUDGET.dengeli}
+${brief.title ? `Başlık/konu: ${brief.title}\n` : ''}${brief.brand ? `Marka: ${brief.brand}\n` : ''}${brief.cta ? `İstenen çağrı: ${brief.cta}\n` : ''}Bilgiler:
+"""
+${(brief.text || brief.title || '').slice(0, 6000)}
+"""
+Ayrıca YouTube başlığı, 2-3 cümlelik açıklama ve 5-8 hashtag yaz.`;
+  onStatus('Yönetmen planı yazıyor…');
+  const raw = await chat(o, [{ role: 'system', content: sys }, { role: 'user', content: user }], { schema: DIR_SCHEMA, temperature: 0.8, signal, what: 'yönetmen planı' });
+  const j = parseJSONLoose(raw);
+  if (!j || !Array.isArray(j.scenes) || !j.scenes.length) throw new Error('Geçerli bir plan gelmedi, tekrar deneyin');
+  const { scenes, share } = mapScenes(fmt, brief, j);
+  return { scenes, share, hooks: (j.hooks || []).filter(h => h && h.main), voiceStyle: j.voiceStyle || '', music: j.music || '', title: j.title || brief.title || '' };
+}
+
+/** Mevcut senaryoyu eleştirip güçlendirir; ne değiştiğini kısa notlarla döndürür */
+export async function aiPolish(fmt, scenes, o = {}) {
+  const { signal, onStatus = () => { } } = o;
+  const src = scenes.map((s, i) => ({ i, kind: s.kind, tag: s.tag || '', main: s.main || '', sub: s.sub || '', vo: s.vo || '' }));
+  const schema = { type: 'object', properties: { notes: { type: 'array', items: { type: 'string' } }, scenes: { type: 'array', items: { type: 'object', properties: { i: { type: 'integer' }, tag: { type: 'string' }, main: { type: 'string' }, sub: { type: 'string' }, vo: { type: 'string' } }, required: ['i', 'main'] } } }, required: ['scenes', 'notes'] };
+  onStatus('Senaryo inceleniyor…');
+  const raw = await chat(o, [
+    { role: 'system', content: 'Sen kısa video senaryosu editörüsün. Türkçe yazarsın. Senaryoyu izlenme süresi ve etkileşim açısından değerlendir: açılış ilk 2 saniyede tutuyor mu, yazılar kısa mı, seslendirme doğal mı, tempo ve kapanış güçlü mü. Sahne sayısını ve sırasını koru, sayıları ve olguları değiştirme, bilgi uydurma. Gerekeni iyileştir, iyi olanı olduğu gibi bırak. "notes" en çok 4 kısa madde: neyi neden değiştirdin. Yalnızca JSON döndür.' },
+    { role: 'user', content: `Format: ${(FORMATS[fmt] || FORMATS.bilgi).name}\n` + JSON.stringify({ scenes: src }) }
+  ], { schema, temperature: 0.5, signal, what: 'senaryo güçlendirme' });
+  const j = parseJSONLoose(raw);
+  if (!j || !Array.isArray(j.scenes)) throw new Error('İyileştirme alınamadı, tekrar deneyin');
+  return { notes: (j.notes || []).slice(0, 4), scenes: scenes.map((s, i) => { const t = j.scenes.find(x => x.i === i) || {}; return { ...s, tag: t.tag ?? s.tag, main: t.main || s.main, sub: t.sub ?? s.sub, vo: t.vo || s.vo }; }) };
 }
